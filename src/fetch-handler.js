@@ -27,10 +27,11 @@ export async function handleRequest(db, request) {
 
 // Each function instance opens one small
 // connection pool on its first request and reuses it while it stays warm.
-export function makePostgresHandler(databaseUrl, { maxConnections = 2 } = {}) {
+// createSchema: false when the tables come from migrations instead.
+export function makePostgresHandler(databaseUrl, { maxConnections = 2, createSchema = true } = {}) {
   let opening = null;
   const handle = async (request) => {
-    if (!opening) opening = openDatabase(databaseUrl, { maxConnections });
+    if (!opening) opening = openDatabase(databaseUrl, { maxConnections, createSchema });
     let db;
     try {
       db = await opening;

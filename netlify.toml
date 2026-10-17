@@ -5,8 +5,8 @@
 
 [build.environment]
   # Functions run on the build's Node version.
-  # Set DATABASE_URL (PostgreSQL) under Site configuration -> Environment variables;
-  # Netlify DB sets NETLIFY_DATABASE_URL itself.
+  # The database is Netlify Database (migrations in netlify/database/migrations/).
+  # Set DATABASE_URL under Site configuration -> Environment variables to use another PostgreSQL server.
   NODE_VERSION = "22"
 
 [functions]

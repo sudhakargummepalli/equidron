@@ -1,9 +1,10 @@
 // Database layer and Netlify handler tests, run against PGlite (real PostgreSQL
 // compiled to WebAssembly, in-process), so no database server is needed.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { settings } from '../src/auth.js';
-import { connect, initSchema, one, run, scalar, toPostgres, transaction } from '../src/db.js';
+import { connect, initSchema, one, run, scalar, SCHEMA, toPostgres, transaction } from '../src/db.js';
 import { makePostgresHandler } from '../src/fetch-handler.js';
 
 settings.pbkdf2Rounds = 1000;
@@ -25,6 +26,23 @@ test('inserts return ids, counts are numbers, failed transactions roll back', as
   assert.equal(await scalar(db, 'SELECT COUNT(*) FROM users'), 1);
   assert.equal((await one(db, 'SELECT email FROM users WHERE email LIKE ?', 'A@%')).email, 'a@example.com');
   await db.close();
+});
+
+test('the Netlify Database migration matches the schema', () => {
+  const file = readFileSync(new URL('../netlify/database/migrations/20261017000000_initial_schema.sql', import.meta.url), 'utf8');
+  assert.equal(file.replace(/^--.*\n/, '').trim(), SCHEMA.trim().replace(/\r\n/g, '\n'));
+});
+
+test('the Netlify function answers 503 when it has no database', async () => {
+  const saved = process.env.DATABASE_URL;
+  delete process.env.DATABASE_URL;
+  try {
+    const { default: fn } = await import('../netlify/functions/api.mjs');
+    const res = await fn(new Request('https://equidron.example/api/shop/meta'));
+    assert.equal(res.status, 503);
+  } finally {
+    if (saved !== undefined) process.env.DATABASE_URL = saved;
+  }
 });
 
 test('Netlify handler serves the API from Postgres', async () => {

@@ -72,14 +72,19 @@ See [DEMO.md](DEMO.md) for a click-by-click walkthrough of the seller and custom
 
 ## Deploying to Netlify
 
-Create a PostgreSQL database (Netlify DB, Neon or Supabase all work) and set `DATABASE_URL` under **Site configuration → Environment variables**. Netlify DB sets `NETLIFY_DATABASE_URL` itself, and that works too. Prefer the provider's *pooled* connection string when it offers one. Without a database URL, the API answers 503 "not connected to a database yet". Functions have no lasting disk, so the in-process PGlite isn't used there.
+On Netlify the app uses **Netlify Database**, Netlify's managed PostgreSQL:
+- Netlify provisions the database because `@netlify/database` is a dependency. Netlify Database needs a credit-based Netlify plan.
+- On every deploy, Netlify applies the SQL files in `netlify/database/migrations/`. `20261017000000_initial_schema.sql` creates the tables. It is generated from `SCHEMA` in `src/db.js`, and a test checks that the two match. To change the schema, add a new migration file. Never edit an applied one.
+- The function reads the connection string from Netlify (`NETLIFY_DB_URL`) and loads the sample data on its first request.
 
-The function opens a small connection pool per instance, creates the tables on its first request and loads the sample data once. Every request is a normal database transaction, so concurrent writes from many instances are safe.
+To use another PostgreSQL server instead (Neon, Supabase, RDS), set `DATABASE_URL` under **Site configuration → Environment variables**. The app then creates its own tables. Prefer the provider's *pooled* connection string when it offers one. With neither database, the API answers 503 "not connected to a database yet". Functions have no lasting disk, so the in-process PGlite isn't used there.
+
+The function opens a small connection pool per instance. Every request is a normal database transaction, so concurrent writes from many instances are safe.
 
 Setup:
 1. Push this folder to a GitHub repository. `data/` and `node_modules/` are git-ignored.
 2. In Netlify: **Add new site → Import from Git** and pick the repo. `netlify.toml` already sets the publish directory, the function and `NODE_VERSION = 22`.
-3. Set `DATABASE_URL`, deploy, then open `https://<your-site>.netlify.app/`. It redirects to `/shop/`.
+3. Deploy, then open `https://<your-site>.netlify.app/`. It redirects to `/shop/`.
 
 The Netlify runtime itself couldn't be tested from this machine, because the Netlify CLI isn't installed. The function's handler is covered by `tests/postgres.test.js`. The `pg` driver was checked against a PostgreSQL network endpoint, with the full seller flow and concurrent writes.
 

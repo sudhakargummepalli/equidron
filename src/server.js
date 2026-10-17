@@ -14,11 +14,13 @@ const MAX_BODY = 1_000_000;
 
 // target: a postgres:// URL, a PGlite data directory, or 'memory' (see db.js).
 // reset drops Equidron's tables first, so the sample data is loaded again.
-export async function openDatabase(target, { reset = false, ...options } = {}) {
+// createSchema: false when the tables come from migrations (Netlify Database applies
+// netlify/database/migrations/ on deploy).
+export async function openDatabase(target, { reset = false, createSchema = true, ...options } = {}) {
   const db = await connect(target, options);
   if (reset) await dropSchema(db);
   // In a transaction so concurrent first starts against one database don't race to create tables.
-  await transaction(db, () => initSchema(db));
+  if (createSchema) await transaction(db, () => initSchema(db));
   await seed(db);
   return db;
 }
