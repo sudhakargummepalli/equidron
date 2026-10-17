@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en" ng-app="shop">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Equidron Store</title>
+  <link rel="stylesheet" href="/common/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js"></script>
+  <script src="/common/common.js"></script>
+  <script src="/shop/shop.js"></script>
+</head>
+<body ng-controller="ShopCtrl as vm" ng-cloak>
+<header class="topbar">
+  <div class="inner">
+    <a class="logo" href="#/">equi<span>dron</span></a>
+    <div class="nav small">
+      <span>Deliver to</span>
+      <select ng-model="vm.city" ng-change="vm.setCity()" ng-options="c for c in vm.meta.cities" aria-label="Delivery city"></select>
+    </div>
+    <form class="grow searchbar" ng-submit="vm.search()" role="search">
+      <input type="text" ng-model="vm.q" placeholder="Search Equidron (try “phone”)" aria-label="Search products">
+      <button type="submit">Search</button>
+    </form>
+    <nav class="nav">
+      <a href="#/orders">Orders</a>
+      <a href="#/notifications" ng-if="vm.user">Alerts<span ng-if="vm.unread"> ({{vm.unread}})</span></a>
+      <a href="#/cart"><strong>Cart ({{vm.cart.count || 0}})</strong></a>
+      <span ng-if="vm.user">Hi, {{vm.user.name.split(' ')[0]}} · <button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logout()">Sign out</button></span>
+      <a ng-if="!vm.user" href="#/login">Sign in</a>
+    </nav>
+  </div>
+</header>
+<div class="subnav"><div class="inner">
+  <a href="" ng-click="vm.pickCategory('')" ng-class="{on: !vm.category && vm.route.name !== 'support'}">All</a>
+  <a href="" ng-repeat="c in vm.meta.categories" ng-click="vm.pickCategory(c)" ng-class="{on: vm.category === c}">{{c}}</a>
+  <a href="#/support" ng-class="{on: vm.route.name === 'support'}">Customer service</a>
+</div></div>
+<div class="sample" ng-if="vm.meta.sample_notice">{{vm.meta.sample_notice}}</div>
+
+<main>
+  <div class="alert bad" ng-if="vm.err">{{vm.err}}</div>
+  <div class="alert good" ng-if="vm.notice">{{vm.notice}}</div>
+
+  <!-- ============ SEARCH ============ -->
+  <section ng-if="vm.route.name === '' || vm.route.name === 'search'">
+    <div class="row between" style="margin-bottom:10px">
+      <h1 style="margin:0">{{vm.q ? 'Results for “' + vm.q + '”' : (vm.category || 'Shop everything')}}</h1>
+      <div class="row small">
+        <label class="row" style="font-weight:500;margin:0"><input type="checkbox" ng-model="vm.showFactors"> Show ranking factors</label>
+        <select ng-model="vm.sort" ng-change="vm.search()" style="width:auto" aria-label="Sort">
+          <option value="relevance">Sort: Featured (ranked)</option>
+          <option value="price_asc">Price: low to high</option>
+          <option value="price_desc">Price: high to low</option>
+          <option value="rating">Customer rating</option>
+        </select>
+      </div>
+    </div>
+    <p class="muted small" ng-if="vm.sort === 'relevance'">Ranked by relevance to your search, availability for delivery to {{vm.city}}, customer experience (ratings and seller quality) and delivery speed.</p>
+    <p class="muted" ng-if="vm.loading">Searching…</p>
+    <div class="empty card" ng-if="!vm.loading && vm.results && !vm.results.length">No products match “{{vm.q}}”. Try “phone”, “laptop” or “coffee”.</div>
+    <div class="results">
+      <a class="pcard" ng-repeat="p in vm.results" href="#/product/{{p.id}}" style="text-decoration:none;color:inherit">
+        <img ng-src="{{p.images[0]}}" alt="{{p.title}}">
+        <div class="title">{{p.title}}</div>
+        <div class="small"><span class="stars">{{p.rating | stars}}</span> <span class="muted">{{p.review_count | number}}</span></div>
+        <div ng-if="p.featured_offer">
+          <span class="price">{{p.featured_offer.price_paise | inr}}</span><span class="mrp" ng-if="p.featured_offer.mrp_paise > p.featured_offer.price_paise">{{p.featured_offer.mrp_paise | inr}}</span>
+          <div class="small">Delivery by <strong>{{p.featured_offer.eta | day}}</strong></div>
+        </div>
+        <div ng-if="!p.featured_offer" class="small">
+          <span class="oos" ng-if="!p.in_stock">Currently unavailable</span>
+          <span class="oos" ng-if="p.in_stock">Not deliverable to {{vm.city}}</span>
+        </div>
+        <div class="small muted" ng-if="p.offer_count > 1">{{p.offer_count}} offers from {{p.min_price_paise | inr}}</div>
+        <div class="factors" ng-if="vm.showFactors">
+          Score {{p.score}} · relevance {{p.factors.relevance}} · availability {{p.factors.availability}} ·
+          experience {{p.factors.customer_experience}} · speed {{p.factors.delivery_speed}}
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ============ PRODUCT ============ -->
+  <section ng-if="vm.route.name === 'product' && vm.product">
+    <p class="small"><a href="" ng-click="vm.pickCategory(vm.product.category)">{{vm.product.category}}</a></p>
+    <div class="pdp">
+      <div class="gallery">
+        <img class="main" ng-src="{{vm.mainImg}}" alt="{{vm.product.title}}">
+        <div class="thumbs"><img ng-repeat="i in vm.product.images" ng-src="{{i}}" ng-class="{on: i === vm.mainImg}" ng-click="vm.mainImg = i" alt="Product image {{$index+1}}"></div>
+      </div>
+      <div>
+        <h1>{{vm.product.title}}</h1>
+        <div class="small">Brand: <strong>{{vm.product.brand}}</strong> · <span class="stars">{{vm.product.rating | stars}}</span> {{vm.product.rating}} ({{vm.product.review_count | number}} ratings)</div>
+        <hr>
+        <div ng-if="vm.featured">
+          <span class="price" style="font-size:1.6rem">{{vm.featured.price_paise | inr}}</span>
+          <span class="mrp" ng-if="vm.featured.mrp_paise > vm.featured.price_paise">M.R.P. {{vm.featured.mrp_paise | inr}}</span>
+          <div class="small muted">Featured offer from {{vm.featured.seller_name}} · inclusive of all taxes</div>
+        </div>
+        <div class="alert warn" ng-if="!vm.featured">No seller can deliver this to {{vm.city}} right now.</div>
+        <p>{{vm.product.description}}</p>
+        <p class="small muted" ng-if="vm.product.return_window_days">{{vm.product.return_window_days}}-day returns on delivered items.</p>
+        <p class="small muted" ng-if="!vm.product.return_window_days">This item is not returnable.</p>
+
+        <h2>Offers from {{vm.product.offers.length}} seller{{vm.product.offers.length > 1 ? 's' : ''}}</h2>
+        <div class="offer" ng-repeat="o in vm.product.offers" ng-class="{featured: o.is_featured}">
+          <div>
+            <div class="row"><span class="price">{{o.price_paise | inr}}</span>
+              <span class="badge good" ng-if="o.is_featured">Featured offer</span>
+              <span class="badge info" ng-if="o.condition !== 'new'">{{o.condition | label}}</span></div>
+            <div class="small">Sold by <strong>{{o.seller_name}}</strong> <span class="stars">{{o.seller_rating | stars}}</span> {{o.seller_rating}} ({{o.seller_rating_count | number}}) · {{o.fulfilment_label}}</div>
+            <div class="small" ng-if="o.available && o.deliverable">Delivery by <strong>{{o.eta | day}}</strong> to {{vm.city}} · <span ng-if="o.available < 10" class="oos">Only {{o.available}} left</span><span ng-if="o.available >= 10">In stock</span></div>
+            <div class="small oos" ng-if="!o.available">Out of stock</div>
+            <div class="small oos" ng-if="o.available && !o.deliverable">Ships only to {{o.ships_to.join(', ')}}</div>
+          </div>
+          <div class="actions" ng-if="o.available && o.deliverable">
+            <select ng-model="o.qty" ng-options="n for n in vm.qtyOptions(o)" aria-label="Quantity"></select>
+            <button class="btn primary" ng-click="vm.addToCart(o)">Add to cart</button>
+          </div>
+        </div>
+
+        <h2 style="margin-top:18px">Specifications</h2>
+        <table class="specs"><tr ng-repeat="(k, v) in vm.product.specs"><th>{{k}}</th><td>{{v}}</td></tr></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CART ============ -->
+  <section ng-if="vm.route.name === 'cart' && vm.user">
+    <div class="layout-cart">
+      <div class="card">
+        <h1>Shopping cart</h1>
+        <div class="empty" ng-if="!vm.cart.items.length">Your cart is empty. <a href="#/">Continue shopping</a></div>
+        <div class="cartline" ng-repeat="l in vm.cart.items">
+          <img ng-src="{{l.image}}" alt="">
+          <div>
+            <a href="#/product/{{l.product_id}}"><strong>{{l.title}}</strong></a>
+            <div class="small muted">Sold by {{l.seller_name}}</div>
+            <div class="small oos" ng-if="!l.active">No longer available</div>
+            <div class="small oos" ng-if="l.active && l.available < l.qty">Only {{l.available}} in stock</div>
+            <div class="small" ng-if="l.price_changed" style="color:var(--warn)">Price changed from {{l.price_at_add_paise | inr}} since you added it.</div>
+            <div class="row" style="margin-top:6px">
+              <span class="qty"><button ng-click="vm.setQty(l, l.qty - 1)" aria-label="Decrease">−</button><span>{{l.qty}}</span><button ng-click="vm.setQty(l, l.qty + 1)" aria-label="Increase">+</button></span>
+              <button class="linkbtn small" ng-click="vm.remove(l)">Remove</button>
+            </div>
+          </div>
+          <div class="right"><strong>{{l.line_total_paise | inr}}</strong><div class="small muted">{{l.price_paise | inr}} each</div></div>
+        </div>
+      </div>
+      <div class="card summary" ng-if="vm.cart.items.length">
+        <div class="line"><span>Items ({{vm.cart.count}})</span><span>{{vm.cart.estimate.subtotal_paise | inr}}</span></div>
+        <div class="line"><span>Delivery</span><span>{{vm.cart.estimate.shipping_paise ? (vm.cart.estimate.shipping_paise | inr) : 'Free'}}</span></div>
+        <div class="line total"><span>Estimated total</span><span>{{vm.cart.estimate.total_paise | inr}}</span></div>
+        <p class="small muted">Free delivery on orders over {{vm.cart.estimate.free_shipping_from_paise | inr}}. Prices, stock and delivery are checked again at checkout.</p>
+        <a class="btn primary" style="width:100%" href="#/checkout">Proceed to checkout</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CHECKOUT ============ -->
+  <section ng-if="vm.route.name === 'checkout' && vm.user">
+    <h1>Checkout</h1>
+    <div class="layout-cart">
+      <div>
+        <div class="card">
+          <h2>1. Delivery address</h2>
+          <label class="radio" ng-repeat="a in vm.addresses" ng-class="{on: vm.co.address_id === a.id}">
+            <input type="radio" ng-model="vm.co.address_id" ng-value="a.id" ng-change="vm.review()">
+            <span><strong>{{a.name}}</strong>, {{a.line1}}, {{a.city}} {{a.pincode}} · {{a.phone}}</span>
+          </label>
+          <button class="linkbtn" ng-if="!vm.co.addingAddress" ng-click="vm.co.addingAddress = true">+ Add a new address</button>
+          <form ng-if="vm.co.addingAddress" ng-submit="vm.addAddress()" class="form-grid" style="margin-top:10px">
+            <div class="field" ng-class="{invalid: vm.co.addrErrors.name}"><label>Full name</label><input type="text" ng-model="vm.co.newAddr.name"><div class="err">{{vm.co.addrErrors.name}}</div></div>
+            <div class="field" ng-class="{invalid: vm.co.addrErrors.line1}"><label>Address</label><input type="text" ng-model="vm.co.newAddr.line1"><div class="err">{{vm.co.addrErrors.line1}}</div></div>
+            <div class="field" ng-class="{invalid: vm.co.addrErrors.city}"><label>City</label><select ng-model="vm.co.newAddr.city" ng-options="c for c in vm.meta.cities"></select><div class="err">{{vm.co.addrErrors.city}}</div></div>
+            <div class="field" ng-class="{invalid: vm.co.addrErrors.pincode}"><label>PIN code</label><input type="text" ng-model="vm.co.newAddr.pincode" inputmode="numeric"><div class="err">{{vm.co.addrErrors.pincode}}</div></div>
+            <div class="field" ng-class="{invalid: vm.co.addrErrors.phone}"><label>Phone</label><input type="text" ng-model="vm.co.newAddr.phone" inputmode="numeric"><div class="err">{{vm.co.addrErrors.phone}}</div></div>
+            <div class="field" style="align-self:end"><button class="btn dark" type="submit">Use this address</button></div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>2. Review items</h2>
+          <div class="alert warn" ng-if="vm.co.issues">
+            <strong>{{vm.co.changedMessage || 'We re-checked your cart:'}}</strong>
+            <ul><li ng-repeat="i in vm.co.issues">{{i.message}}</li></ul>
+            <div class="small" style="margin-top:6px">Price changes have been applied to your cart. Fix stock or delivery problems in your <a href="#/cart">cart</a>, then review again.</div>
+            <button class="btn small" style="margin-top:8px" ng-click="vm.co.changedMessage = null; vm.review()">Review again</button>
+          </div>
+          <table ng-if="vm.co.preview">
+            <tr ng-repeat="i in vm.co.preview.items"><td>{{i.title}}<div class="small muted">{{i.seller_name}} · arrives {{i.eta | day}}</div></td><td class="right">× {{i.qty}}</td><td class="right">{{i.price_paise * i.qty | inr}}</td></tr>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>3. Payment (simulated)</h2>
+          <p class="small muted">Equidron uses a simulated payment provider. You never enter a card number; each option below is a test token with a fixed outcome.</p>
+          <label class="radio" ng-repeat="p in vm.meta.payment_options" ng-class="{on: vm.co.payment === p}">
+            <input type="radio" ng-model="vm.co.payment" ng-value="p"> <span>{{p.label}} <span class="muted small">({{p.method | uppercase}})</span></span>
+          </label>
+          <div class="alert bad" ng-if="vm.co.declined">{{vm.co.declined}}</div>
+          <div class="alert bad" ng-if="vm.co.payError">{{vm.co.payError}}</div>
+        </div>
+      </div>
+      <div class="card summary">
+        <div class="line"><span>Items</span><span>{{vm.co.preview.totals.subtotal_paise | inr}}</span></div>
+        <div class="line"><span>Delivery</span><span>{{vm.co.preview.totals.shipping_paise ? (vm.co.preview.totals.shipping_paise | inr) : 'Free'}}</span></div>
+        <div class="line total"><span>Order total</span><span>{{vm.co.preview.totals.total_paise | inr}}</span></div>
+        <button class="btn primary" style="width:100%;margin-top:10px" ng-disabled="!vm.co.preview.ok || vm.co.placing" ng-click="vm.placeOrder()">{{vm.co.placing ? 'Placing order…' : 'Place your order'}}</button>
+        <p class="small muted">Card payments are authorized now and captured when each shipment leaves the warehouse. UPI is collected now. Cash on delivery is collected by the courier.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ORDERS ============ -->
+  <section ng-if="vm.route.name === 'orders' && !vm.route.id && vm.user">
+    <h1>Your orders</h1>
+    <div class="empty card" ng-if="vm.orders && !vm.orders.length">No orders yet.</div>
+    <a class="card" style="display:block;color:inherit;text-decoration:none" ng-repeat="o in vm.orders" href="#/orders/{{o.id}}">
+      <div class="row between"><strong>Order #{{o.id}}</strong><span class="small muted">{{o.created_at | when}}</span></div>
+      <div class="small"><span ng-repeat="i in o.items">{{i.title}} × {{i.qty}}<span ng-if="!$last"> · </span></span></div>
+      <div class="row small" style="margin-top:6px">
+        <span class="badge {{o.status | tone}}">Order: {{o.status | label}}</span>
+        <span class="badge {{o.payment_status | tone}}">Payment: {{o.payment_status | label}}</span>
+        <span class="badge {{o.fulfilment_status | tone}}">Fulfilment: {{o.fulfilment_status | label}}</span>
+        <strong style="margin-left:auto">{{o.total_paise | inr}}</strong>
+      </div>
+    </a>
+  </section>
+
+  <section ng-if="vm.route.name === 'orders' && vm.route.id && vm.order">
+    <div class="row between">
+      <h1 style="margin:0">Order #{{vm.order.id}}</h1>
+      <div class="row">
+        <a class="btn small" href="#/support?order={{vm.order.id}}">Get help</a>
+        <button class="btn small danger" ng-if="vm.order.cancellable" ng-click="vm.cancelOrder()">Cancel order</button>
+      </div>
+    </div>
+    <p class="small muted">Placed {{vm.order.created_at | when}} · Deliver to {{vm.order.address.name}}, {{vm.order.address.line1}}, {{vm.order.address.city}}</p>
+    <div class="statuses" style="margin-bottom:16px">
+      <div><span class="k">Order</span><span class="badge {{vm.order.status | tone}}">{{vm.order.status | label}}</span></div>
+      <div><span class="k">Payment</span><span class="badge {{vm.order.payment_status | tone}}">{{vm.order.payment_status | label}}</span></div>
+      <div><span class="k">Fulfilment</span><span class="badge {{vm.order.fulfilment_status | tone}}">{{vm.order.fulfilment_status | label}}</span></div>
+    </div>
+
+    <div class="grid cols-2">
+      <div>
+        <div class="card" ng-repeat="sh in vm.order.shipments">
+          <div class="row between">
+            <h2 style="margin:0">Shipment {{$index + 1}} of {{vm.order.shipments.length}}</h2>
+            <span class="badge {{sh.status | tone}}">{{sh.status | label}}</span>
+          </div>
+          <div class="small muted">From {{sh.warehouse_name}} · <span ng-if="sh.tracking_no">{{sh.carrier}} {{sh.tracking_no}} · </span>Expected {{sh.eta | day}}</div>
+          <div class="track" ng-if="sh.status !== 'cancelled'">
+            <div class="stage" ng-repeat="st in vm.STAGES" ng-class="{done: vm.stageDone(sh, st)}">{{st | label}}</div>
+          </div>
+          <div ng-repeat="it in sh.items" style="padding:8px 0;border-top:1px solid var(--line)">
+            <div class="row between"><a href="#/product/{{it.product_id}}">{{it.title}}</a><span>{{it.qty}} × {{it.unit_price_paise | inr}}</span></div>
+            <div class="small muted" ng-if="it.returned_qty">Returned: {{it.returned_qty}}</div>
+            <div class="small" ng-if="sh.status === 'delivered'">
+              <span class="muted">{{it.return_note}}</span>
+              <button class="linkbtn" ng-if="it.returnable && !vm.returnForm[it.id]" ng-click="vm.openReturn(it)">Return item</button>
+            </div>
+            <form ng-if="vm.returnForm[it.id]" ng-submit="vm.submitReturn(it)" class="row" style="margin-top:6px;align-items:end">
+              <div class="field" style="margin:0"><label>Qty</label><select ng-model="vm.returnForm[it.id].qty" ng-options="n for n in vm.range(it.returnable_qty)" style="width:auto"></select></div>
+              <div class="field" style="margin:0;flex:1"><label>Reason</label>
+                <select ng-model="vm.returnForm[it.id].reason">
+                  <option value="">Choose a reason</option><option>Damaged or defective</option><option>Wrong item delivered</option>
+                  <option>No longer needed</option><option>Better price elsewhere</option></select></div>
+              <button class="btn small primary" type="submit">Request return</button>
+              <button class="btn small" type="button" ng-click="vm.returnForm[it.id] = null">Cancel</button>
+              <div class="err small" style="color:var(--bad);width:100%" ng-if="vm.returnForm[it.id].error">{{vm.returnForm[it.id].error}}</div>
+            </form>
+          </div>
+          <div ng-if="sh.status === 'delivered'" class="small" style="margin-top:8px">
+            <span ng-if="sh.receipt_confirmed" class="badge good">You confirmed receipt</span>
+            <button class="btn small" ng-if="!sh.receipt_confirmed" ng-click="vm.confirmReceipt(sh)">Confirm I received this</button>
+          </div>
+          <details style="margin-top:10px"><summary class="small">Tracking history</summary>
+            <ul class="timeline"><li ng-repeat="e in sh.events"><strong>{{e.status | label}}</strong> · {{e.note}} <span class="muted">{{e.at | when}}</span></li></ul>
+          </details>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h2>Payment</h2>
+          <p class="small">{{vm.order.payment.instrument}} <span class="muted">({{vm.order.payment.method | uppercase}})</span></p>
+          <table class="small">
+            <tr><td>Order total</td><td class="right">{{vm.order.total_paise | inr}}</td></tr>
+            <tr ng-if="vm.order.payment.method !== 'cod'"><td>Authorized</td><td class="right">{{vm.order.payment.authorized_paise | inr}}</td></tr>
+            <tr><td>{{vm.order.payment.method === 'cod' ? 'Collected on delivery' : 'Captured (charged)'}}</td><td class="right">{{vm.order.payment.captured_paise | inr}}</td></tr>
+            <tr><td>Refunded</td><td class="right">{{vm.order.payment.refunded_paise | inr}}</td></tr>
+          </table>
+          <ul class="timeline" style="margin-top:10px"><li ng-repeat="e in vm.order.payment.events"><strong>{{e.kind | label}}</strong> {{e.amount_paise | inr}} · {{e.note}} <span class="muted">{{e.at | when}}</span></li></ul>
+        </div>
+        <div class="card" ng-if="vm.order.returns.length">
+          <h2>Returns and refunds</h2>
+          <div ng-repeat="r in vm.order.returns" class="small" style="padding:6px 0;border-bottom:1px solid var(--line)">
+            <div class="row between"><strong>Return #{{r.id}}: {{r.title}} × {{r.qty}}</strong><span class="badge {{r.status | tone}}">{{r.status | label}}</span></div>
+            <div class="muted">{{r.reason}}<span ng-if="r.refund_paise"> · refunded {{r.refund_paise | inr}}</span></div>
+          </div>
+        </div>
+        <div class="card small">
+          <div class="line row between"><span>Items</span><span>{{vm.order.subtotal_paise | inr}}</span></div>
+          <div class="line row between"><span>Delivery</span><span>{{vm.order.shipping_paise | inr}}</span></div>
+          <div class="line row between"><strong>Total</strong><strong>{{vm.order.total_paise | inr}}</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ NOTIFICATIONS ============ -->
+  <section ng-if="vm.route.name === 'notifications' && vm.user">
+    <h1>Notifications</h1>
+    <div class="card">
+      <div class="empty" ng-if="!vm.notes.length">Nothing yet.</div>
+      <div ng-repeat="n in vm.notes" style="padding:8px 0;border-bottom:1px solid var(--line)">
+        <a ng-href="{{n.link || '#/'}}">{{n.message}}</a> <span class="small muted">{{n.at | when}}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SUPPORT ============ -->
+  <section ng-if="vm.route.name === 'support' && vm.user">
+    <h1>Customer service</h1>
+    <div class="grid cols-2">
+      <form class="card" ng-submit="vm.createTicket()">
+        <h2>Contact us</h2>
+        <div class="field"><label>Order (optional)</label><input type="number" ng-model="vm.ticket.order_id" placeholder="Order number"></div>
+        <div class="field"><label>Subject</label><input type="text" ng-model="vm.ticket.subject" placeholder="e.g. Package arrived damaged"></div>
+        <div class="field"><label>Message</label><textarea ng-model="vm.ticket.message"></textarea></div>
+        <div class="alert bad" ng-if="vm.ticket.error">{{vm.ticket.error}}</div>
+        <button class="btn primary" type="submit">Send</button>
+      </form>
+      <div>
+        <div class="card" ng-repeat="t in vm.tickets">
+          <div class="row between"><strong>#{{t.id}} {{t.subject}}</strong><span class="badge {{t.status | tone}}">{{t.status | label}}</span></div>
+          <div class="small muted" ng-if="t.order_id">Order #{{t.order_id}}</div>
+          <ul class="timeline" style="margin-top:6px"><li ng-repeat="m in t.messages"><strong>{{m.author_role === 'ops' ? 'Equidron Support' : 'You'}}:</strong> {{m.body}} <span class="muted small">{{m.at | when}}</span></li></ul>
+          <form class="row" ng-submit="vm.replyTicket(t)" ng-if="t.status !== 'closed'" style="margin-top:6px"><input type="text" ng-model="t.reply" placeholder="Reply" style="flex:1"><button class="btn small">Send</button></form>
+        </div>
+        <div class="empty card" ng-if="vm.tickets && !vm.tickets.length">No support requests.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LOGIN ============ -->
+  <section ng-if="vm.route.name === 'login'" class="auth">
+    <div class="card">
+      <h1>{{vm.auth.mode === 'login' ? 'Sign in' : 'Create your Equidron account'}}</h1>
+      <p class="small muted">Customer accounts only. Sellers sign in at <a href="/seller/">Seller Central</a>.</p>
+      <form ng-submit="vm.submitAuth()">
+        <div class="field" ng-if="vm.auth.mode === 'register'"><label>Your name</label><input type="text" ng-model="vm.auth.form.name" autocomplete="name"></div>
+        <div class="field"><label>Email</label><input type="email" ng-model="vm.auth.form.email" autocomplete="username"></div>
+        <div class="field"><label>Password</label><input type="password" ng-model="vm.auth.form.password" autocomplete="{{vm.auth.mode === 'login' ? 'current-password' : 'new-password'}}"></div>
+        <div class="alert bad" ng-if="vm.auth.error">{{vm.auth.error}}</div>
+        <button class="btn primary" type="submit" style="width:100%">{{vm.auth.mode === 'login' ? 'Sign in' : 'Create account'}}</button>
+      </form>
+      <p class="small" style="margin-top:12px">
+        <button class="linkbtn" ng-click="vm.auth.mode = vm.auth.mode === 'login' ? 'register' : 'login'; vm.auth.error = null">
+          {{vm.auth.mode === 'login' ? 'New to Equidron? Create an account' : 'Already have an account? Sign in'}}</button>
+      </p>
+      <div class="demo-accounts">Sample customers (password <code>equidron-demo</code>):
+        <button class="linkbtn" ng-click="vm.useDemo('asha@example.com')">asha@example.com</button> ·
+        <button class="linkbtn" ng-click="vm.useDemo('rahul@example.com')">rahul@example.com</button></div>
+    </div>
+  </section>
+</main>
+<div class="toast" ng-if="toast" role="status">{{toast}}</div>
+</body>
+</html>

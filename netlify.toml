@@ -1,0 +1,16 @@
+# Static front ends from static/, API + images from netlify/functions/api.mjs.
+[build]
+  publish = "static"
+  command = "echo 'No build step: plain HTML/JS front end, Node API function.'"
+
+[build.environment]
+  # node:sqlite needs Node 22.13 or newer; functions run on the build's Node version.
+  NODE_VERSION = "22"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/"
+  to = "/shop/"
+  status = 302

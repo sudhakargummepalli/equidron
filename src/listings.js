@@ -1,0 +1,299 @@
+// Seller Central listing management: validation, review rules and approval.
+//
+// A seller never edits live data directly. Every change becomes a submission.
+// Submissions that only touch stock, handling time or a small price change are
+// approved automatically; anything else waits for an Equidron reviewer. Live
+// listings stay unchanged until the submission is approved.
+import { CATEGORIES, CITIES, stockByWarehouse } from './catalog.js';
+import { all, dumps, loads, now, one, run } from './db.js';
+import { badRequest, conflict, forbidden, notFound } from './errors.js';
+import { notify } from './notify.js';
+
+export const PRICE_REVIEW_THRESHOLD = 0.2;
+const RESTRICTED_TERMS = ['replica', 'counterfeit', 'first copy', 'fake', 'duplicate', 'imitation'];
+const CONTENT_FIELDS = ['title', 'brand', 'category', 'description', 'specs', 'images'];
+const JSON_FIELDS = new Set(['specs', 'images']);
+const IMAGE_RE = /^(https:\/\/\S+|\/img\/[A-Za-z0-9_\-]+\.svg)$/;
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
+function toPaise(value, field, errors, required = true) {
+  if (value === undefined || value === null || value === '') {
+    if (required) errors[field] = 'Required.';
+    return null;
+  }
+  const s = String(value).trim();
+  if (!/^\d+(\.\d+)?$/.test(s)) {
+    errors[field] = s.startsWith('-') ? 'Must be between ₹1 and ₹10,00,000.' : 'Enter a number, like 1299 or 1299.50.';
+    return null;
+  }
+  const [rupees, frac = ''] = s.split('.');
+  if (frac.replace(/0+$/, '').length > 2) {
+    errors[field] = 'Use at most two decimal places.';
+    return null;
+  }
+  const paise = Number(rupees) * 100 + Number((frac + '00').slice(0, 2));
+  if (paise < 100 || paise > 100_000_000) {
+    errors[field] = 'Must be between ₹1 and ₹10,00,000.';
+    return null;
+  }
+  return paise;
+}
+
+function toInt(value, field, errors, lo, hi) {
+  const s = String(value ?? '').trim();
+  if (!/^-?\d+$/.test(s)) {
+    errors[field] = 'Enter a whole number.';
+    return null;
+  }
+  const n = Number(s);
+  if (n < lo || n > hi) {
+    errors[field] = `Must be between ${lo} and ${hi}.`;
+    return null;
+  }
+  return n;
+}
+
+// Returns [cleanPayload, errors]. Product content is required only for new products.
+export function validate(data, kind) {
+  const errors = {};
+  const clean = {};
+  const needContent = kind === 'new_product';
+
+  for (const [field, lo, hi] of [['title', 5, 200], ['brand', 1, 60], ['description', 20, 5000]]) {
+    const value = String(data[field] || '').trim();
+    if (!value) {
+      if (needContent) errors[field] = 'Required.';
+      continue;
+    }
+    if (value.length < lo || value.length > hi) errors[field] = `Must be ${lo}–${hi} characters.`;
+    clean[field] = value;
+  }
+  if (data.category || needContent) {
+    if (!CATEGORIES.includes(data.category)) errors.category = 'Choose a category.';
+    else clean.category = data.category;
+  }
+  if (has(data, 'specs') || needContent) {
+    const specs = data.specs || {};
+    if (typeof specs !== 'object' || Array.isArray(specs) || Object.values(specs).some((v) => typeof v !== 'string')) {
+      errors.specs = 'Specifications must be name/value text pairs.';
+    } else if (Object.keys(specs).length > 30) {
+      errors.specs = 'At most 30 specifications.';
+    } else {
+      clean.specs = {};
+      for (const [k, v] of Object.entries(specs)) if (k.trim() && v.trim()) clean.specs[k.trim()] = v.trim();
+    }
+  }
+  if (has(data, 'images') || needContent) {
+    const images = (Array.isArray(data.images) ? data.images : []).filter((i) => typeof i === 'string' && i.trim()).map((i) => i.trim());
+    if (images.length < 1 || images.length > 8) errors.images = 'Add 1–8 images.';
+    else if (images.some((i) => !IMAGE_RE.test(i))) errors.images = 'Images must be https:// links (or built-in /img/*.svg placeholders).';
+    else clean.images = images;
+  }
+
+  clean.price_paise = toPaise(data.price, 'price', errors);
+  const mrp = toPaise(data.mrp, 'mrp', errors, false);
+  clean.mrp_paise = mrp;
+  if (mrp && clean.price_paise && clean.price_paise > mrp) errors.price = "Price can't be higher than the MRP.";
+  clean.quantity = toInt(data.quantity, 'quantity', errors, 0, 100000);
+  clean.handling_days = toInt(data.handling_days ?? 1, 'handling_days', errors, 0, 10);
+  const condition = data.condition ?? 'new';
+  if (!['new', 'renewed'].includes(condition)) errors.condition = 'Condition must be new or renewed.';
+  clean.condition = condition;
+  if (kind !== 'update') {
+    if (!['equidron', 'seller'].includes(data.fulfilment)) errors.fulfilment = 'Choose who ships this offer.';
+    clean.fulfilment = data.fulfilment;
+  }
+  const targets = data.ships_to && data.ships_to.length ? data.ships_to : ['ALL'];
+  if (!Array.isArray(targets) || targets.some((t) => t !== 'ALL' && !CITIES.includes(t))) {
+    errors.ships_to = 'Choose ALL or cities from the list.';
+  }
+  clean.ships_to = Array.isArray(targets) && targets.includes('ALL') ? ['ALL'] : [...new Set(targets)].sort();
+  return [clean, errors];
+}
+
+function restrictedTerms(payload) {
+  const text = `${payload.title || ''} ${payload.description || ''}`.toLowerCase();
+  return RESTRICTED_TERMS.filter((t) => text.includes(t));
+}
+
+function homeWarehouse(db, sellerId, fulfilment) {
+  if (fulfilment === 'seller') {
+    return one(db, "SELECT id FROM warehouses WHERE kind = 'seller_dispatch' AND seller_id = ?", sellerId).id;
+  }
+  const city = one(db, 'SELECT city FROM sellers WHERE id = ?', sellerId).city;
+  return one(db, "SELECT id FROM warehouses WHERE kind = 'equidron_fc' ORDER BY city = ? DESC, id LIMIT 1", city).id;
+}
+
+const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// Validate a seller's change and either apply it now or hold it for review.
+export function submit(db, sellerId, data) {
+  let offer = null;
+  let product = null;
+  let kind;
+  if (data.offer_id) {
+    offer = one(db, 'SELECT * FROM offers WHERE id = ?', Number(data.offer_id));
+    if (!offer) throw notFound('Listing');
+    if (offer.seller_id !== sellerId) throw forbidden('That listing belongs to another seller.');
+    product = one(db, 'SELECT * FROM products WHERE id = ?', offer.product_id);
+    kind = 'update';
+  } else if (data.product_id) {
+    product = one(db, "SELECT * FROM products WHERE id = ? AND status = 'live'", Number(data.product_id));
+    if (!product) throw notFound('Product');
+    kind = 'new_offer';
+  } else {
+    kind = 'new_product';
+  }
+
+  const [payload, errors] = validate(data, kind);
+  if (kind === 'new_offer' && one(db, 'SELECT 1 AS x FROM offers WHERE product_id = ? AND seller_id = ? AND condition = ?',
+    product.id, sellerId, payload.condition)) {
+    errors.product_id = 'You already sell this product in this condition. Edit that listing instead.';
+  }
+  if (Object.keys(errors).length) throw badRequest('Please fix the highlighted fields.', { fields: errors });
+
+  const reasons = [];
+  if (kind === 'new_product') reasons.push('New products are reviewed before they go live.');
+  else if (kind === 'new_offer') reasons.push('New offers are reviewed before they go live.');
+  else {
+    const changed = [];
+    for (const field of CONTENT_FIELDS) {
+      if (!has(payload, field)) continue;
+      const live = JSON_FIELDS.has(field) ? loads(product[field]) : product[field];
+      if (!sameValue(payload[field], live)) changed.push(field);
+      else delete payload[field];
+    }
+    if (changed.length) reasons.push(`Product content changed: ${changed.join(', ')}.`);
+    const delta = Math.abs(payload.price_paise - offer.price_paise) / offer.price_paise;
+    if (delta > PRICE_REVIEW_THRESHOLD) {
+      reasons.push(`Price changed by ${Math.round(delta * 100)}% (changes over ${PRICE_REVIEW_THRESHOLD * 100}% are reviewed).`);
+    }
+  }
+  const flagged = restrictedTerms(payload);
+  if (flagged.length) reasons.push(`Contains restricted terms: ${flagged.join(', ')}.`);
+
+  // A newer submission replaces an older one still waiting for review.
+  if (offer) {
+    run(db, `UPDATE submissions SET status = 'rejected', reviewer_note = 'Replaced by a newer submission.', decided_at = ?
+             WHERE offer_id = ? AND status = 'pending'`, now(), offer.id);
+  }
+
+  const subId = run(db, `INSERT INTO submissions (seller_id, product_id, offer_id, kind, payload, status, review_reasons, created_at)
+                         VALUES (?,?,?,?,?,'pending',?,?)`,
+  sellerId, product ? product.id : null, offer ? offer.id : null, kind, dumps(payload), dumps(reasons), now());
+  if (!reasons.length) {
+    apply(db, subId);
+    run(db, "UPDATE submissions SET status = 'approved', auto_decided = 1, decided_at = ?, reviewer_note = ? WHERE id = ?",
+      now(), 'Approved automatically: no review needed.', subId);
+  }
+  return getSubmission(db, subId);
+}
+
+function apply(db, subId) {
+  const sub = one(db, 'SELECT * FROM submissions WHERE id = ?', subId);
+  const p = loads(sub.payload);
+  const sellerId = sub.seller_id;
+  const ts = now();
+  let productId = sub.product_id;
+  let offerId = sub.offer_id;
+  let fulfilment;
+
+  if (sub.kind === 'new_product') {
+    productId = run(db, `INSERT INTO products (title, brand, category, description, specs, images, rating, review_count,
+                                               return_window_days, status, created_at) VALUES (?,?,?,?,?,?,0,0,?, 'live', ?)`,
+    p.title, p.brand, p.category, p.description, dumps(p.specs), dumps(p.images), p.category === 'Grocery' ? 0 : 10, ts);
+  } else if (sub.kind === 'update') {
+    for (const field of CONTENT_FIELDS) {
+      if (has(p, field)) {
+        run(db, `UPDATE products SET ${field} = ? WHERE id = ?`, JSON_FIELDS.has(field) ? dumps(p[field]) : p[field], productId);
+      }
+    }
+  }
+
+  if (sub.kind === 'new_product' || sub.kind === 'new_offer') {
+    offerId = run(db, `INSERT INTO offers (product_id, seller_id, price_paise, mrp_paise, condition, fulfilment, handling_days,
+                                           ships_to, status, updated_at) VALUES (?,?,?,?,?,?,?,?, 'active', ?)`,
+    productId, sellerId, p.price_paise, p.mrp_paise, p.condition, p.fulfilment, p.handling_days, dumps(p.ships_to), ts);
+    run(db, 'UPDATE submissions SET product_id = ?, offer_id = ? WHERE id = ?', productId, offerId, subId);
+    fulfilment = p.fulfilment;
+  } else {
+    run(db, `UPDATE offers SET price_paise = ?, mrp_paise = ?, condition = ?, handling_days = ?, ships_to = ?,
+                               status = 'active', updated_at = ? WHERE id = ?`,
+    p.price_paise, p.mrp_paise, p.condition, p.handling_days, dumps(p.ships_to), ts, offerId);
+    fulfilment = one(db, 'SELECT fulfilment FROM offers WHERE id = ?', offerId).fulfilment;
+  }
+
+  // Quantity is the number of sellable units at the seller's home location.
+  const home = homeWarehouse(db, sellerId, fulfilment);
+  const inv = one(db, 'SELECT reserved FROM inventory WHERE offer_id = ? AND warehouse_id = ?', offerId, home);
+  if (!inv) run(db, 'INSERT INTO inventory (offer_id, warehouse_id, on_hand, reserved) VALUES (?,?,?,0)', offerId, home, p.quantity);
+  else run(db, 'UPDATE inventory SET on_hand = ? WHERE offer_id = ? AND warehouse_id = ?', inv.reserved + p.quantity, offerId, home);
+}
+
+export function decide(db, subId, approve, note = '') {
+  const sub = one(db, 'SELECT * FROM submissions WHERE id = ?', subId);
+  if (!sub) throw notFound('Submission');
+  if (sub.status !== 'pending') throw conflict(`This submission was already ${sub.status}.`);
+  if (approve) apply(db, subId);
+  run(db, 'UPDATE submissions SET status = ?, reviewer_note = ?, decided_at = ? WHERE id = ?',
+    approve ? 'approved' : 'rejected', note || null, now(), subId);
+  const sellerUser = one(db, 'SELECT user_id FROM sellers WHERE id = ?', sub.seller_id).user_id;
+  const title = loads(sub.payload).title || productTitle(db, sub.product_id);
+  notify(db, sellerUser, `Listing ${approve ? 'approved and live' : 'rejected'}: ${title}${note ? ' — ' + note : ''}`, '#/submissions');
+  return getSubmission(db, subId);
+}
+
+function productTitle(db, productId) {
+  const r = one(db, 'SELECT title FROM products WHERE id = ?', productId);
+  return r ? r.title : 'listing';
+}
+
+export function getSubmission(db, subId) {
+  const s = one(db, 'SELECT sub.*, s.name AS seller_name FROM submissions sub JOIN sellers s ON s.id = sub.seller_id WHERE sub.id = ?', subId);
+  s.payload = loads(s.payload, {});
+  s.review_reasons = loads(s.review_reasons, []);
+  s.title = s.payload.title || productTitle(db, s.product_id);
+  if (s.product_id) {
+    const p = one(db, 'SELECT * FROM products WHERE id = ?', s.product_id);
+    s.live_product = p ? Object.fromEntries(CONTENT_FIELDS.map((k) => [k, JSON_FIELDS.has(k) ? loads(p[k]) : p[k]])) : null;
+  }
+  if (s.offer_id) {
+    const o = one(db, 'SELECT price_paise, mrp_paise, handling_days, ships_to, condition, status FROM offers WHERE id = ?', s.offer_id);
+    if (o) o.ships_to = loads(o.ships_to, ['ALL']);
+    s.live_offer = o;
+  }
+  return s;
+}
+
+export function listSubmissions(db, sellerId = null, status = null) {
+  let sql = 'SELECT id FROM submissions WHERE 1=1';
+  const params = [];
+  if (sellerId) { sql += ' AND seller_id = ?'; params.push(sellerId); }
+  if (status) { sql += ' AND status = ?'; params.push(status); }
+  return all(db, sql + ' ORDER BY id DESC LIMIT 200', ...params).map((r) => getSubmission(db, r.id));
+}
+
+export function sellerListings(db, sellerId) {
+  const offers = all(db, `SELECT o.*, p.title, p.brand, p.category, p.description, p.specs, p.images, p.status AS product_status
+                          FROM offers o JOIN products p ON p.id = o.product_id WHERE o.seller_id = ? ORDER BY p.title`, sellerId);
+  for (const o of offers) {
+    o.specs = loads(o.specs, {});
+    o.images = loads(o.images, []);
+    o.ships_to = loads(o.ships_to, ['ALL']);
+    o.stock = stockByWarehouse(db, o.id);
+    const home = homeWarehouse(db, sellerId, o.fulfilment);
+    o.home_warehouse_id = home;
+    o.home_available = o.stock.filter((s) => s.warehouse_id === home).reduce((n, s) => n + s.available, 0);
+    o.available = o.stock.reduce((n, s) => n + s.available, 0);
+    const pending = one(db, "SELECT id FROM submissions WHERE offer_id = ? AND status = 'pending'", o.id);
+    o.pending_submission_id = pending ? pending.id : null;
+  }
+  const pendingNew = listSubmissions(db, sellerId, 'pending').filter((s) => s.kind !== 'update');
+  return { offers, pending_new: pendingNew };
+}
+
+export function catalogLookup(db, q) {
+  const like = `%${String(q || '').trim()}%`;
+  return all(db, `SELECT id, title, brand, category, images FROM products
+                  WHERE status = 'live' AND (title LIKE ? OR brand LIKE ?) ORDER BY title LIMIT 20`, like, like);
+}

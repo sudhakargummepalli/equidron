@@ -1,0 +1,18 @@
+{
+  "name": "equidron",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Equidron marketplace: storefront, Seller Central and Ops on Node.js + SQLite (sample data, simulated payments)",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "reset": "node app.js --reset",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}

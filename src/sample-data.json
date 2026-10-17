@@ -1,0 +1,920 @@
+{
+ "demo_password": "equidron-demo",
+ "customers": [
+  [
+   "asha@example.com",
+   "Asha Rao (sample)",
+   [
+    "Asha Rao",
+    "12 Lakeview Road, Indiranagar",
+    "Bengaluru",
+    "560038",
+    "9800000001"
+   ]
+  ],
+  [
+   "rahul@example.com",
+   "Rahul Mehta (sample)",
+   [
+    "Rahul Mehta",
+    "44 Park Street, Lajpat Nagar",
+    "Delhi",
+    "110024",
+    "9800000002"
+   ]
+  ]
+ ],
+ "ops": [
+  [
+   "ops@example.com",
+   "Equidron Ops Reviewer (sample)"
+  ]
+ ],
+ "sellers": [
+  [
+   "lakshmi",
+   "lakshmi.seller@example.com",
+   "Lakshmi Mobiles & Electronics",
+   "Hyderabad",
+   4.6,
+   12480
+  ],
+  [
+   "techbazaar",
+   "techbazaar.seller@example.com",
+   "TechBazaar Hub",
+   "Bengaluru",
+   4.3,
+   8210
+  ],
+  [
+   "urbancart",
+   "urbancart.seller@example.com",
+   "UrbanCart Retail",
+   "Mumbai",
+   4.1,
+   5630
+  ],
+  [
+   "greenleaf",
+   "greenleaf.seller@example.com",
+   "GreenLeaf Home Store",
+   "Pune",
+   4.7,
+   2940
+  ],
+  [
+   "pageturner",
+   "pageturner.seller@example.com",
+   "PageTurner Books",
+   "Delhi",
+   4.8,
+   6120
+  ]
+ ],
+ "fulfilment_centres": [
+  [
+   "BLR1",
+   "Equidron FC Bengaluru",
+   "Bengaluru"
+  ],
+  [
+   "HYD1",
+   "Equidron FC Hyderabad",
+   "Hyderabad"
+  ],
+  [
+   "BOM1",
+   "Equidron FC Mumbai",
+   "Mumbai"
+  ],
+  [
+   "DEL1",
+   "Equidron FC Delhi",
+   "Delhi"
+  ]
+ ],
+ "products": [
+  {
+   "title": "Orbit Nova X5 5G Smartphone (8GB RAM, 128GB, Midnight Blue)",
+   "brand": "Orbit",
+   "category": "Phones",
+   "rating": 4.4,
+   "reviews": 18230,
+   "description": "A fast 5G phone with a 120Hz AMOLED display, a 50MP main camera and a 5000 mAh battery that lasts all day. Ships with Android 15 and three years of updates.",
+   "specs": {
+    "Display": "6.6-inch AMOLED, 120Hz",
+    "Processor": "Octa-core 2.6 GHz",
+    "RAM": "8 GB",
+    "Storage": "128 GB",
+    "Battery": "5000 mAh, 33W charging",
+    "Camera": "50 MP + 8 MP, 16 MP front",
+    "OS": "Android 15"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 18999,
+     "mrp": 22999,
+     "fulfilment": "equidron",
+     "handling_days": 0,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 40,
+      "BLR1": 25
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 18499,
+     "mrp": 22999,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 12
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 14999,
+     "mrp": 22999,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 6
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Orbit Nova X5 Pro 5G Smartphone (12GB RAM, 256GB, Titanium Grey)",
+   "brand": "Orbit",
+   "category": "Phones",
+   "rating": 4.5,
+   "reviews": 6420,
+   "description": "The Pro edition adds a telephoto camera, a brighter display and 67W charging. IP68 water and dust resistance.",
+   "specs": {
+    "Display": "6.7-inch AMOLED, 120Hz, 2000 nits",
+    "RAM": "12 GB",
+    "Storage": "256 GB",
+    "Battery": "5100 mAh, 67W charging",
+    "Camera": "50 MP + 50 MP telephoto + 12 MP",
+    "Water resistance": "IP68"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 27999,
+     "mrp": 31999,
+     "fulfilment": "equidron",
+     "handling_days": 0,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 18,
+      "BOM1": 10
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Kestrel K12 Smartphone (6GB RAM, 128GB, Sea Green)",
+   "brand": "Kestrel",
+   "category": "Phones",
+   "rating": 4.1,
+   "reviews": 9870,
+   "description": "A dependable everyday phone with a large 6.7-inch display, stereo speakers and a 6000 mAh battery.",
+   "specs": {
+    "Display": "6.7-inch LCD, 90Hz",
+    "RAM": "6 GB",
+    "Storage": "128 GB",
+    "Battery": "6000 mAh",
+    "Camera": "50 MP dual"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 12499,
+     "mrp": 14999,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 30
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 12799,
+     "mrp": 14999,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 15
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Kestrel K12 Lite Smartphone (4GB RAM, 64GB, Charcoal)",
+   "brand": "Kestrel",
+   "category": "Phones",
+   "rating": 3.9,
+   "reviews": 4310,
+   "description": "An entry-level phone for calls, messaging and video. Dual SIM with expandable storage.",
+   "specs": {
+    "Display": "6.5-inch LCD",
+    "RAM": "4 GB",
+    "Storage": "64 GB",
+    "Battery": "5000 mAh"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 8999,
+     "mrp": 9999,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 0
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Zenix Fold Air Foldable Phone (12GB RAM, 512GB)",
+   "brand": "Zenix",
+   "category": "Phones",
+   "rating": 4.2,
+   "reviews": 640,
+   "description": "A book-style foldable phone with a 7.8-inch inner display. Ships fully insured; delivery to select metro cities only.",
+   "specs": {
+    "Inner display": "7.8-inch foldable OLED",
+    "Cover display": "6.3-inch",
+    "RAM": "12 GB",
+    "Storage": "512 GB",
+    "Battery": "4800 mAh"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 114999,
+     "mrp": 129999,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "Mumbai",
+      "Delhi",
+      "Bengaluru"
+     ],
+     "stock": {
+      "seller": 4
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "VoltEdge 33W Fast Phone Charger with USB-C Cable",
+   "brand": "VoltEdge",
+   "category": "Phones",
+   "rating": 4.3,
+   "reviews": 22100,
+   "description": "Charges most USB-C phones to 50% in about 25 minutes. Includes a 1 m braided cable.",
+   "specs": {
+    "Output": "33W PD",
+    "Port": "USB-C",
+    "Cable": "1 m braided"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 799,
+     "mrp": 1299,
+     "fulfilment": "equidron",
+     "handling_days": 0,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 120,
+      "DEL1": 60
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 749,
+     "mrp": 1299,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 80
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "ArmorLite Clear Case for Orbit Nova X5",
+   "brand": "ArmorLite",
+   "category": "Phones",
+   "rating": 4.0,
+   "reviews": 3150,
+   "description": "Slim, shock-absorbing clear case with raised edges to protect the screen and camera of the Orbit Nova X5 phone.",
+   "specs": {
+    "Compatible with": "Orbit Nova X5",
+    "Material": "TPU + polycarbonate"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 399,
+     "mrp": 799,
+     "fulfilment": "equidron",
+     "handling_days": 0,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 200
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Aeron Book 14 Thin & Light Laptop (Ryzen 5, 16GB, 512GB SSD)",
+   "brand": "Aeron",
+   "category": "Laptops",
+   "rating": 4.4,
+   "reviews": 3200,
+   "description": "A 1.3 kg aluminium laptop with a 14-inch 2.2K display, backlit keyboard and up to 12 hours of battery.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch 2.2K IPS",
+    "Weight": "1.3 kg"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 54990,
+     "mrp": 64990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 14,
+      "DEL1": 6
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 55490,
+     "mrp": 64990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 5
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Aeron Book 16 Pro Laptop (Core Ultra 7, 32GB, 1TB SSD)",
+   "brand": "Aeron",
+   "category": "Laptops",
+   "rating": 4.6,
+   "reviews": 980,
+   "description": "A 16-inch performance laptop for creators, with a 120Hz 3K display and a dedicated graphics card.",
+   "specs": {
+    "Processor": "Core Ultra 7",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "16-inch 3K 120Hz",
+    "Graphics": "8 GB dedicated"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 96990,
+     "mrp": 109990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 5
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Sonique Pulse ANC Wireless Earbuds",
+   "brand": "Sonique",
+   "category": "Audio",
+   "rating": 4.2,
+   "reviews": 41500,
+   "description": "Active noise cancelling earbuds with 32 hours of total playback. Pairs with any phone or laptop over Bluetooth 5.3.",
+   "specs": {
+    "Battery": "8 h + 24 h case",
+    "Noise cancelling": "Yes, up to 35 dB",
+    "Bluetooth": "5.3",
+    "Water resistance": "IPX4"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 2999,
+     "mrp": 5999,
+     "fulfilment": "equidron",
+     "handling_days": 0,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 90,
+      "BOM1": 40
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 3099,
+     "mrp": 5999,
+     "fulfilment": "equidron",
+     "handling_days": 0,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 30
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Sonique Studio Over-Ear Headphones",
+   "brand": "Sonique",
+   "category": "Audio",
+   "rating": 4.5,
+   "reviews": 7300,
+   "description": "Wireless over-ear headphones with plush memory-foam cushions, 50 hours of battery and a detachable mic.",
+   "specs": {
+    "Battery": "50 h",
+    "Driver": "40 mm",
+    "Bluetooth": "5.3",
+    "Foldable": "Yes"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 6499,
+     "mrp": 8999,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 25
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Bassline Mini Bluetooth Speaker",
+   "brand": "Bassline",
+   "category": "Audio",
+   "rating": 4.1,
+   "reviews": 15800,
+   "description": "Pocket-sized speaker with surprisingly deep bass, 12 hours of playback and a carry strap.",
+   "specs": {
+    "Output": "5W",
+    "Battery": "12 h",
+    "Water resistance": "IPX7"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 1499,
+     "mrp": 2499,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 50
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Pulsefit Active 2 Smartwatch",
+   "brand": "Pulsefit",
+   "category": "Wearables",
+   "rating": 4.0,
+   "reviews": 12650,
+   "description": "Fitness smartwatch with heart-rate and SpO2 tracking, 100+ sports modes, and phone call and notification alerts.",
+   "specs": {
+    "Display": "1.9-inch AMOLED",
+    "Battery": "Up to 10 days",
+    "Water resistance": "5 ATM"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 3499,
+     "mrp": 6999,
+     "fulfilment": "equidron",
+     "handling_days": 0,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 60
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 3399,
+     "mrp": 6999,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "Mumbai",
+      "Pune"
+     ],
+     "stock": {
+      "seller": 20
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Kitchora 1.5L Electric Kettle, Stainless Steel",
+   "brand": "Kitchora",
+   "category": "Home & Kitchen",
+   "rating": 4.3,
+   "reviews": 28900,
+   "description": "Boils 1.5 litres in about 4 minutes with auto shut-off and boil-dry protection.",
+   "specs": {
+    "Capacity": "1.5 L",
+    "Power": "1500 W",
+    "Material": "Stainless steel"
+   },
+   "offers": [
+    {
+     "seller": "greenleaf",
+     "price": 899,
+     "mrp": 1495,
+     "fulfilment": "equidron",
+     "handling_days": 0,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 70,
+      "BLR1": 40
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Kitchora 750W Mixer Grinder with 3 Jars",
+   "brand": "Kitchora",
+   "category": "Home & Kitchen",
+   "rating": 4.2,
+   "reviews": 9400,
+   "description": "Powerful 750W motor with three stainless steel jars for wet grinding, dry grinding and chutneys.",
+   "specs": {
+    "Power": "750 W",
+    "Jars": "3",
+    "Warranty": "2 years"
+   },
+   "offers": [
+    {
+     "seller": "greenleaf",
+     "price": 3299,
+     "mrp": 4999,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 18
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Terra Cotton Double Bedsheet with 2 Pillow Covers (Indigo Block Print)",
+   "brand": "Terra",
+   "category": "Home & Kitchen",
+   "rating": 4.4,
+   "reviews": 2100,
+   "description": "Hand block-printed 100% cotton bedsheet from Jaipur artisans. Soft, breathable and colour-fast.",
+   "specs": {
+    "Size": "Double, 228 x 254 cm",
+    "Material": "100% cotton, 144 TC"
+   },
+   "offers": [
+    {
+     "seller": "greenleaf",
+     "price": 1199,
+     "mrp": 1999,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 35
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "BrewCraft French Press Coffee Maker, 600 ml",
+   "brand": "BrewCraft",
+   "category": "Home & Kitchen",
+   "rating": 4.3,
+   "reviews": 5200,
+   "description": "Borosilicate glass French press with a four-level filter for a clean, full-bodied brew.",
+   "specs": {
+    "Capacity": "600 ml",
+    "Material": "Borosilicate glass, steel"
+   },
+   "offers": [
+    {
+     "seller": "greenleaf",
+     "price": 1099,
+     "mrp": 1599,
+     "fulfilment": "equidron",
+     "handling_days": 0,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 30
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "The Monsoon Ledger (Paperback)",
+   "brand": "Riverbend Press",
+   "category": "Books",
+   "rating": 4.6,
+   "reviews": 3800,
+   "description": "A family saga about a spice trader's account books, set across three generations on the Malabar coast. A novel by A. K. Varma (fictional author).",
+   "specs": {
+    "Author": "A. K. Varma",
+    "Pages": "412",
+    "Language": "English",
+    "Format": "Paperback"
+   },
+   "offers": [
+    {
+     "seller": "pageturner",
+     "price": 349,
+     "mrp": 499,
+     "fulfilment": "equidron",
+     "handling_days": 0,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "DEL1": 150,
+      "BLR1": 60
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Practical Python for Small Shops (Paperback)",
+   "brand": "Riverbend Press",
+   "category": "Books",
+   "rating": 4.4,
+   "reviews": 860,
+   "description": "A friendly guide to automating stock, invoices and reports for small retailers, with worked examples.",
+   "specs": {
+    "Author": "N. Iyer",
+    "Pages": "296",
+    "Language": "English",
+    "Format": "Paperback"
+   },
+   "offers": [
+    {
+     "seller": "pageturner",
+     "price": 599,
+     "mrp": 799,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 40
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Mountains of the Deccan: A Field Guide",
+   "brand": "Riverbend Press",
+   "category": "Books",
+   "rating": 4.7,
+   "reviews": 410,
+   "description": "Trails, birds and plants of the Deccan plateau with 200 colour photographs and maps.",
+   "specs": {
+    "Author": "S. Kulkarni",
+    "Pages": "240",
+    "Format": "Paperback"
+   },
+   "offers": [
+    {
+     "seller": "pageturner",
+     "price": 799,
+     "mrp": 999,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 25
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Malnad Estate Filter Coffee Powder, 500g",
+   "brand": "Malnad Estate",
+   "category": "Grocery",
+   "rating": 4.5,
+   "reviews": 6700,
+   "description": "80:20 coffee-chicory blend from Chikkamagaluru estates, roasted and ground for South Indian filter coffee.",
+   "specs": {
+    "Weight": "500 g",
+    "Blend": "80% coffee, 20% chicory",
+    "Shelf life": "6 months"
+   },
+   "offers": [
+    {
+     "seller": "greenleaf",
+     "price": 425,
+     "mrp": 499,
+     "fulfilment": "equidron",
+     "handling_days": 0,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 100,
+      "BOM1": 60
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Organic Toor Dal, 1kg",
+   "brand": "Harvest Basket",
+   "category": "Grocery",
+   "rating": 4.2,
+   "reviews": 3900,
+   "description": "Unpolished organic toor dal, sourced from certified farms in Karnataka.",
+   "specs": {
+    "Weight": "1 kg",
+    "Certification": "Organic (sample)"
+   },
+   "offers": [
+    {
+     "seller": "greenleaf",
+     "price": 189,
+     "mrp": 240,
+     "fulfilment": "equidron",
+     "handling_days": 0,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 200
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Weavers' Row Men's Cotton Kurta (Navy, Size M)",
+   "brand": "Weavers' Row",
+   "category": "Fashion",
+   "rating": 4.1,
+   "reviews": 2600,
+   "description": "Straight-cut cotton kurta with a mandarin collar and wooden buttons. Machine washable.",
+   "specs": {
+    "Size": "M",
+    "Material": "100% cotton",
+    "Fit": "Regular"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 999,
+     "mrp": 1799,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 45
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Stride Runner Women's Running Shoes (Size 6)",
+   "brand": "Stride",
+   "category": "Fashion",
+   "rating": 4.3,
+   "reviews": 5400,
+   "description": "Lightweight running shoes with a cushioned foam midsole and breathable knit upper.",
+   "specs": {
+    "Size": "UK 6",
+    "Upper": "Knit mesh",
+    "Sole": "EVA foam"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 2499,
+     "mrp": 3999,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 22
+     },
+     "condition": "new"
+    }
+   ]
+  }
+ ]
+}

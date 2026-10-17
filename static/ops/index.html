@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en" ng-app="ops">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Equidron Ops</title>
+  <link rel="stylesheet" href="/common/style.css">
+  <style>.topbar { background: #2a1838; } .subnav { background: #3b2350; }</style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js"></script>
+  <script src="/common/common.js"></script>
+  <script src="/ops/ops.js"></script>
+</head>
+<body ng-controller="OpsCtrl as vm" ng-cloak>
+<header class="topbar">
+  <div class="inner">
+    <a class="logo" href="#/">equi<span>dron</span><small>Ops (internal)</small></a>
+    <div class="grow"></div>
+    <nav class="nav" ng-if="vm.user"><span>{{vm.user.name}}</span><button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logout()">Sign out</button></nav>
+  </div>
+</header>
+<div class="subnav" ng-if="vm.user"><div class="inner">
+  <a href="#/reviews" ng-class="{on: vm.route.name === '' || vm.route.name === 'reviews'}">Listing review ({{vm.overview.pending_reviews}})</a>
+  <a href="#/shipments" ng-class="{on: vm.route.name === 'shipments'}">Fulfilment &amp; shipping ({{vm.overview.active_shipments}})</a>
+  <a href="#/returns" ng-class="{on: vm.route.name === 'returns'}">Returns ({{vm.overview.open_returns}})</a>
+  <a href="#/support" ng-class="{on: vm.route.name === 'support'}">Support ({{vm.overview.open_tickets}})</a>
+  <a href="#/settlement" ng-class="{on: vm.route.name === 'settlement'}">Settlement</a>
+</div></div>
+<div class="sample">Sample data: every seller, product, customer and order here is fictional. Payments are simulated.</div>
+
+<main>
+  <div class="alert bad" ng-if="vm.err">{{vm.err}}</div>
+
+  <section ng-if="vm.route.name === 'login'" class="auth">
+    <div class="card">
+      <h1>Equidron Ops sign in</h1>
+      <p class="small muted">Internal reviewers and operations staff only.</p>
+      <form ng-submit="vm.login()">
+        <div class="field"><label>Email</label><input type="email" ng-model="vm.auth.form.email" autocomplete="username"></div>
+        <div class="field"><label>Password</label><input type="password" ng-model="vm.auth.form.password" autocomplete="current-password"></div>
+        <div class="alert bad" ng-if="vm.auth.error">{{vm.auth.error}}</div>
+        <button class="btn primary" style="width:100%" type="submit">Sign in</button>
+      </form>
+      <div class="demo-accounts" style="margin-top:12px">Sample reviewer: <button class="linkbtn" ng-click="vm.useDemo()">ops@example.com</button> (password <code>equidron-demo</code>)</div>
+    </div>
+  </section>
+
+  <!-- ============ LISTING REVIEW ============ -->
+  <section ng-if="vm.user && (vm.route.name === '' || vm.route.name === 'reviews')">
+    <div class="row between"><h1>Listing review</h1>
+      <select ng-model="vm.reviewStatus" ng-change="vm.loadReviews()" style="width:auto" aria-label="Filter">
+        <option value="pending">Waiting for review</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="all">All</option></select></div>
+    <div class="empty card" ng-if="vm.subs && !vm.subs.length">Nothing here.</div>
+    <div class="card" ng-repeat="s in vm.subs">
+      <div class="row between">
+        <h2 style="margin:0">#{{s.id}} {{s.title}}</h2>
+        <span class="badge {{s.status | tone}}">{{s.status | label}}</span>
+      </div>
+      <div class="small muted">{{s.kind | label}} from <strong>{{s.seller_name}}</strong> · {{s.created_at | when}}</div>
+      <div class="alert warn small" style="margin-top:8px" ng-if="s.review_reasons.length"><strong>Why it's held:</strong><ul><li ng-repeat="r in s.review_reasons">{{r}}</li></ul></div>
+      <div class="table-wrap">
+        <table class="diff small">
+          <tr><th>Field</th><th>Live now</th><th>Proposed</th></tr>
+          <tr ng-repeat="f in vm.CONTENT" ng-if="vm.has(s.payload, f)">
+            <td>{{f | label}}</td><td>{{vm.show(s.live_product[f])}}</td><td ng-class="{changed: vm.changed(s, f)}">{{vm.show(s.payload[f])}}</td></tr>
+          <tr><td>Price</td><td>{{s.live_offer.price_paise | inr}}</td><td ng-class="{changed: s.live_offer.price_paise !== s.payload.price_paise}">{{s.payload.price_paise | inr}}</td></tr>
+          <tr><td>MRP</td><td>{{s.live_offer.mrp_paise | inr}}</td><td>{{s.payload.mrp_paise | inr}}</td></tr>
+          <tr><td>Quantity</td><td>—</td><td>{{s.payload.quantity}}</td></tr>
+          <tr><td>Fulfilment / handling</td><td>{{s.live_offer ? s.live_offer.handling_days + ' days' : '—'}}</td><td>{{s.payload.fulfilment || ''}} {{s.payload.handling_days}} days</td></tr>
+          <tr><td>Delivers to</td><td>{{vm.show(s.live_offer.ships_to)}}</td><td>{{vm.show(s.payload.ships_to)}}</td></tr>
+        </table>
+      </div>
+      <div class="row" style="margin-top:8px" ng-if="s.payload.images">
+        <img class="thumb" ng-repeat="i in s.payload.images" ng-src="{{i}}" alt="Proposed image">
+      </div>
+      <div ng-if="s.status === 'pending'" class="row" style="margin-top:10px">
+        <input type="text" ng-model="s.note" placeholder="Note to seller (required to reject)" style="flex:1">
+        <button class="btn primary" ng-click="vm.decide(s, true)">Approve &amp; publish</button>
+        <button class="btn danger" ng-click="vm.decide(s, false)">Reject</button>
+      </div>
+      <div class="small" style="color:var(--bad)" ng-if="s.error">{{s.error}}</div>
+      <div class="small muted" ng-if="s.reviewer_note">Note: {{s.reviewer_note}}</div>
+    </div>
+  </section>
+
+  <!-- ============ SHIPMENTS ============ -->
+  <section ng-if="vm.user && vm.route.name === 'shipments'">
+    <div class="row between"><h1>Fulfilment &amp; shipping</h1>
+      <div class="row"><label class="row small" style="font-weight:500;margin:0"><input type="checkbox" ng-model="vm.allShipments" ng-change="vm.loadShipments()"> Include finished</label>
+        <button class="btn primary" ng-click="vm.advanceAll()">Simulate: advance all one stage</button></div></div>
+    <p class="small muted">Stages: pending → picking → packed → shipped (stock leaves the warehouse; card payments are captured) → in transit → out for delivery → delivered (cash on delivery collected; seller credited).</p>
+    <div class="card table-wrap">
+      <table>
+        <tr><th>Shipment</th><th>From</th><th>Items</th><th>Status</th><th></th></tr>
+        <tr ng-repeat="s in vm.shipments">
+          <td>#{{s.id}}<div class="small muted">Order #{{s.order_id}} · {{s.amount_paise | inr}}</div></td>
+          <td class="small">{{s.warehouse_name}}<div class="muted">{{s.warehouse_kind === 'equidron_fc' ? 'Equidron FC' : 'Seller dispatch'}}</div></td>
+          <td class="small"><div ng-repeat="i in s.items">{{i.title}} × {{i.qty}}</div></td>
+          <td><span class="badge {{s.status | tone}}">{{s.status | label}}</span><div class="small muted" ng-if="s.tracking_no">{{s.carrier}} {{s.tracking_no}}</div></td>
+          <td class="right"><button class="btn small" ng-if="s.next_stage" ng-click="vm.advance(s)">→ {{s.next_stage | label}}</button></td>
+        </tr>
+      </table>
+      <div class="empty" ng-if="vm.shipments && !vm.shipments.length">No shipments in progress.</div>
+    </div>
+  </section>
+
+  <!-- ============ RETURNS ============ -->
+  <section ng-if="vm.user && vm.route.name === 'returns'">
+    <h1>Returns</h1>
+    <div class="card table-wrap">
+      <table>
+        <tr><th>Return</th><th>Item</th><th>Customer</th><th>Reason</th><th>Status</th><th></th></tr>
+        <tr ng-repeat="r in vm.returns">
+          <td>#{{r.id}}<div class="small muted">Order #{{r.order_id}}</div></td>
+          <td>{{r.title}} × {{r.qty}}<div class="small muted">{{r.seller_name}}</div></td>
+          <td class="small">{{r.customer_name}}</td><td class="small">{{r.reason}}</td>
+          <td><span class="badge {{r.status | tone}}">{{r.status | label}}</span><div class="small" ng-if="r.refund_paise">{{r.refund_paise | inr}} refunded</div></td>
+          <td class="right" ng-if="r.status === 'pickup_scheduled'">
+            <button class="btn small primary" ng-click="vm.receive(r, true)">Received, restock &amp; refund</button>
+            <button class="btn small" ng-click="vm.receive(r, false)">Received damaged &amp; refund</button>
+            <button class="btn small danger" ng-click="vm.reject(r)">Reject</button></td>
+          <td ng-if="r.status !== 'pickup_scheduled'"></td>
+        </tr>
+      </table>
+      <div class="empty" ng-if="vm.returns && !vm.returns.length">No returns.</div>
+    </div>
+  </section>
+
+  <!-- ============ SUPPORT ============ -->
+  <section ng-if="vm.user && vm.route.name === 'support'">
+    <h1>Customer support</h1>
+    <div class="empty card" ng-if="vm.tickets && !vm.tickets.length">No tickets.</div>
+    <div class="card" ng-repeat="t in vm.tickets">
+      <div class="row between"><strong>#{{t.id}} {{t.subject}}</strong><span class="badge {{t.status | tone}}">{{t.status | label}}</span></div>
+      <div class="small muted">{{t.customer_name}}<span ng-if="t.order_id"> · Order #{{t.order_id}}</span></div>
+      <ul class="timeline" style="margin-top:6px"><li ng-repeat="m in t.messages"><strong>{{m.author_role === 'ops' ? 'Support' : 'Customer'}}:</strong> {{m.body}} <span class="muted small">{{m.at | when}}</span></li></ul>
+      <form class="row" ng-if="t.status !== 'closed'" ng-submit="vm.reply(t, false)" style="margin-top:6px">
+        <input type="text" ng-model="t.reply" placeholder="Reply to customer" style="flex:1">
+        <button class="btn small primary" type="submit">Reply</button>
+        <button class="btn small" type="button" ng-click="vm.reply(t, true)">Reply &amp; close</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ SETTLEMENT ============ -->
+  <section ng-if="vm.user && vm.route.name === 'settlement'">
+    <h1>Seller settlement</h1>
+    <div class="card">
+      <p>Sellers are credited when items are delivered (sale minus a 10% referral fee) and debited when a return is refunded. Settlement pays each seller's positive balance to their bank account (simulated).</p>
+      <p><strong>Unsettled across all sellers: {{vm.overview.unsettled_paise | inr}}</strong></p>
+      <button class="btn primary" ng-click="vm.settle()">Run settlement now</button>
+      <table ng-if="vm.payouts" style="margin-top:12px">
+        <tr><th>Seller</th><th class="right">Paid out</th></tr>
+        <tr ng-repeat="p in vm.payouts"><td>{{p.seller_name}}</td><td class="right">{{p.amount_paise | inr}}</td></tr>
+        <tr ng-if="!vm.payouts.length"><td colspan="2" class="muted">No balances to pay.</td></tr>
+      </table>
+    </div>
+  </section>
+</main>
+<div class="toast" ng-if="toast" role="status">{{toast}}</div>
+</body>
+</html>
