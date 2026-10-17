@@ -1,6 +1,6 @@
 /* Equidron storefront (customers). */
-angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$location', '$window', 'Api', 'Router', 'Toast',
-  function ($scope, $location, $window, Api, Router, Toast) {
+angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$location', '$window', '$timeout', 'Api', 'Router', 'Toast',
+  function ($scope, $location, $window, $timeout, Api, Router, Toast) {
     var api = Api('shop');
     var vm = this;
     vm.STAGES = ['pending', 'picking', 'packed', 'shipped', 'in_transit', 'out_for_delivery', 'delivered'];
@@ -235,5 +235,33 @@ angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$locatio
     };
     vm.replyTicket = function (t) {
       api.post('/support/' + t.id + '/reply', { message: t.reply }).then(function (list) { vm.tickets = list; });
+    };
+
+    // ---------------------------------------------------------------- assistant
+    vm.chat = {
+      open: false, messages: [], input: '', sending: false, available: true,
+      suggestions: ['Best gaming laptop under ₹1,00,000?', 'Where is my latest order?', 'How do returns work?']
+    };
+    api.get('/assistant').then(function (r) { vm.chat.available = r.available; });
+    function scrollChat() {
+      $timeout(function () { var log = $window.document.getElementById('chat-log'); if (log) log.scrollTop = log.scrollHeight; });
+    }
+    vm.sendChat = function (text) {
+      text = String(text || vm.chat.input || '').trim();
+      if (!text || vm.chat.sending) return;
+      vm.chat.error = null;
+      vm.chat.messages.push({ role: 'user', content: text });
+      vm.chat.input = '';
+      vm.chat.sending = true;
+      scrollChat();
+      var history = vm.chat.messages.map(function (m) { return { role: m.role, content: m.content }; });
+      api.post('/assistant?city=' + encodeURIComponent(vm.city || ''), { messages: history }).then(function (r) {
+        vm.chat.messages.push({ role: 'assistant', content: r.reply, products: r.products });
+      }, function (e) {
+        // Keep the conversation alternating: take the unanswered question back into the box.
+        vm.chat.messages.pop();
+        vm.chat.input = text;
+        vm.chat.error = e.message;
+      }).finally(function () { vm.chat.sending = false; scrollChat(); });
     };
   }]);

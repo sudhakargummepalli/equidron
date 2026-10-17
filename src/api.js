@@ -5,6 +5,7 @@
 //   /api/shop/...    customer   (cookie eq_shop,   Path=/api/shop)
 //   /api/seller/...  seller     (cookie eq_seller, Path=/api/seller)
 //   /api/ops/...     ops        (cookie eq_ops,    Path=/api/ops)
+import * as assistant from './assistant.js';
 import * as auth from './auth.js';
 import * as catalog from './catalog.js';
 import { one, scalar, transaction } from './db.js';
@@ -18,8 +19,10 @@ export const AREAS = { shop: 'customer', seller: 'seller', ops: 'ops' };
 const SAMPLE_NOTICE = 'Sample data: every seller, product, customer and order here is fictional. Payments are simulated.';
 const ROUTES = [];
 
-function route(method, area, pattern, fn, isPublic = false) {
-  ROUTES.push({ method, area, pattern: new RegExp(`^${pattern}$`), fn, isPublic });
+// readOnly: a non-GET route that writes nothing, so it runs outside a transaction
+// (the assistant waits seconds on the model and must not hold the write lock).
+function route(method, area, pattern, fn, isPublic = false, { readOnly = false } = {}) {
+  ROUTES.push({ method, area, pattern: new RegExp(`^${pattern}$`), fn, isPublic, readOnly });
 }
 
 class Reply {
@@ -128,6 +131,10 @@ route('POST', 'shop', '/support/(\\d+)/reply', async (c, tid) => {
   return await orders.listTickets(c.db, c.user.id);
 });
 
+route('GET', 'shop', '/assistant', async () => ({ available: assistant.isAvailable() }), true);
+route('POST', 'shop', '/assistant', async (c) =>
+  assistant.answer(c.db, { user: c.user, city: await c.city() }, c.body.messages), false, { readOnly: true });
+
 // ---------------------------------------------------------------- Seller Central
 
 route('GET', 'seller', '/meta', async () => ({
@@ -206,7 +213,7 @@ export async function handleApi(db, { method, path, query, body, cookies }) {
       const pm = r.pattern.exec(sub);
       if (!pm) continue;
       // Reads run directly; anything else runs as one transaction.
-      const scope = method === 'GET' ? (fn) => fn() : (fn) => transaction(db, fn);
+      const scope = method === 'GET' || r.readOnly ? (fn) => fn() : (fn) => transaction(db, fn);
       const result = await scope(async () => {
         const token = cookies[`eq_${area}`] || null;
         const user = await auth.userForToken(db, token, AREAS[area]);

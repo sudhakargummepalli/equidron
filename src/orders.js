@@ -17,8 +17,8 @@ import { badRequest, conflict, forbidden, notFound } from './errors.js';
 import { notify } from './notify.js';
 import { provider } from './payments.js';
 
-const FREE_SHIPPING_FROM = 49_900;
-const SHIPPING_FEE = 4_000;
+export const FREE_SHIPPING_FROM = 49_900;
+export const SHIPPING_FEE = 4_000;
 const REFERRAL_FEE_RATE = 0.1;
 const MAX_LINE_QTY = 10;
 export const SHIPMENT_STAGES = ['pending', 'picking', 'packed', 'shipped', 'in_transit', 'out_for_delivery', 'delivered'];
