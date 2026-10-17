@@ -1,4 +1,4 @@
-# Equidron (Node.js + SQLite)
+# Equidron (Node.js + PostgreSQL)
 
 A marketplace app in the style of Amazon, with three separate interfaces:
 
@@ -12,13 +12,26 @@ A marketplace app in the style of Amazon, with three separate interfaces:
 
 ## Run it locally
 
-Needs **Node.js 22.13 or newer**. It uses Node's built-in `node:sqlite`, so local runs need no `npm install`. The pages load AngularJS 1.8.3 from cdnjs, so the browser needs internet access.
+Needs **Node.js 22 or newer**. The database is **PostgreSQL**. The pages load AngularJS 1.8.3 from cdnjs, so the browser needs internet access.
 
 ```bash
+npm install
 node app.js
 ```
 
-Then open http://localhost:8000/. Options: `--port 8080`, `--db path/to/file.db`, and `--reset` (delete the database and reload the sample data). Data is kept in `data/equidron.db`.
+Then open http://localhost:8000/. Options: `--port 8080`, `--db <folder or postgres:// URL>`, and `--reset` (drop Equidron's tables and reload the sample data).
+
+With no database URL, the app runs PostgreSQL itself through [PGlite](https://pglite.dev), which is real PostgreSQL compiled to WebAssembly and running inside Node. You don't need a database server, and data is kept in `data/pg/`. The first start takes a few seconds while it creates the tables and loads the sample data.
+
+### Use a PostgreSQL server
+
+Set `DATABASE_URL`, or pass the URL to `--db`. The app creates its tables and loads the sample data on first start.
+
+```bash
+DATABASE_URL="postgres://user:password@localhost:5432/equidron" node app.js
+```
+
+In PowerShell: `$env:DATABASE_URL = "postgres://user:password@localhost:5432/equidron"; node app.js`. Hosted databases (Neon, Supabase, Netlify DB) usually need `?sslmode=require` on the end of the URL. `--reset` drops only Equidron's own tables.
 
 On this machine Node is a portable install at `%LOCALAPPDATA%\Programs\node-v24.21.0-win-x64`. If `node` isn't on your PATH, run it from PowerShell like this:
 
@@ -42,7 +55,9 @@ Each sign-in page has buttons that fill these in. Customers can also create thei
 node --test
 ```
 
-28 tests cover:
+The tests run on PGlite, so no database server is needed. The sample data is loaded once and restored before every test, so a run takes about 10 seconds.
+
+30 tests cover:
 - search ranking and multi-seller offers
 - listing review rules and role separation
 - checkout revalidation, and payment authorization versus capture
@@ -50,33 +65,30 @@ node --test
 - cancellation and cash on delivery
 - returns, refunds and seller settlement
 - a full customer order over real HTTP
-- the Netlify Blobs persistence layer, with two simulated function instances sharing one store
+- the database layer: placeholders, ids from inserts, rollback
+- the Netlify function handler
 
 See [DEMO.md](DEMO.md) for a click-by-click walkthrough of the seller and customer flows.
 
 ## Deploying to Netlify
 
-Netlify Functions have no permanent disk: a SQLite file written inside a function is lost between requests and isn't shared across instances. Equidron therefore keeps **the SQLite file itself in Netlify Blobs**:
+Create a PostgreSQL database (Netlify DB, Neon or Supabase all work) and set `DATABASE_URL` under **Site configuration → Environment variables**. Netlify DB sets `NETLIFY_DATABASE_URL` itself, and that works too. Prefer the provider's *pooled* connection string when it offers one. Without a database URL, the API answers 503 "not connected to a database yet". Functions have no lasting disk, so the in-process PGlite isn't used there.
 
-- `netlify/functions/api.mjs` serves `/api/*` and `/img/*`. The static front ends are published from `static/`.
-- Each function instance keeps a working copy at `/tmp/equidron.db`. Before each request it checks the blob's etag and downloads the file if another instance changed it. After a successful write request it uploads the whole file again (`src/blob-backed.js`).
-- On the very first request the database is created and loaded with the sample data.
-
-**Limits of this approach:** two simultaneous writes from different instances are last-writer-wins, so one could be lost, and every write re-uploads the whole file (about 1 MB). That's fine for a demo. For real traffic, move to a hosted database (Turso/libSQL speaks SQLite, or Netlify DB/Postgres) or a host with a persistent disk.
+The function opens a small connection pool per instance, creates the tables on its first request and loads the sample data once. Every request is a normal database transaction, so concurrent writes from many instances are safe.
 
 Setup:
 1. Push this folder to a GitHub repository. `data/` and `node_modules/` are git-ignored.
-2. In Netlify: **Add new site → Import from Git** and pick the repo. `netlify.toml` already sets the publish directory, the function and `NODE_VERSION = 22`. Netlify runs `npm install` to bundle `@netlify/blobs`.
-3. Deploy, then open `https://<your-site>.netlify.app/`. It redirects to `/shop/`.
+2. In Netlify: **Add new site → Import from Git** and pick the repo. `netlify.toml` already sets the publish directory, the function and `NODE_VERSION = 22`.
+3. Set `DATABASE_URL`, deploy, then open `https://<your-site>.netlify.app/`. It redirects to `/shop/`.
 
-Two points couldn't be tested from this machine, because the Netlify CLI isn't installed: the Netlify runtime itself, and `@netlify/blobs` against the real service. The persistence logic is covered by `tests/blob-backed.test.js` with an in-memory stand-in. If the function logs `No such built-in module: node:sqlite`, the function is running on Node older than 22.13. Set `AWS_LAMBDA_JS_RUNTIME = nodejs22.x` under **Site configuration → Environment variables** and redeploy.
+The Netlify runtime itself couldn't be tested from this machine, because the Netlify CLI isn't installed. The function's handler is covered by `tests/postgres.test.js`. The `pg` driver was checked against a PostgreSQL network endpoint, with the full seller flow and concurrent writes.
 
 ## How it works
 
 ```
 app.js                    local server entry point
 src/
-  db.js                   schema, query helpers, transactions (node:sqlite)
+  db.js                   PostgreSQL schema, query helpers, transactions; pg driver or in-process PGlite
   auth.js                 PBKDF2 password hashing, role-scoped sessions
   catalog.js              search ranking, product pages, featured offer, delivery promise
   listings.js             seller submissions: validation, auto-approve vs review, approval
@@ -86,11 +98,14 @@ src/
   seed.js                 loads src/sample-data.json
   api.js                  JSON API routes, independent of the HTTP layer
   server.js               local HTTP server (node:http) + static files
-  blob-backed.js          runs the API against a SQLite file stored in Netlify Blobs
+  fetch-handler.js        the API for Fetch-style runtimes (Netlify), with a pooled database connection
 netlify/functions/api.mjs Netlify Function entry point
 static/                   AngularJS front ends: shop/, seller/, ops/, common/
 tests/                    node:test suites
 ```
+
+### Database access
+Queries are written with `?` placeholders, which `db.js` numbers as `$1, $2, ...` before sending. It also turns `LIKE` into `ILIKE`, so searches ignore case, and adds `RETURNING id` to inserts so the new row's id comes back. Each API request runs as one transaction. Write transactions take a lock first, so only one runs at a time. That way checkout can read stock and then reserve it without another order slipping in between. Reads don't take the lock.
 
 ### Roles are kept separate
 Each interface has its own login endpoint, session role and cookie (`eq_shop`, `eq_seller`, `eq_ops`), scoped to its own API path. A seller's session is rejected by the store API and the other way round. Signing in to the wrong interface gives "This account can't sign in here". POST requests must be JSON, which blocks cross-site form posts.
@@ -148,6 +163,6 @@ Sellers move their own self-ship orders through picking, packing and shipping. E
 - **Seller settlement:** delivered sales credit the seller (minus a 10% referral fee) and refunds debit it. "Run settlement" in Ops pays out positive balances (simulated).
 
 ## Limits and next steps
-- The Blobs-backed deployment is for demos (see above). Use a hosted database for real traffic.
+- Product pages and search run one small query per offer. That's fine locally and with a nearby database, but slower over a long network hop. Batch those queries if it shows.
 - AngularJS 1.x is end-of-life and is used here because it needs no build step. A production build would move to modern Angular.
 - Product images are generated placeholders. Sellers can add their own `https://` image links.

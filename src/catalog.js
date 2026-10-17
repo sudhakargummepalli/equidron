@@ -62,13 +62,13 @@ export function etaDate(days, today = new Date()) {
 }
 
 // All live offers for a product with stock, delivery promise and featured flag.
-export function describeOffers(db, productId, city = null, includeInactive = false) {
+export async function describeOffers(db, productId, city = null, includeInactive = false) {
   let sql = `SELECT o.*, s.name AS seller_name, s.rating AS seller_rating, s.rating_count AS seller_rating_count
              FROM offers o JOIN sellers s ON s.id = o.seller_id WHERE o.product_id = ?`;
   if (!includeInactive) sql += " AND o.status = 'active'";
-  const offers = all(db, sql + ' ORDER BY o.price_paise', productId);
+  const offers = await all(db, sql + ' ORDER BY o.price_paise', productId);
   for (const o of offers) {
-    const stock = stockByWarehouse(db, o.id);
+    const stock = await stockByWarehouse(db, o.id);
     o.available = stock.reduce((n, s) => n + Math.max(s.available, 0), 0);
     o.deliverable = isDeliverable(o, city);
     o.delivery_days = deliveryDays(o, stock, city);
@@ -126,7 +126,7 @@ function relevance(product, queryTokens, queryText) {
 
 const round = (x, places) => Math.round(x * 10 ** places) / 10 ** places;
 
-export function search(db, q = '', category = null, sort = 'relevance', city = null, limit = 60) {
+export async function search(db, q = '', category = null, sort = 'relevance', city = null, limit = 60) {
   const queryTokens = tokenize(q);
   let sql = "SELECT * FROM products WHERE status = 'live'";
   const params = [];
@@ -135,10 +135,10 @@ export function search(db, q = '', category = null, sort = 'relevance', city = n
     params.push(category);
   }
   const results = [];
-  for (const p of all(db, sql, ...params)) {
+  for (const p of await all(db, sql, ...params)) {
     const rel = relevance(p, queryTokens, String(q || '').trim());
     if (queryTokens.length && rel < 0.15) continue;
-    const offers = describeOffers(db, p.id, city);
+    const offers = await describeOffers(db, p.id, city);
     if (!offers.length) continue;
     const featured = offers.find((o) => o.is_featured) || null;
     const inStock = offers.some((o) => o.available > 0);
@@ -177,11 +177,11 @@ export function search(db, q = '', category = null, sort = 'relevance', city = n
   return results.slice(0, limit);
 }
 
-export function productDetail(db, productId, city = null) {
-  const p = one(db, "SELECT * FROM products WHERE id = ? AND status = 'live'", productId);
+export async function productDetail(db, productId, city = null) {
+  const p = await one(db, "SELECT * FROM products WHERE id = ? AND status = 'live'", productId);
   if (!p) throw notFound('Product');
   const card = productCard(p);
-  card.offers = describeOffers(db, productId, city);
+  card.offers = await describeOffers(db, productId, city);
   if (!card.offers.length) throw notFound('Product');
   card.city = city;
   return card;

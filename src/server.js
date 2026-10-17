@@ -4,7 +4,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleApi, parseCookies, placeholderSvg } from './api.js';
-import { connect, initSchema } from './db.js';
+import { connect, dropSchema, initSchema, transaction } from './db.js';
 import { seed } from './seed.js';
 
 const STATIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'static');
@@ -12,10 +12,14 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascr
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon' };
 const MAX_BODY = 1_000_000;
 
-export function openDatabase(dbPath, options) {
-  const db = connect(dbPath, options);
-  initSchema(db);
-  seed(db);
+// target: a postgres:// URL, a PGlite data directory, or 'memory' (see db.js).
+// reset drops Equidron's tables first, so the sample data is loaded again.
+export async function openDatabase(target, { reset = false, ...options } = {}) {
+  const db = await connect(target, options);
+  if (reset) await dropSchema(db);
+  // In a transaction so concurrent first starts against one database don't race to create tables.
+  await transaction(db, () => initSchema(db));
+  await seed(db);
   return db;
 }
 
@@ -78,7 +82,7 @@ export function createServer(db, { quiet = false } = {}) {
         }
         const parsed = parseJsonBody(req.method, req.headers['content-type'], raw);
         if (parsed.error) return sendJson(res, parsed.error[0], { error: parsed.error[1] });
-        const out = handleApi(db, { method: req.method, path: p, query: url.searchParams, body: parsed.body,
+        const out = await handleApi(db, { method: req.method, path: p, query: url.searchParams, body: parsed.body,
           cookies: parseCookies(req.headers.cookie) });
         return sendJson(res, out.status, out.payload, out.setCookie ? { 'Set-Cookie': out.setCookie } : {});
       }
@@ -86,7 +90,7 @@ export function createServer(db, { quiet = false } = {}) {
       if (p === '/') return send(res, 302, '', 'text/plain', { Location: '/shop/' });
       if (['/shop', '/seller', '/ops'].includes(p)) return send(res, 302, '', 'text/plain', { Location: p + '/' });
       const img = /^\/img\/([A-Za-z0-9_\-]+)\.svg$/.exec(p);
-      if (img) return send(res, 200, placeholderSvg(db, img[1]), 'image/svg+xml; charset=utf-8');
+      if (img) return send(res, 200, await placeholderSvg(db, img[1]), 'image/svg+xml; charset=utf-8');
       const rel = decodeURIComponent(p.endsWith('/') ? p + 'index.html' : p);
       const full = path.normalize(path.join(STATIC_DIR, rel));
       if (!full.startsWith(STATIC_DIR + path.sep)) return send(res, 404, 'Not found', 'text/plain');

@@ -16,44 +16,44 @@ export function hashPassword(password, salt = crypto.randomBytes(16).toString('h
   return [salt, digest.toString('hex')];
 }
 
-export function createUser(db, email, name, password, role, isSample = false) {
+export async function createUser(db, email, name, password, role, isSample = false) {
   email = String(email || '').trim().toLowerCase();
   if (!EMAIL_RE.test(email)) throw badRequest('Enter a valid email address.');
   if (String(password || '').length < 8) throw badRequest('Password must be at least 8 characters.');
   if (!String(name || '').trim()) throw badRequest('Name is required.');
-  if (one(db, 'SELECT 1 AS x FROM users WHERE email = ?', email)) throw badRequest('An account with that email already exists.');
+  if (await one(db, 'SELECT 1 AS x FROM users WHERE email = ?', email)) throw badRequest('An account with that email already exists.');
   const [salt, digest] = hashPassword(password);
-  return run(db, 'INSERT INTO users (email, name, role, pw_salt, pw_hash, is_sample, created_at) VALUES (?,?,?,?,?,?,?)',
+  return await run(db, 'INSERT INTO users (email, name, role, pw_salt, pw_hash, is_sample, created_at) VALUES (?,?,?,?,?,?,?)',
     email, name.trim(), role, salt, digest, isSample ? 1 : 0, now());
 }
 
 const WHERE = { customer: 'the Equidron store', seller: 'Seller Central', ops: 'Equidron Ops' };
 
 // Return a new session token, or throw 401. Accounts of another role are refused.
-export function login(db, email, password, role) {
-  const user = one(db, 'SELECT * FROM users WHERE email = ?', String(email || '').trim().toLowerCase());
+export async function login(db, email, password, role) {
+  const user = await one(db, 'SELECT * FROM users WHERE email = ?', String(email || '').trim().toLowerCase());
   const ok = user && crypto.timingSafeEqual(Buffer.from(hashPassword(password || '', user.pw_salt)[1]), Buffer.from(user.pw_hash));
   if (!ok) throw new AppError(401, 'Incorrect email or password.');
   if (user.role !== role) throw new AppError(403, `This account can't sign in here. Please use ${WHERE[user.role]}.`);
   const token = crypto.randomBytes(32).toString('base64url');
-  run(db, 'INSERT INTO sessions (token, user_id, role, expires_at) VALUES (?,?,?,?)',
+  await run(db, 'INSERT INTO sessions (token, user_id, role, expires_at) VALUES (?,?,?,?)',
     token, user.id, role, Date.now() / 1000 + SESSION_TTL_SECONDS);
   return token;
 }
 
-export function logout(db, token) {
-  run(db, 'DELETE FROM sessions WHERE token = ?', token);
+export async function logout(db, token) {
+  await run(db, 'DELETE FROM sessions WHERE token = ?', token);
 }
 
 // The user for a valid session of exactly this role, else null.
-export function userForToken(db, token, role) {
+export async function userForToken(db, token, role) {
   if (!token) return null;
-  const s = one(db, 'SELECT * FROM sessions WHERE token = ?', token);
+  const s = await one(db, 'SELECT * FROM sessions WHERE token = ?', token);
   if (!s || s.role !== role || s.expires_at < Date.now() / 1000) return null;
-  const user = one(db, 'SELECT id, email, name, role, is_sample FROM users WHERE id = ?', s.user_id);
+  const user = await one(db, 'SELECT id, email, name, role, is_sample FROM users WHERE id = ?', s.user_id);
   if (!user || user.role !== role) return null;
   if (role === 'seller') {
-    const seller = one(db, 'SELECT id, name FROM sellers WHERE user_id = ?', user.id);
+    const seller = await one(db, 'SELECT id, name FROM sellers WHERE user_id = ?', user.id);
     user.seller_id = seller.id;
     user.seller_name = seller.name;
   }

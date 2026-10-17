@@ -1,8 +1,11 @@
-// Run Equidron locally:  node app.js [--port 8000] [--db data/equidron.db] [--reset]
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+// Run Equidron locally:  node app.js [--port 8000] [--db data/pg | postgres://...] [--reset]
+// With no --db, DATABASE_URL is used when set. Otherwise data is kept in data/pg by
+// PGlite (PostgreSQL running inside Node), so no database server is needed.
+import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { isServerUrl } from './src/db.js';
 import { createServer, openDatabase } from './src/server.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -10,21 +13,20 @@ const { values: args } = parseArgs({
   options: {
     host: { type: 'string', default: '127.0.0.1' },
     port: { type: 'string', default: '8000' },
-    db: { type: 'string', default: path.join(here, 'data', 'equidron.db') },
+    db: { type: 'string', default: process.env.DATABASE_URL || path.join(here, 'data', 'pg') },
     reset: { type: 'boolean', default: false },
   },
 });
 
-mkdirSync(path.dirname(path.resolve(args.db)), { recursive: true });
-if (args.reset) {
-  for (const suffix of ['', '-wal', '-shm']) if (existsSync(args.db + suffix)) rmSync(args.db + suffix);
-}
+const remote = isServerUrl(args.db);
+if (!remote && args.db !== 'memory') mkdirSync(path.resolve(args.db), { recursive: true });
 
-const db = openDatabase(args.db);
+const db = await openDatabase(args.db, { reset: args.reset });
 const server = createServer(db);
 server.listen(Number(args.port), args.host, () => {
   const base = `http://localhost:${args.port}`;
   console.log('Equidron is running (sample data, simulated payments).');
+  console.log(`  Database:       PostgreSQL ${remote ? 'server' : `(PGlite, ${args.db})`}`);
   console.log(`  Storefront:     ${base}/shop/`);
   console.log(`  Seller Central: ${base}/seller/`);
   console.log(`  Equidron Ops:   ${base}/ops/`);

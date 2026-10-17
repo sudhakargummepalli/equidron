@@ -4,11 +4,15 @@
   command = "echo 'No build step: plain HTML/JS front end, Node API function.'"
 
 [build.environment]
-  # node:sqlite needs Node 22.13 or newer; functions run on the build's Node version.
+  # Functions run on the build's Node version.
+  # Set DATABASE_URL (PostgreSQL) under Site configuration -> Environment variables;
+  # Netlify DB sets NETLIFY_DATABASE_URL itself.
   NODE_VERSION = "22"
 
 [functions]
   node_bundler = "esbuild"
+  # pg-native is an optional add-on of the pg driver; PGlite is only used for local runs and tests.
+  external_node_modules = ["pg-native", "@electric-sql/pglite"]
 
 [[redirects]]
   from = "/"
