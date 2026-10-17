@@ -915,6 +915,4807 @@
      "condition": "new"
     }
    ]
+  },
+  {
+   "title": "Orvel Max 15 Creator Laptop (Ryzen 9 7940HS, 32GB, 1TB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4.2,
+   "reviews": 2529,
+   "description": "A creator laptop with a colour-accurate display, fast storage and dedicated graphics for photo and video editing. 14.5-inch 3.2K 120Hz IPS screen, 32 GB memory and 1 TB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 9 7940HS",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "14.5-inch 3.2K 120Hz IPS",
+    "Graphics": "8 GB dedicated",
+    "Weight": "1.91 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 135490,
+     "mrp": 155990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 17,
+      "HYD1": 9
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Halcyra Lumen 16 Gaming Laptop (Core i7-13700H, 16GB, 512GB SSD)",
+   "brand": "Halcyra",
+   "category": "Laptops",
+   "rating": 3.8,
+   "reviews": 253,
+   "description": "A gaming laptop with a high-refresh display, dedicated graphics and a dual-fan cooling system with RGB keyboard. 16-inch FHD 144Hz screen, 16 GB memory and 512 GB SSD storage, up to 7 hours on a charge.",
+   "specs": {
+    "Processor": "Core i7-13700H",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "16-inch FHD 144Hz",
+    "Graphics": "6 GB dedicated",
+    "Weight": "2.42 kg",
+    "Battery": "Up to 7 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 91490,
+     "mrp": 104990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 2,
+      "DEL1": 12
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Brightforge Titan 14 Thin & Light Laptop (Core i5-1335U, 16GB, 512GB SSD)",
+   "brand": "Brightforge",
+   "category": "Laptops",
+   "rating": 3.8,
+   "reviews": 1026,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 14-inch 2.2K IPS screen, 16 GB memory and 512 GB SSD storage, up to 13 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1335U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.29 kg",
+    "Battery": "Up to 13 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 60990,
+     "mrp": 74990,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 2
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 60990,
+     "mrp": 74990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 33
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Lumetra Air 16 Gaming Laptop (Core i7-13700H, 16GB, 1TB SSD)",
+   "brand": "Lumetra",
+   "category": "Laptops",
+   "rating": 3.7,
+   "reviews": 434,
+   "description": "A gaming laptop with a high-refresh display, dedicated graphics and a dual-fan cooling system with RGB keyboard. 15.6-inch FHD 144Hz screen, 16 GB memory and 1 TB SSD storage, up to 7 hours on a charge.",
+   "specs": {
+    "Processor": "Core i7-13700H",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "15.6-inch FHD 144Hz",
+    "Graphics": "12 GB dedicated",
+    "Weight": "2.24 kg",
+    "Battery": "Up to 7 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 122490,
+     "mrp": 150490,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 15
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 122490,
+     "mrp": 150490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 42
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Corvane Glide 13 G8 Thin & Light Laptop (Ryzen 5 7535U, 16GB, 1TB SSD)",
+   "brand": "Corvane",
+   "category": "Laptops",
+   "rating": 3.7,
+   "reviews": 3778,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 13.3-inch FHD+ IPS screen, 16 GB memory and 1 TB SSD storage, up to 14 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "13.3-inch FHD+ IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.23 kg",
+    "Battery": "Up to 14 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 73990,
+     "mrp": 83990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 25,
+      "BLR1": 10
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 73490,
+     "mrp": 83990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 19,
+      "DEL1": 5
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 75990,
+     "mrp": 83990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Chennai",
+      "Pune"
+     ],
+     "stock": {
+      "BLR1": 18,
+      "HYD1": 11
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Halcyra Lumen 15 G8 Creator Laptop (Ryzen 9 7940HS, 32GB, 2TB SSD)",
+   "brand": "Halcyra",
+   "category": "Laptops",
+   "rating": 3.9,
+   "reviews": 2823,
+   "description": "A creator laptop with a colour-accurate display, fast storage and dedicated graphics for photo and video editing. 14.5-inch 3K 120Hz OLED screen, 32 GB memory and 2 TB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 9 7940HS",
+    "RAM": "32 GB",
+    "Storage": "2 TB SSD",
+    "Display": "14.5-inch 3K 120Hz OLED",
+    "Graphics": "12 GB dedicated",
+    "Weight": "1.81 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 145990,
+     "mrp": 176990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 0,
+      "HYD1": 0
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Corvane Atlas 14 G7 Thin & Light Laptop (Core Ultra 5, 16GB, 1TB SSD)",
+   "brand": "Corvane",
+   "category": "Laptops",
+   "rating": 4,
+   "reviews": 4847,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 14-inch 2.8K OLED screen, 16 GB memory and 1 TB SSD storage, up to 12 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "14-inch 2.8K OLED",
+    "Graphics": "Integrated",
+    "Weight": "1.11 kg",
+    "Battery": "Up to 12 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 69490,
+     "mrp": 76990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 9,
+      "BLR1": 12
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Ledger 16 G7 Everyday Laptop (Ryzen 3 7320U, 8GB, 512GB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 3.7,
+   "reviews": 1573,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 512 GB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 3 7320U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.76 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 32990,
+     "mrp": 36990,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 10
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 33490,
+     "mrp": 36990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 9,
+      "BLR1": 24
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 26490,
+     "mrp": 36990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 19,
+      "BLR1": 13
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Novabyte Volt 16 Everyday Laptop (Ryzen 5 7520U, 8GB, 512GB SSD)",
+   "brand": "Novabyte",
+   "category": "Laptops",
+   "rating": 3.9,
+   "reviews": 3475,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 512 GB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7520U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.65 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 31990,
+     "mrp": 39490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 0,
+      "BOM1": 0
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Novabyte Core 16 Everyday Laptop (Core i3-1215U, 8GB, 512GB SSD)",
+   "brand": "Novabyte",
+   "category": "Laptops",
+   "rating": 4,
+   "reviews": 267,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 512 GB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.75 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 34490,
+     "mrp": 41490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "Bengaluru",
+      "Delhi",
+      "Kolkata"
+     ],
+     "stock": {
+      "seller": 15
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 34990,
+     "mrp": 41490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 18
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Folio 13 G8 2-in-1 Convertible Laptop (Core Ultra 5, 8GB, 512GB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 3.9,
+   "reviews": 898,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 13.3-inch FHD+ touch screen, 8 GB memory and 512 GB SSD storage, up to 11 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch FHD+ touch",
+    "Graphics": "Integrated",
+    "Weight": "1.36 kg",
+    "Battery": "Up to 11 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 63490,
+     "mrp": 73990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 6,
+      "DEL1": 25
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Tessaro Nimbus 14 G7 Everyday Laptop (Core i3-1215U, 8GB, 256GB SSD)",
+   "brand": "Tessaro",
+   "category": "Laptops",
+   "rating": 3.7,
+   "reviews": 1835,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 14-inch FHD IPS screen, 8 GB memory and 256 GB SSD storage, up to 6 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "14-inch FHD IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.63 kg",
+    "Battery": "Up to 6 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 31990,
+     "mrp": 35490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 9
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 32990,
+     "mrp": 35490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 17,
+      "DEL1": 4
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 31490,
+     "mrp": 35490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 10
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Tessaro Nimbus 13 G7 2-in-1 Convertible Laptop (Core i5-1335U, 16GB, 512GB SSD)",
+   "brand": "Tessaro",
+   "category": "Laptops",
+   "rating": 3.9,
+   "reviews": 1428,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 13.3-inch FHD+ touch screen, 16 GB memory and 512 GB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1335U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch FHD+ touch",
+    "Graphics": "Integrated",
+    "Weight": "1.34 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 67990,
+     "mrp": 76490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 3
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 67990,
+     "mrp": 76490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 13,
+      "BOM1": 2
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Lumetra Studio 13 2-in-1 Convertible Laptop (Ryzen 5 7535U, 16GB, 512GB SSD)",
+   "brand": "Lumetra",
+   "category": "Laptops",
+   "rating": 3.8,
+   "reviews": 4985,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 13.3-inch 2.2K touch screen, 16 GB memory and 512 GB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch 2.2K touch",
+    "Graphics": "Integrated",
+    "Weight": "1.34 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 63490,
+     "mrp": 74990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Bengaluru",
+      "Kolkata",
+      "Pune"
+     ],
+     "stock": {
+      "HYD1": 8,
+      "DEL1": 22
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 62990,
+     "mrp": 74990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 14
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Corvane Swift 13 G9 2-in-1 Convertible Laptop (Core Ultra 5, 8GB, 512GB SSD)",
+   "brand": "Corvane",
+   "category": "Laptops",
+   "rating": 4.5,
+   "reviews": 3149,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 13.3-inch 2.2K touch screen, 8 GB memory and 512 GB SSD storage, up to 11 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch 2.2K touch",
+    "Graphics": "Integrated",
+    "Weight": "1.38 kg",
+    "Battery": "Up to 11 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 64490,
+     "mrp": 73490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 1
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Halcyra Echo 14 Everyday Laptop (Core i3-1215U, 8GB, 512GB SSD)",
+   "brand": "Halcyra",
+   "category": "Laptops",
+   "rating": 4,
+   "reviews": 2177,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 14-inch FHD IPS screen, 8 GB memory and 512 GB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch FHD IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.79 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 26990,
+     "mrp": 30490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 30
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Lumetra Prism 15 G8 Creator Laptop (Core Ultra 7, 32GB, 2TB SSD)",
+   "brand": "Lumetra",
+   "category": "Laptops",
+   "rating": 4.1,
+   "reviews": 255,
+   "description": "A creator laptop with a colour-accurate display, fast storage and dedicated graphics for photo and video editing. 14.5-inch 3.2K 120Hz IPS screen, 32 GB memory and 2 TB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 7",
+    "RAM": "32 GB",
+    "Storage": "2 TB SSD",
+    "Display": "14.5-inch 3.2K 120Hz IPS",
+    "Graphics": "12 GB dedicated",
+    "Weight": "2.04 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 170990,
+     "mrp": 198990,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 14
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Tessaro Nimbus 16 Business Laptop (Ryzen 7 7840U, 32GB, 1TB SSD)",
+   "brand": "Tessaro",
+   "category": "Laptops",
+   "rating": 4.7,
+   "reviews": 3640,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 15.6-inch 2.2K IPS screen, 32 GB memory and 1 TB SSD storage, up to 13 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 7 7840U",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "15.6-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.39 kg",
+    "Battery": "Up to 13 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 95490,
+     "mrp": 107490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 14
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 95490,
+     "mrp": 107490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 10,
+      "BOM1": 20
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 93990,
+     "mrp": 107490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 6
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Lumetra Air 13 Thin & Light Laptop (Ryzen 5 7535U, 16GB, 1TB SSD)",
+   "brand": "Lumetra",
+   "category": "Laptops",
+   "rating": 4.2,
+   "reviews": 1753,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 13.3-inch 2.8K OLED screen, 16 GB memory and 1 TB SSD storage, up to 12 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "13.3-inch 2.8K OLED",
+    "Graphics": "Integrated",
+    "Weight": "1.28 kg",
+    "Battery": "Up to 12 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 64490,
+     "mrp": 75990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 19,
+      "HYD1": 5
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Max 13 G7 2-in-1 Convertible Laptop (Ryzen 5 7535U, 16GB, 512GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 3.8,
+   "reviews": 1037,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 13.3-inch FHD+ touch screen, 16 GB memory and 512 GB SSD storage, up to 11 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch FHD+ touch",
+    "Graphics": "Integrated",
+    "Weight": "1.32 kg",
+    "Battery": "Up to 11 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 58490,
+     "mrp": 66490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Chennai",
+      "Mumbai",
+      "Pune"
+     ],
+     "stock": {
+      "HYD1": 23
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 58990,
+     "mrp": 66490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Chennai",
+      "Kolkata",
+      "Pune"
+     ],
+     "stock": {
+      "BOM1": 22,
+      "DEL1": 6
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Folio 15 G9 Creator Laptop (Ryzen 9 7940HS, 32GB, 2TB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 3.7,
+   "reviews": 1968,
+   "description": "A creator laptop with a colour-accurate display, fast storage and dedicated graphics for photo and video editing. 14.5-inch 3K 120Hz OLED screen, 32 GB memory and 2 TB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 9 7940HS",
+    "RAM": "32 GB",
+    "Storage": "2 TB SSD",
+    "Display": "14.5-inch 3K 120Hz OLED",
+    "Graphics": "12 GB dedicated",
+    "Weight": "2.06 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 148990,
+     "mrp": 163990,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 1
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Folio 13 G7 2-in-1 Convertible Laptop (Core Ultra 5, 8GB, 512GB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 4.3,
+   "reviews": 1547,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 13.3-inch 2.2K touch screen, 8 GB memory and 512 GB SSD storage, up to 12 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch 2.2K touch",
+    "Graphics": "Integrated",
+    "Weight": "1.48 kg",
+    "Battery": "Up to 12 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 63990,
+     "mrp": 71490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 46
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Tessaro Arc 14 G7 Thin & Light Laptop (Core i5-1335U, 16GB, 512GB SSD)",
+   "brand": "Tessaro",
+   "category": "Laptops",
+   "rating": 3.8,
+   "reviews": 3220,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 14-inch 2.8K OLED screen, 16 GB memory and 512 GB SSD storage, up to 13 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1335U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch 2.8K OLED",
+    "Graphics": "Integrated",
+    "Weight": "1.34 kg",
+    "Battery": "Up to 13 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 57990,
+     "mrp": 63990,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 6
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Corvane Swift 16 G9 Everyday Laptop (Ryzen 3 7320U, 8GB, 512GB SSD)",
+   "brand": "Corvane",
+   "category": "Laptops",
+   "rating": 3.9,
+   "reviews": 4991,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 512 GB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 3 7320U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.65 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 34490,
+     "mrp": 37990,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 7
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 33990,
+     "mrp": 37990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 4,
+      "DEL1": 5
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Novabyte Edge 16 Gaming Laptop (Ryzen 7 7840HS, 16GB, 1TB SSD)",
+   "brand": "Novabyte",
+   "category": "Laptops",
+   "rating": 4.7,
+   "reviews": 602,
+   "description": "A gaming laptop with a high-refresh display, dedicated graphics and a dual-fan cooling system with RGB keyboard. 16-inch QHD 165Hz screen, 16 GB memory and 1 TB SSD storage, up to 5 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 7 7840HS",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "16-inch QHD 165Hz",
+    "Graphics": "8 GB dedicated",
+    "Weight": "2.54 kg",
+    "Battery": "Up to 5 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 97990,
+     "mrp": 117490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 2
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 98990,
+     "mrp": 117490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 19,
+      "BLR1": 7
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 101490,
+     "mrp": 117490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 9,
+      "BOM1": 4
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Folio 13 G9 2-in-1 Convertible Laptop (Core Ultra 5, 8GB, 512GB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 4.2,
+   "reviews": 2758,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 13.3-inch FHD+ touch screen, 8 GB memory and 512 GB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch FHD+ touch",
+    "Graphics": "Integrated",
+    "Weight": "1.36 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 68490,
+     "mrp": 76990,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 15
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 67490,
+     "mrp": 76990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 10
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 68490,
+     "mrp": 76990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 16,
+      "DEL1": 24
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Novabyte Core 13 G8 Thin & Light Laptop (Ryzen 5 7535U, 16GB, 512GB SSD)",
+   "brand": "Novabyte",
+   "category": "Laptops",
+   "rating": 4,
+   "reviews": 1511,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 13.3-inch 2.2K IPS screen, 16 GB memory and 512 GB SSD storage, up to 11 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.24 kg",
+    "Battery": "Up to 11 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 61490,
+     "mrp": 68990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 17,
+      "HYD1": 5
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Lumetra Air 16 Everyday Laptop (Ryzen 3 7320U, 8GB, 256GB SSD)",
+   "brand": "Lumetra",
+   "category": "Laptops",
+   "rating": 4.4,
+   "reviews": 3786,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 256 GB SSD storage, up to 6 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 3 7320U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.79 kg",
+    "Battery": "Up to 6 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 25990,
+     "mrp": 31490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 12
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 20990,
+     "mrp": 31490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 21
+     },
+     "condition": "renewed"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 26990,
+     "mrp": 31490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 30
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Brightforge Forge 14 G9 Business Laptop (Core i7-1365U, 16GB, 512GB SSD)",
+   "brand": "Brightforge",
+   "category": "Laptops",
+   "rating": 4,
+   "reviews": 2074,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 14-inch FHD+ anti-glare screen, 16 GB memory and 512 GB SSD storage, up to 13 hours on a charge.",
+   "specs": {
+    "Processor": "Core i7-1365U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch FHD+ anti-glare",
+    "Graphics": "Integrated",
+    "Weight": "1.48 kg",
+    "Battery": "Up to 13 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 84490,
+     "mrp": 95490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 14
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Folio 16 Gaming Laptop (Core i7-13700H, 16GB, 1TB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 4.7,
+   "reviews": 2738,
+   "description": "A gaming laptop with a high-refresh display, dedicated graphics and a dual-fan cooling system with RGB keyboard. 16-inch QHD 240Hz screen, 16 GB memory and 1 TB SSD storage, up to 7 hours on a charge.",
+   "specs": {
+    "Processor": "Core i7-13700H",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "16-inch QHD 240Hz",
+    "Graphics": "8 GB dedicated",
+    "Weight": "2.37 kg",
+    "Battery": "Up to 7 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 110490,
+     "mrp": 130490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 21,
+      "HYD1": 24
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 112490,
+     "mrp": 130490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "Delhi",
+      "Hyderabad"
+     ],
+     "stock": {
+      "seller": 7
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Halcyra Breeze 16 G7 Everyday Laptop (Ryzen 5 7520U, 8GB, 512GB SSD)",
+   "brand": "Halcyra",
+   "category": "Laptops",
+   "rating": 4.7,
+   "reviews": 4187,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD IPS screen, 8 GB memory and 512 GB SSD storage, up to 7 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7520U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.75 kg",
+    "Battery": "Up to 7 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 31490,
+     "mrp": 35990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 0,
+      "BOM1": 0
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 32490,
+     "mrp": 35990,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 6
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 24990,
+     "mrp": 35990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 7
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Halcyra Lumen 16 G9 Business Laptop (Core i5-1345U, 32GB, 1TB SSD)",
+   "brand": "Halcyra",
+   "category": "Laptops",
+   "rating": 4.1,
+   "reviews": 508,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 15.6-inch FHD+ anti-glare screen, 32 GB memory and 1 TB SSD storage, up to 11 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1345U",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "15.6-inch FHD+ anti-glare",
+    "Graphics": "Integrated",
+    "Weight": "1.57 kg",
+    "Battery": "Up to 11 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 95490,
+     "mrp": 108490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 4
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 97990,
+     "mrp": 108490,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 10
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 97990,
+     "mrp": 108490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 24,
+      "HYD1": 10
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Tessaro Arc 14 Thin & Light Laptop (Core i5-1335U, 16GB, 512GB SSD)",
+   "brand": "Tessaro",
+   "category": "Laptops",
+   "rating": 4.5,
+   "reviews": 1003,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 14-inch FHD+ IPS screen, 16 GB memory and 512 GB SSD storage, up to 15 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1335U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch FHD+ IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.19 kg",
+    "Battery": "Up to 15 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 59490,
+     "mrp": 73990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 0
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 58990,
+     "mrp": 73990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 7,
+      "HYD1": 4
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Max 13 2-in-1 Convertible Laptop (Core Ultra 5, 16GB, 512GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4.1,
+   "reviews": 2506,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 13.3-inch 2.2K touch screen, 16 GB memory and 512 GB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch 2.2K touch",
+    "Graphics": "Integrated",
+    "Weight": "1.4 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 66990,
+     "mrp": 81490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 22,
+      "HYD1": 2
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 65990,
+     "mrp": 81490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 6,
+      "BLR1": 14
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Plus 16 G7 Everyday Laptop (Core i3-1215U, 8GB, 256GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4.7,
+   "reviews": 878,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 256 GB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.75 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 29490,
+     "mrp": 36490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 12
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 29490,
+     "mrp": 36490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 25,
+      "BOM1": 11
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Max 16 Everyday Laptop (Core i3-1215U, 8GB, 512GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4.3,
+   "reviews": 1896,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 512 GB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.78 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 31490,
+     "mrp": 38490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 11
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Max 14 Everyday Laptop (Ryzen 5 7520U, 8GB, 256GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 3.7,
+   "reviews": 4758,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 14-inch FHD IPS screen, 8 GB memory and 256 GB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7520U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "14-inch FHD IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.64 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 32490,
+     "mrp": 38490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 11,
+      "DEL1": 18
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 33490,
+     "mrp": 38490,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 6
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Ledger 16 Business Laptop (Core i5-1345U, 32GB, 512GB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 4.8,
+   "reviews": 2894,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 15.6-inch 2.2K IPS screen, 32 GB memory and 512 GB SSD storage, up to 13 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1345U",
+    "RAM": "32 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.53 kg",
+    "Battery": "Up to 13 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 83990,
+     "mrp": 94490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 17,
+      "HYD1": 13
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Plus 16 Creator Laptop (Ryzen 9 7940HS, 32GB, 1TB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 3.7,
+   "reviews": 1834,
+   "description": "A creator laptop with a colour-accurate display, fast storage and dedicated graphics for photo and video editing. 16-inch 3.2K 120Hz IPS screen, 32 GB memory and 1 TB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 9 7940HS",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "16-inch 3.2K 120Hz IPS",
+    "Graphics": "12 GB dedicated",
+    "Weight": "2.02 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 159490,
+     "mrp": 177490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 28
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 163490,
+     "mrp": 177490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 11
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 163990,
+     "mrp": 177490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Bengaluru",
+      "Delhi",
+      "Kolkata"
+     ],
+     "stock": {
+      "BOM1": 31
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Slate 16 Business Laptop (Core i5-1345U, 32GB, 1TB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 3.8,
+   "reviews": 1949,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 15.6-inch 2.2K IPS screen, 32 GB memory and 1 TB SSD storage, up to 12 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1345U",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "15.6-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.56 kg",
+    "Battery": "Up to 12 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 94490,
+     "mrp": 111490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 17,
+      "DEL1": 13
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 75490,
+     "mrp": 111490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "Bengaluru",
+      "Chennai",
+      "Delhi"
+     ],
+     "stock": {
+      "seller": 14
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Novabyte Edge 16 Gaming Laptop (Ryzen 7 7840HS, 32GB, 1TB SSD)",
+   "brand": "Novabyte",
+   "category": "Laptops",
+   "rating": 4.6,
+   "reviews": 4108,
+   "description": "A gaming laptop with a high-refresh display, dedicated graphics and a dual-fan cooling system with RGB keyboard. 15.6-inch QHD 165Hz screen, 32 GB memory and 1 TB SSD storage, up to 6 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 7 7840HS",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "15.6-inch QHD 165Hz",
+    "Graphics": "8 GB dedicated",
+    "Weight": "2.58 kg",
+    "Battery": "Up to 6 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 126490,
+     "mrp": 155490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 11
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Ledger 16 G8 Everyday Laptop (Core i3-1215U, 8GB, 512GB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 3.6,
+   "reviews": 2072,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 512 GB SSD storage, up to 7 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.66 kg",
+    "Battery": "Up to 7 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 34490,
+     "mrp": 39990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 31
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Halcyra Breeze 16 G8 Business Laptop (Core i5-1345U, 32GB, 512GB SSD)",
+   "brand": "Halcyra",
+   "category": "Laptops",
+   "rating": 4.3,
+   "reviews": 4500,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 15.6-inch FHD+ anti-glare screen, 32 GB memory and 512 GB SSD storage, up to 14 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1345U",
+    "RAM": "32 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD+ anti-glare",
+    "Graphics": "Integrated",
+    "Weight": "1.34 kg",
+    "Battery": "Up to 14 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 79490,
+     "mrp": 97490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Delhi",
+      "Hyderabad",
+      "Mumbai"
+     ],
+     "stock": {
+      "HYD1": 39
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Ledger 16 Everyday Laptop (Ryzen 5 7520U, 8GB, 256GB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 3.6,
+   "reviews": 4803,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD IPS screen, 8 GB memory and 256 GB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7520U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "15.6-inch FHD IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.67 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 30990,
+     "mrp": 34490,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 14
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 31990,
+     "mrp": 34490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 0,
+      "DEL1": 0
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Go 14 G9 Everyday Laptop (Ryzen 3 7320U, 8GB, 256GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4.2,
+   "reviews": 110,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 14-inch FHD screen, 8 GB memory and 256 GB SSD storage, up to 6 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 3 7320U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "14-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.63 kg",
+    "Battery": "Up to 6 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 29490,
+     "mrp": 34990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 15
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 29490,
+     "mrp": 34990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 27
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 28990,
+     "mrp": 34990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 4,
+      "HYD1": 24
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Go 14 2-in-1 Convertible Laptop (Core i5-1335U, 16GB, 512GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4,
+   "reviews": 3541,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 14-inch 2.2K touch screen, 16 GB memory and 512 GB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1335U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch 2.2K touch",
+    "Graphics": "Integrated",
+    "Weight": "1.33 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 65490,
+     "mrp": 80990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Chennai",
+      "Kolkata"
+     ],
+     "stock": {
+      "BLR1": 0
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 64490,
+     "mrp": 80990,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 1
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 64990,
+     "mrp": 80990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 23,
+      "BLR1": 4
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Halcyra Echo 16 Everyday Laptop (Ryzen 5 7520U, 8GB, 256GB SSD)",
+   "brand": "Halcyra",
+   "category": "Laptops",
+   "rating": 4.8,
+   "reviews": 4861,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 256 GB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7520U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.78 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 26490,
+     "mrp": 29490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 37
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 26990,
+     "mrp": 29490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Hyderabad",
+      "Pune"
+     ],
+     "stock": {
+      "HYD1": 12,
+      "BOM1": 3
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Tessaro Arc 16 Creator Laptop (Ryzen 9 7940HS, 32GB, 2TB SSD)",
+   "brand": "Tessaro",
+   "category": "Laptops",
+   "rating": 4.4,
+   "reviews": 4594,
+   "description": "A creator laptop with a colour-accurate display, fast storage and dedicated graphics for photo and video editing. 16-inch 3.2K 120Hz IPS screen, 32 GB memory and 2 TB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 9 7940HS",
+    "RAM": "32 GB",
+    "Storage": "2 TB SSD",
+    "Display": "16-inch 3.2K 120Hz IPS",
+    "Graphics": "12 GB dedicated",
+    "Weight": "2.06 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 146990,
+     "mrp": 180990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 15,
+      "DEL1": 6
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Novabyte Core 14 G9 Business Laptop (Core i5-1345U, 16GB, 512GB SSD)",
+   "brand": "Novabyte",
+   "category": "Laptops",
+   "rating": 4.4,
+   "reviews": 1691,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 14-inch FHD+ anti-glare screen, 16 GB memory and 512 GB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1345U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch FHD+ anti-glare",
+    "Graphics": "Integrated",
+    "Weight": "1.46 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 85990,
+     "mrp": 98490,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 13
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 87990,
+     "mrp": 98490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 14
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 88490,
+     "mrp": 98490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 10
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Lumetra Air 14 Everyday Laptop (Core i3-1215U, 8GB, 512GB SSD)",
+   "brand": "Lumetra",
+   "category": "Laptops",
+   "rating": 4.5,
+   "reviews": 764,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 14-inch FHD screen, 8 GB memory and 512 GB SSD storage, up to 7 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.68 kg",
+    "Battery": "Up to 7 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 34990,
+     "mrp": 42990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Bengaluru",
+      "Delhi"
+     ],
+     "stock": {
+      "BOM1": 20
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 35990,
+     "mrp": 42990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 14,
+      "DEL1": 12
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Brightforge Forge 16 G8 Gaming Laptop (Core i9-13900H, 16GB, 1TB SSD)",
+   "brand": "Brightforge",
+   "category": "Laptops",
+   "rating": 4.8,
+   "reviews": 4779,
+   "description": "A gaming laptop with a high-refresh display, dedicated graphics and a dual-fan cooling system with RGB keyboard. 15.6-inch FHD 144Hz screen, 16 GB memory and 1 TB SSD storage, up to 6 hours on a charge.",
+   "specs": {
+    "Processor": "Core i9-13900H",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "15.6-inch FHD 144Hz",
+    "Graphics": "6 GB dedicated",
+    "Weight": "2.46 kg",
+    "Battery": "Up to 6 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 95990,
+     "mrp": 110490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 2,
+      "BLR1": 24
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 99490,
+     "mrp": 110490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 0,
+      "HYD1": 0
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Go 13 Thin & Light Laptop (Core Ultra 5, 16GB, 512GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4,
+   "reviews": 1273,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 13.3-inch 2.2K IPS screen, 16 GB memory and 512 GB SSD storage, up to 14 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.2 kg",
+    "Battery": "Up to 14 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 63990,
+     "mrp": 78490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 24
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 64490,
+     "mrp": 78490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 15,
+      "BOM1": 9
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Ledger 13 G8 Thin & Light Laptop (Core Ultra 5, 16GB, 512GB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 4,
+   "reviews": 2913,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 13.3-inch 2.8K OLED screen, 16 GB memory and 512 GB SSD storage, up to 14 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch 2.8K OLED",
+    "Graphics": "Integrated",
+    "Weight": "1.22 kg",
+    "Battery": "Up to 14 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 60490,
+     "mrp": 72490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 8
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Brightforge Titan 16 G7 Business Laptop (Core i7-1365U, 32GB, 512GB SSD)",
+   "brand": "Brightforge",
+   "category": "Laptops",
+   "rating": 3.8,
+   "reviews": 3739,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 15.6-inch FHD+ anti-glare screen, 32 GB memory and 512 GB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Core i7-1365U",
+    "RAM": "32 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD+ anti-glare",
+    "Graphics": "Integrated",
+    "Weight": "1.51 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 91990,
+     "mrp": 107490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 5,
+      "DEL1": 25
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 89990,
+     "mrp": 107490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 7,
+      "HYD1": 16
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 91490,
+     "mrp": 107490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 5,
+      "DEL1": 20
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Halcyra Lumen 16 Gaming Laptop (Core i7-13700H, 32GB, 512GB SSD)",
+   "brand": "Halcyra",
+   "category": "Laptops",
+   "rating": 3.7,
+   "reviews": 1632,
+   "description": "A gaming laptop with a high-refresh display, dedicated graphics and a dual-fan cooling system with RGB keyboard. 16-inch QHD 165Hz screen, 32 GB memory and 512 GB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Core i7-13700H",
+    "RAM": "32 GB",
+    "Storage": "512 GB SSD",
+    "Display": "16-inch QHD 165Hz",
+    "Graphics": "6 GB dedicated",
+    "Weight": "2.38 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 109990,
+     "mrp": 131990,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "Chennai",
+      "Delhi",
+      "Mumbai"
+     ],
+     "stock": {
+      "seller": 5
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 109490,
+     "mrp": 131990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Chennai",
+      "Hyderabad"
+     ],
+     "stock": {
+      "HYD1": 28
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 110490,
+     "mrp": 131990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 2,
+      "HYD1": 25
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Tessaro Nimbus 13 Thin & Light Laptop (Ryzen 5 7535U, 16GB, 512GB SSD)",
+   "brand": "Tessaro",
+   "category": "Laptops",
+   "rating": 4.1,
+   "reviews": 1085,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 13.3-inch 2.2K IPS screen, 16 GB memory and 512 GB SSD storage, up to 13 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.16 kg",
+    "Battery": "Up to 13 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 66490,
+     "mrp": 76490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 18
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 67990,
+     "mrp": 76490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 3,
+      "BLR1": 19
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 68990,
+     "mrp": 76490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 5
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Brightforge Titan 16 G8 Everyday Laptop (Core i3-1215U, 8GB, 512GB SSD)",
+   "brand": "Brightforge",
+   "category": "Laptops",
+   "rating": 4.2,
+   "reviews": 4822,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 512 GB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.61 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 30490,
+     "mrp": 36990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 9
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 30990,
+     "mrp": 36990,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 1
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 31490,
+     "mrp": 36990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 25,
+      "HYD1": 11
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Max 16 G9 Creator Laptop (Core Ultra 7, 32GB, 1TB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4.4,
+   "reviews": 2674,
+   "description": "A creator laptop with a colour-accurate display, fast storage and dedicated graphics for photo and video editing. 16-inch 3K 120Hz OLED screen, 32 GB memory and 1 TB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 7",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "16-inch 3K 120Hz OLED",
+    "Graphics": "12 GB dedicated",
+    "Weight": "1.72 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 160990,
+     "mrp": 189990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Mumbai",
+      "Pune"
+     ],
+     "stock": {
+      "HYD1": 29
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Brightforge Blaze 16 Everyday Laptop (Core i3-1215U, 8GB, 512GB SSD)",
+   "brand": "Brightforge",
+   "category": "Laptops",
+   "rating": 4.5,
+   "reviews": 2529,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD IPS screen, 8 GB memory and 512 GB SSD storage, up to 7 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.74 kg",
+    "Battery": "Up to 7 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 33990,
+     "mrp": 38490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 44
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 34490,
+     "mrp": 38490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 16,
+      "BLR1": 24
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Brightforge Titan 13 G8 Thin & Light Laptop (Ryzen 5 7535U, 16GB, 1TB SSD)",
+   "brand": "Brightforge",
+   "category": "Laptops",
+   "rating": 4.3,
+   "reviews": 2969,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 13.3-inch FHD+ IPS screen, 16 GB memory and 1 TB SSD storage, up to 14 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "13.3-inch FHD+ IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.26 kg",
+    "Battery": "Up to 14 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 58990,
+     "mrp": 67490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 0
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Tessaro Vista 15 Creator Laptop (Core i9-13900H, 32GB, 1TB SSD)",
+   "brand": "Tessaro",
+   "category": "Laptops",
+   "rating": 4.6,
+   "reviews": 210,
+   "description": "A creator laptop with a colour-accurate display, fast storage and dedicated graphics for photo and video editing. 14.5-inch 3K 120Hz OLED screen, 32 GB memory and 1 TB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Core i9-13900H",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "14.5-inch 3K 120Hz OLED",
+    "Graphics": "12 GB dedicated",
+    "Weight": "1.94 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 144990,
+     "mrp": 164490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 25,
+      "HYD1": 16
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 148490,
+     "mrp": 164490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 26
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Tessaro Nimbus 16 Everyday Laptop (Ryzen 3 7320U, 8GB, 512GB SSD)",
+   "brand": "Tessaro",
+   "category": "Laptops",
+   "rating": 3.6,
+   "reviews": 3599,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD IPS screen, 8 GB memory and 512 GB SSD storage, up to 7 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 3 7320U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.73 kg",
+    "Battery": "Up to 7 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 31490,
+     "mrp": 37990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Delhi",
+      "Hyderabad"
+     ],
+     "stock": {
+      "BLR1": 17,
+      "HYD1": 20
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 24990,
+     "mrp": 37990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 25,
+      "BOM1": 23
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Go 16 G9 Creator Laptop (Core Ultra 7, 32GB, 1TB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4,
+   "reviews": 4491,
+   "description": "A creator laptop with a colour-accurate display, fast storage and dedicated graphics for photo and video editing. 16-inch 3K 120Hz OLED screen, 32 GB memory and 1 TB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 7",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "16-inch 3K 120Hz OLED",
+    "Graphics": "12 GB dedicated",
+    "Weight": "2.06 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 143490,
+     "mrp": 177990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 4,
+      "BLR1": 7
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 147490,
+     "mrp": 177990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 6,
+      "DEL1": 12
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 145490,
+     "mrp": 177990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 24,
+      "HYD1": 2
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Folio 14 Thin & Light Laptop (Ryzen 5 7535U, 16GB, 512GB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 3.9,
+   "reviews": 166,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 14-inch FHD+ IPS screen, 16 GB memory and 512 GB SSD storage, up to 11 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch FHD+ IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.2 kg",
+    "Battery": "Up to 11 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 60990,
+     "mrp": 68990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 18,
+      "DEL1": 8
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Tessaro Arc 14 G8 Thin & Light Laptop (Ryzen 5 7535U, 16GB, 1TB SSD)",
+   "brand": "Tessaro",
+   "category": "Laptops",
+   "rating": 4.2,
+   "reviews": 3934,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 14-inch 2.8K OLED screen, 16 GB memory and 1 TB SSD storage, up to 14 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "14-inch 2.8K OLED",
+    "Graphics": "Integrated",
+    "Weight": "1.25 kg",
+    "Battery": "Up to 14 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 60990,
+     "mrp": 70990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "Bengaluru",
+      "Chennai"
+     ],
+     "stock": {
+      "seller": 14
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 59990,
+     "mrp": 70990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 14,
+      "DEL1": 25
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Brightforge Forge 16 Everyday Laptop (Core i3-1215U, 8GB, 512GB SSD)",
+   "brand": "Brightforge",
+   "category": "Laptops",
+   "rating": 4.7,
+   "reviews": 60,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 512 GB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.63 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 35990,
+     "mrp": 39490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 18,
+      "BOM1": 19
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 35490,
+     "mrp": 39490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 8
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 28990,
+     "mrp": 39490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 14
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Plus 14 G8 Everyday Laptop (Core i3-1215U, 8GB, 256GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4.6,
+   "reviews": 1020,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 14-inch FHD IPS screen, 8 GB memory and 256 GB SSD storage, up to 6 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "14-inch FHD IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.76 kg",
+    "Battery": "Up to 6 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 31990,
+     "mrp": 35490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 11
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 25490,
+     "mrp": 35490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 15,
+      "BLR1": 18
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Lumetra Studio 16 Everyday Laptop (Ryzen 5 7520U, 8GB, 256GB SSD)",
+   "brand": "Lumetra",
+   "category": "Laptops",
+   "rating": 3.9,
+   "reviews": 4882,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 256 GB SSD storage, up to 6 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7520U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.71 kg",
+    "Battery": "Up to 6 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 29490,
+     "mrp": 33490,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 15
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 23490,
+     "mrp": 33490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 5,
+      "DEL1": 24
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Folio 13 Thin & Light Laptop (Core Ultra 5, 16GB, 1TB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 4.6,
+   "reviews": 5099,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 13.3-inch 2.2K IPS screen, 16 GB memory and 1 TB SSD storage, up to 15 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "13.3-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.22 kg",
+    "Battery": "Up to 15 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 71990,
+     "mrp": 89490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 8
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 57490,
+     "mrp": 89490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 10
+     },
+     "condition": "renewed"
+    },
+    {
+     "seller": "urbancart",
+     "price": 57490,
+     "mrp": 89490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 6
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Brightforge Titan 14 G7 Thin & Light Laptop (Core Ultra 5, 16GB, 1TB SSD)",
+   "brand": "Brightforge",
+   "category": "Laptops",
+   "rating": 3.8,
+   "reviews": 997,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 14-inch 2.2K IPS screen, 16 GB memory and 1 TB SSD storage, up to 15 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "14-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.15 kg",
+    "Battery": "Up to 15 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 59490,
+     "mrp": 71990,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "Chennai",
+      "Hyderabad"
+     ],
+     "stock": {
+      "seller": 12
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Corvane Glide 13 G9 Thin & Light Laptop (Ryzen 5 7535U, 16GB, 512GB SSD)",
+   "brand": "Corvane",
+   "category": "Laptops",
+   "rating": 3.8,
+   "reviews": 244,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 13.3-inch 2.8K OLED screen, 16 GB memory and 512 GB SSD storage, up to 12 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch 2.8K OLED",
+    "Graphics": "Integrated",
+    "Weight": "1.11 kg",
+    "Battery": "Up to 12 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 61490,
+     "mrp": 70490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 11,
+      "DEL1": 15
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 61490,
+     "mrp": 70490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 5
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 48990,
+     "mrp": 70490,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "Chennai",
+      "Delhi",
+      "Kolkata"
+     ],
+     "stock": {
+      "seller": 14
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Lumetra Prism 16 G9 Everyday Laptop (Ryzen 3 7320U, 8GB, 512GB SSD)",
+   "brand": "Lumetra",
+   "category": "Laptops",
+   "rating": 4.3,
+   "reviews": 1850,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD IPS screen, 8 GB memory and 512 GB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 3 7320U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.75 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 30990,
+     "mrp": 35490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 3
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Folio 14 G7 Thin & Light Laptop (Core i5-1335U, 16GB, 512GB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 3.7,
+   "reviews": 1688,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 14-inch FHD+ IPS screen, 16 GB memory and 512 GB SSD storage, up to 11 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1335U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch FHD+ IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.35 kg",
+    "Battery": "Up to 11 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 62990,
+     "mrp": 75490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 3,
+      "DEL1": 12
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 64990,
+     "mrp": 75490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 9
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Corvane Swift 14 2-in-1 Convertible Laptop (Ryzen 5 7535U, 8GB, 512GB SSD)",
+   "brand": "Corvane",
+   "category": "Laptops",
+   "rating": 4,
+   "reviews": 1469,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 14-inch FHD+ touch screen, 8 GB memory and 512 GB SSD storage, up to 12 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch FHD+ touch",
+    "Graphics": "Integrated",
+    "Weight": "1.45 kg",
+    "Battery": "Up to 12 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 57490,
+     "mrp": 69990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 6,
+      "HYD1": 10
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 56490,
+     "mrp": 69990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 4
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Halcyra Lumen 14 Business Laptop (Core i7-1365U, 16GB, 512GB SSD)",
+   "brand": "Halcyra",
+   "category": "Laptops",
+   "rating": 3.9,
+   "reviews": 4202,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 14-inch 2.2K IPS screen, 16 GB memory and 512 GB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Core i7-1365U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.59 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 80990,
+     "mrp": 90990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 5,
+      "BOM1": 4
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Plus 14 Everyday Laptop (Ryzen 5 7520U, 8GB, 512GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4.2,
+   "reviews": 428,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 14-inch FHD screen, 8 GB memory and 512 GB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7520U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.66 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 30990,
+     "mrp": 36990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "Delhi",
+      "Hyderabad"
+     ],
+     "stock": {
+      "seller": 7
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Plus 14 G7 Everyday Laptop (Core i3-1215U, 8GB, 512GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4.6,
+   "reviews": 4472,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 14-inch FHD screen, 8 GB memory and 512 GB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.6 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 29490,
+     "mrp": 36490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 30
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 30490,
+     "mrp": 36490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 6,
+      "BLR1": 18
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 23490,
+     "mrp": 36490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 7,
+      "BOM1": 3
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Corvane Swift 16 Gaming Laptop (Core i7-13700H, 16GB, 512GB SSD)",
+   "brand": "Corvane",
+   "category": "Laptops",
+   "rating": 4.8,
+   "reviews": 3746,
+   "description": "A gaming laptop with a high-refresh display, dedicated graphics and a dual-fan cooling system with RGB keyboard. 15.6-inch QHD 165Hz screen, 16 GB memory and 512 GB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Core i7-13700H",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch QHD 165Hz",
+    "Graphics": "8 GB dedicated",
+    "Weight": "2.5 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 100990,
+     "mrp": 125490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 1
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 104990,
+     "mrp": 125490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 0,
+      "BLR1": 0
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Halcyra Lumen 16 Everyday Laptop (Ryzen 3 7320U, 8GB, 256GB SSD)",
+   "brand": "Halcyra",
+   "category": "Laptops",
+   "rating": 4.2,
+   "reviews": 4756,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 256 GB SSD storage, up to 6 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 3 7320U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.64 kg",
+    "Battery": "Up to 6 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 29490,
+     "mrp": 32490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 24,
+      "BLR1": 12
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 28990,
+     "mrp": 32490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 10,
+      "BLR1": 22
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 29490,
+     "mrp": 32490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 17,
+      "HYD1": 19
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Go 14 G7 Thin & Light Laptop (Core i5-1335U, 16GB, 1TB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4.7,
+   "reviews": 2550,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 14-inch FHD+ IPS screen, 16 GB memory and 1 TB SSD storage, up to 13 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1335U",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "14-inch FHD+ IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.28 kg",
+    "Battery": "Up to 13 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 62490,
+     "mrp": 75990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 25,
+      "HYD1": 13
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Ledger 16 Gaming Laptop (Core i9-13900H, 32GB, 512GB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 3.9,
+   "reviews": 2688,
+   "description": "A gaming laptop with a high-refresh display, dedicated graphics and a dual-fan cooling system with RGB keyboard. 15.6-inch QHD 240Hz screen, 32 GB memory and 512 GB SSD storage, up to 5 hours on a charge.",
+   "specs": {
+    "Processor": "Core i9-13900H",
+    "RAM": "32 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch QHD 240Hz",
+    "Graphics": "8 GB dedicated",
+    "Weight": "2.56 kg",
+    "Battery": "Up to 5 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 97990,
+     "mrp": 117990,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 1
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 98490,
+     "mrp": 117990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Delhi",
+      "Pune"
+     ],
+     "stock": {
+      "HYD1": 15,
+      "BOM1": 25
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Tessaro Nimbus 16 Business Laptop (Ryzen 7 7840U, 32GB, 512GB SSD)",
+   "brand": "Tessaro",
+   "category": "Laptops",
+   "rating": 4.6,
+   "reviews": 341,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 15.6-inch FHD+ anti-glare screen, 32 GB memory and 512 GB SSD storage, up to 12 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 7 7840U",
+    "RAM": "32 GB",
+    "Storage": "512 GB SSD",
+    "Display": "15.6-inch FHD+ anti-glare",
+    "Graphics": "Integrated",
+    "Weight": "1.4 kg",
+    "Battery": "Up to 12 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 91990,
+     "mrp": 101990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 2,
+      "BLR1": 12
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 92490,
+     "mrp": 101990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 10,
+      "HYD1": 3
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Tessaro Arc 15 Creator Laptop (Core Ultra 7, 32GB, 1TB SSD)",
+   "brand": "Tessaro",
+   "category": "Laptops",
+   "rating": 4.7,
+   "reviews": 2778,
+   "description": "A creator laptop with a colour-accurate display, fast storage and dedicated graphics for photo and video editing. 14.5-inch 3.2K 120Hz IPS screen, 32 GB memory and 1 TB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 7",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "14.5-inch 3.2K 120Hz IPS",
+    "Graphics": "12 GB dedicated",
+    "Weight": "2.03 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 145990,
+     "mrp": 174490,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 13
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Novabyte Core 16 G9 Everyday Laptop (Ryzen 5 7520U, 8GB, 256GB SSD)",
+   "brand": "Novabyte",
+   "category": "Laptops",
+   "rating": 3.7,
+   "reviews": 4813,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD IPS screen, 8 GB memory and 256 GB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7520U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "15.6-inch FHD IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.79 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 31990,
+     "mrp": 36990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 12,
+      "HYD1": 24
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 32990,
+     "mrp": 36990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 13
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 32490,
+     "mrp": 36990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 5
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Lumetra Studio 14 2-in-1 Convertible Laptop (Core Ultra 5, 8GB, 512GB SSD)",
+   "brand": "Lumetra",
+   "category": "Laptops",
+   "rating": 4.1,
+   "reviews": 578,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 14-inch FHD+ touch screen, 8 GB memory and 512 GB SSD storage, up to 12 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch FHD+ touch",
+    "Graphics": "Integrated",
+    "Weight": "1.32 kg",
+    "Battery": "Up to 12 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 56990,
+     "mrp": 64990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 10
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 57990,
+     "mrp": 64990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 3,
+      "BOM1": 8
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 56990,
+     "mrp": 64990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 15,
+      "BLR1": 25
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Corvane Swift 15 G9 Creator Laptop (Ryzen 9 7940HS, 32GB, 2TB SSD)",
+   "brand": "Corvane",
+   "category": "Laptops",
+   "rating": 3.6,
+   "reviews": 3897,
+   "description": "A creator laptop with a colour-accurate display, fast storage and dedicated graphics for photo and video editing. 14.5-inch 3.2K 120Hz IPS screen, 32 GB memory and 2 TB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 9 7940HS",
+    "RAM": "32 GB",
+    "Storage": "2 TB SSD",
+    "Display": "14.5-inch 3.2K 120Hz IPS",
+    "Graphics": "8 GB dedicated",
+    "Weight": "1.97 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 158490,
+     "mrp": 186990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 6,
+      "HYD1": 24
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 162490,
+     "mrp": 186990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 15,
+      "BOM1": 18
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 158990,
+     "mrp": 186990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 17,
+      "HYD1": 24
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Halcyra Echo 16 G8 Business Laptop (Core i5-1345U, 32GB, 1TB SSD)",
+   "brand": "Halcyra",
+   "category": "Laptops",
+   "rating": 4,
+   "reviews": 5146,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 15.6-inch 2.2K IPS screen, 32 GB memory and 1 TB SSD storage, up to 14 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1345U",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "15.6-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.59 kg",
+    "Battery": "Up to 14 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 89490,
+     "mrp": 104490,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 6
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 91490,
+     "mrp": 104490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 13,
+      "DEL1": 19
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 90490,
+     "mrp": 104490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 8,
+      "BLR1": 10
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Lumetra Prism 13 2-in-1 Convertible Laptop (Core i5-1335U, 16GB, 512GB SSD)",
+   "brand": "Lumetra",
+   "category": "Laptops",
+   "rating": 4.5,
+   "reviews": 2791,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 13.3-inch FHD+ touch screen, 16 GB memory and 512 GB SSD storage, up to 12 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1335U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch FHD+ touch",
+    "Graphics": "Integrated",
+    "Weight": "1.33 kg",
+    "Battery": "Up to 12 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 59490,
+     "mrp": 73990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 0
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 58490,
+     "mrp": 73990,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 11
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 47490,
+     "mrp": 73990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 3
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Corvane Atlas 15 Creator Laptop (Core i9-13900H, 32GB, 1TB SSD)",
+   "brand": "Corvane",
+   "category": "Laptops",
+   "rating": 3.9,
+   "reviews": 487,
+   "description": "A creator laptop with a colour-accurate display, fast storage and dedicated graphics for photo and video editing. 14.5-inch 3K 120Hz OLED screen, 32 GB memory and 1 TB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Core i9-13900H",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "14.5-inch 3K 120Hz OLED",
+    "Graphics": "8 GB dedicated",
+    "Weight": "1.81 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 131490,
+     "mrp": 144990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 22,
+      "BLR1": 16
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 129990,
+     "mrp": 144990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 6,
+      "BLR1": 17
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 134490,
+     "mrp": 144990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "Chennai",
+      "Pune"
+     ],
+     "stock": {
+      "seller": 5
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Brightforge Blaze 14 G9 2-in-1 Convertible Laptop (Core i5-1335U, 16GB, 512GB SSD)",
+   "brand": "Brightforge",
+   "category": "Laptops",
+   "rating": 3.7,
+   "reviews": 584,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 14-inch FHD+ touch screen, 16 GB memory and 512 GB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1335U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch FHD+ touch",
+    "Graphics": "Integrated",
+    "Weight": "1.31 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 68990,
+     "mrp": 85490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 11
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 71490,
+     "mrp": 85490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 24,
+      "BLR1": 18
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Lumetra Prism 13 2-in-1 Convertible Laptop (Core Ultra 5, 16GB, 512GB SSD)",
+   "brand": "Lumetra",
+   "category": "Laptops",
+   "rating": 4.7,
+   "reviews": 3204,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 13.3-inch FHD+ touch screen, 16 GB memory and 512 GB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch FHD+ touch",
+    "Graphics": "Integrated",
+    "Weight": "1.33 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 69990,
+     "mrp": 79990,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 0
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Lumetra Air 13 G9 Thin & Light Laptop (Core Ultra 5, 16GB, 1TB SSD)",
+   "brand": "Lumetra",
+   "category": "Laptops",
+   "rating": 4.1,
+   "reviews": 830,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 13.3-inch 2.2K IPS screen, 16 GB memory and 1 TB SSD storage, up to 12 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "16 GB",
+    "Storage": "1 TB SSD",
+    "Display": "13.3-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.26 kg",
+    "Battery": "Up to 12 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 69990,
+     "mrp": 86990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 5,
+      "DEL1": 25
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 69490,
+     "mrp": 86990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 23
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 72490,
+     "mrp": 86990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 10,
+      "HYD1": 6
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Brightforge Blaze 14 Business Laptop (Ryzen 7 7840U, 16GB, 512GB SSD)",
+   "brand": "Brightforge",
+   "category": "Laptops",
+   "rating": 4,
+   "reviews": 61,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 14-inch 2.2K IPS screen, 16 GB memory and 512 GB SSD storage, up to 13 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 7 7840U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "14-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.48 kg",
+    "Battery": "Up to 13 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 82490,
+     "mrp": 92490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 14,
+      "DEL1": 16
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 84490,
+     "mrp": 92490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 18,
+      "DEL1": 4
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Go 13 Thin & Light Laptop (Ryzen 5 7535U, 16GB, 512GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 3.7,
+   "reviews": 742,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 13.3-inch 2.8K OLED screen, 16 GB memory and 512 GB SSD storage, up to 11 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 5 7535U",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch 2.8K OLED",
+    "Graphics": "Integrated",
+    "Weight": "1.33 kg",
+    "Battery": "Up to 11 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 56490,
+     "mrp": 66990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "HYD1": 9,
+      "BOM1": 22
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 55490,
+     "mrp": 66990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 2,
+      "DEL1": 4
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Quillon Folio 16 Everyday Laptop (Ryzen 3 7320U, 8GB, 256GB SSD)",
+   "brand": "Quillon",
+   "category": "Laptops",
+   "rating": 4.5,
+   "reviews": 4458,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD screen, 8 GB memory and 256 GB SSD storage, up to 7 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 3 7320U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "15.6-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.73 kg",
+    "Battery": "Up to 7 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 32490,
+     "mrp": 38990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Delhi",
+      "Hyderabad"
+     ],
+     "stock": {
+      "BOM1": 22,
+      "DEL1": 25
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 33490,
+     "mrp": 38990,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 3
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 25990,
+     "mrp": 38990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 22,
+      "DEL1": 18
+     },
+     "condition": "renewed"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Plus 16 G7 Business Laptop (Core i7-1365U, 32GB, 1TB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4.5,
+   "reviews": 1444,
+   "description": "A durable business laptop with a fingerprint reader, privacy shutter webcam and a spill-resistant keyboard. 15.6-inch 2.2K IPS screen, 32 GB memory and 1 TB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Core i7-1365U",
+    "RAM": "32 GB",
+    "Storage": "1 TB SSD",
+    "Display": "15.6-inch 2.2K IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.53 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 101990,
+     "mrp": 112490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 0,
+      "BOM1": 0
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 102990,
+     "mrp": 112490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "Kolkata",
+      "Mumbai",
+      "Pune"
+     ],
+     "stock": {
+      "HYD1": 21,
+      "BOM1": 5
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Novabyte Edge 13 G7 Thin & Light Laptop (Core Ultra 5, 16GB, 512GB SSD)",
+   "brand": "Novabyte",
+   "category": "Laptops",
+   "rating": 4.2,
+   "reviews": 2879,
+   "description": "An aluminium thin-and-light laptop that slips into any bag, with a sharp display and all-day battery life. 13.3-inch FHD+ IPS screen, 16 GB memory and 512 GB SSD storage, up to 11 hours on a charge.",
+   "specs": {
+    "Processor": "Core Ultra 5",
+    "RAM": "16 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch FHD+ IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.14 kg",
+    "Battery": "Up to 11 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 63990,
+     "mrp": 74990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BLR1": 34
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "lakshmi",
+     "price": 64490,
+     "mrp": 74990,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 8
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Orvel Plus 14 Everyday Laptop (Core i3-1215U, 8GB, 256GB SSD)",
+   "brand": "Orvel",
+   "category": "Laptops",
+   "rating": 4.7,
+   "reviews": 3565,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 14-inch FHD screen, 8 GB memory and 256 GB SSD storage, up to 8 hours on a charge.",
+   "specs": {
+    "Processor": "Core i3-1215U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "14-inch FHD",
+    "Graphics": "Integrated",
+    "Weight": "1.8 kg",
+    "Battery": "Up to 8 hours"
+   },
+   "offers": [
+    {
+     "seller": "techbazaar",
+     "price": 26490,
+     "mrp": 29990,
+     "fulfilment": "seller",
+     "handling_days": 3,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 0
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "urbancart",
+     "price": 25990,
+     "mrp": 29990,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 49
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Novabyte Core 13 2-in-1 Convertible Laptop (Core i5-1335U, 8GB, 512GB SSD)",
+   "brand": "Novabyte",
+   "category": "Laptops",
+   "rating": 3.9,
+   "reviews": 3566,
+   "description": "A 360-degree convertible with a touch display and stylus support, so it works as a laptop, tent or tablet. 13.3-inch 2.2K touch screen, 8 GB memory and 512 GB SSD storage, up to 10 hours on a charge.",
+   "specs": {
+    "Processor": "Core i5-1335U",
+    "RAM": "8 GB",
+    "Storage": "512 GB SSD",
+    "Display": "13.3-inch 2.2K touch",
+    "Graphics": "Integrated",
+    "Weight": "1.4 kg",
+    "Battery": "Up to 10 hours"
+   },
+   "offers": [
+    {
+     "seller": "lakshmi",
+     "price": 60990,
+     "mrp": 73990,
+     "fulfilment": "seller",
+     "handling_days": 2,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "seller": 3
+     },
+     "condition": "new"
+    },
+    {
+     "seller": "techbazaar",
+     "price": 60490,
+     "mrp": 73990,
+     "fulfilment": "seller",
+     "handling_days": 1,
+     "ships_to": [
+      "Bengaluru",
+      "Delhi"
+     ],
+     "stock": {
+      "seller": 14
+     },
+     "condition": "new"
+    }
+   ]
+  },
+  {
+   "title": "Novabyte Volt 16 G7 Everyday Laptop (Ryzen 3 7320U, 8GB, 256GB SSD)",
+   "brand": "Novabyte",
+   "category": "Laptops",
+   "rating": 4.5,
+   "reviews": 4302,
+   "description": "A dependable everyday laptop for study, browsing and video calls, with a full-size keyboard and quick-charge support. 15.6-inch FHD IPS screen, 8 GB memory and 256 GB SSD storage, up to 9 hours on a charge.",
+   "specs": {
+    "Processor": "Ryzen 3 7320U",
+    "RAM": "8 GB",
+    "Storage": "256 GB SSD",
+    "Display": "15.6-inch FHD IPS",
+    "Graphics": "Integrated",
+    "Weight": "1.65 kg",
+    "Battery": "Up to 9 hours"
+   },
+   "offers": [
+    {
+     "seller": "urbancart",
+     "price": 27490,
+     "mrp": 30490,
+     "fulfilment": "equidron",
+     "handling_days": 1,
+     "ships_to": [
+      "ALL"
+     ],
+     "stock": {
+      "BOM1": 28
+     },
+     "condition": "new"
+    }
+   ]
   }
  ]
 }

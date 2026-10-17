@@ -61,14 +61,38 @@ export function etaDate(days, today = new Date()) {
   return isoDate(d);
 }
 
+// Offers for many products with their stock, in two queries: productId -> offers, each with .stock.
+async function loadOffers(db, productIds, includeInactive = false) {
+  const byProduct = new Map(productIds.map((id) => [id, []]));
+  if (!productIds.length) return byProduct;
+  let sql = `SELECT o.*, s.name AS seller_name, s.rating AS seller_rating, s.rating_count AS seller_rating_count
+             FROM offers o JOIN sellers s ON s.id = o.seller_id WHERE o.product_id = ANY(?)`;
+  if (!includeInactive) sql += " AND o.status = 'active'";
+  const offers = await all(db, sql + ' ORDER BY o.price_paise, o.id', productIds);
+  const stock = new Map(offers.map((o) => [o.id, []]));
+  if (offers.length) {
+    const rows = await all(db, `SELECT i.offer_id, w.id AS warehouse_id, w.code, w.name, w.city, w.kind, i.on_hand, i.reserved,
+                                       i.on_hand - i.reserved AS available
+                                FROM inventory i JOIN warehouses w ON w.id = i.warehouse_id
+                                WHERE i.offer_id = ANY(?) ORDER BY w.id`, offers.map((o) => o.id));
+    for (const { offer_id: offerId, ...row } of rows) stock.get(offerId).push(row);
+  }
+  for (const o of offers) {
+    o.stock = stock.get(o.id);
+    byProduct.get(o.product_id).push(o);
+  }
+  return byProduct;
+}
+
 // All live offers for a product with stock, delivery promise and featured flag.
 export async function describeOffers(db, productId, city = null, includeInactive = false) {
-  let sql = `SELECT o.*, s.name AS seller_name, s.rating AS seller_rating, s.rating_count AS seller_rating_count
-             FROM offers o JOIN sellers s ON s.id = o.seller_id WHERE o.product_id = ?`;
-  if (!includeInactive) sql += " AND o.status = 'active'";
-  const offers = await all(db, sql + ' ORDER BY o.price_paise', productId);
+  return summarizeOffers((await loadOffers(db, [productId], includeInactive)).get(productId), city);
+}
+
+function summarizeOffers(offers, city) {
   for (const o of offers) {
-    const stock = await stockByWarehouse(db, o.id);
+    const { stock } = o;
+    delete o.stock;
     o.available = stock.reduce((n, s) => n + Math.max(s.available, 0), 0);
     o.deliverable = isDeliverable(o, city);
     o.delivery_days = deliveryDays(o, stock, city);
@@ -134,11 +158,15 @@ export async function search(db, q = '', category = null, sort = 'relevance', ci
     sql += ' AND category = ?';
     params.push(category);
   }
-  const results = [];
+  const matches = [];
   for (const p of await all(db, sql, ...params)) {
     const rel = relevance(p, queryTokens, String(q || '').trim());
-    if (queryTokens.length && rel < 0.15) continue;
-    const offers = await describeOffers(db, p.id, city);
+    if (!queryTokens.length || rel >= 0.15) matches.push([p, rel]);
+  }
+  const offersByProduct = await loadOffers(db, matches.map(([p]) => p.id));
+  const results = [];
+  for (const [p, rel] of matches) {
+    const offers = summarizeOffers(offersByProduct.get(p.id), city);
     if (!offers.length) continue;
     const featured = offers.find((o) => o.is_featured) || null;
     const inStock = offers.some((o) => o.available > 0);

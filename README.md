@@ -57,7 +57,7 @@ node --test
 
 The tests run on PGlite, so no database server is needed. The sample data is loaded once and restored before every test, so a run takes about 10 seconds.
 
-30 tests cover:
+33 tests cover:
 - search ranking and multi-seller offers
 - listing review rules and role separation
 - checkout revalidation, and payment authorization versus capture
@@ -132,6 +132,8 @@ The live listing stays unchanged until Ops approves. Approval publishes it to th
 
 Tick "Show ranking factors" on the results page to see each product's numbers.
 
+The sample catalogue has 124 products, 102 of them laptops (budget, thin and light, business, gaming, creator and 2-in-1) from eight fictional brands, sold by TechBazaar, Lakshmi and UrbanCart. A database seeded before the laptops existed gets them from the migration `20261017120000_sample_laptops.sql`.
+
 ### Multiple sellers, one product
 A product (catalogue page) has many **offers**, one per seller and condition. The **featured offer** is the best new-condition offer, chosen by price with adjustments for slower delivery and weaker seller rating.
 
@@ -168,6 +170,6 @@ Sellers move their own self-ship orders through picking, packing and shipping. E
 - **Seller settlement:** delivered sales credit the seller (minus a 10% referral fee) and refunds debit it. "Run settlement" in Ops pays out positive balances (simulated).
 
 ## Limits and next steps
-- Product pages and search run one small query per offer. That's fine locally and with a nearby database, but slower over a long network hop. Batch those queries if it shows.
+- Search loads offers and stock for all matching products in two queries, and shows at most 60 results.
 - AngularJS 1.x is end-of-life and is used here because it needs no build step. A production build would move to modern Angular.
 - Product images are generated placeholders. Sellers can add their own `https://` image links.
