@@ -78,6 +78,16 @@ test('reports the balance from the ledger', async () => {
   assert.match(result.unsettled_balance, /₹/);
 });
 
+test('spoken questions ask for a short reply that reads well aloud', async () => {
+  const systems = [];
+  const client = { messages: { async create(p) { systems.push(p.system); return { stop_reason: 'end_turn', content: [{ type: 'text', text: 'ok' }] }; } } };
+  const ask = [{ role: 'user', content: 'what is my balance' }];
+  await answerSeller(db, { user: techbazaar, voice: true }, ask, { client });
+  await answerSeller(db, { user: techbazaar }, ask, { client });
+  assert.match(systems[0], /asked this by voice/);
+  assert.doesNotMatch(systems[1], /by voice/);
+});
+
 test('the seller chat endpoint needs a seller session', async () => {
   const server = createServer(db, { quiet: true });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));

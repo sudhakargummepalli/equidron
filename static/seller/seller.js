@@ -1,6 +1,6 @@
 /* Equidron Seller Central. */
-angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$window', '$timeout', 'Api', 'Router', 'Toast',
-  function ($location, $window, $timeout, Api, Router, Toast) {
+angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$window', '$timeout', 'Api', 'Router', 'Toast', 'Voice',
+  function ($location, $window, $timeout, Api, Router, Toast, Voice) {
     var api = Api('seller');
     var vm = this;
     vm.user = null;
@@ -60,7 +60,7 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
     };
     vm.useDemo = function (email) { vm.auth.form = { email: email, password: 'equidron-demo' }; };
     vm.logout = function () {
-      api.post('/logout').then(function () { vm.user = null; vm.chat.messages = []; vm.chat.open = false; $location.path('/login'); });
+      api.post('/logout').then(function () { vm.closeChat(); vm.user = null; vm.chat.messages = []; $location.path('/login'); });
     };
 
     // ---------------------------------------------------------------- inventory
@@ -172,7 +172,8 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
     function scrollChat() {
       $timeout(function () { var log = $window.document.getElementById('chat-log'); if (log) log.scrollTop = log.scrollHeight; });
     }
-    vm.sendChat = function (text) {
+    // byVoice: the question was spoken, so the reply is read aloud and kept short.
+    vm.sendChat = function (text, byVoice) {
       text = String(text || vm.chat.input || '').trim();
       if (!text || vm.chat.sending) return;
       vm.chat.error = null;
@@ -181,13 +182,63 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
       vm.chat.sending = true;
       scrollChat();
       var history = vm.chat.messages.map(function (m) { return { role: m.role, content: m.content }; });
-      api.post('/assistant', { messages: history }).then(function (r) {
+      api.post('/assistant', { messages: history, voice: !!byVoice }).then(function (r) {
         vm.chat.messages.push({ role: 'assistant', content: r.reply, products: r.products });
+        if (byVoice || vm.voice.readAloud) speakReply(r.reply);
       }, function (e) {
         // Keep the conversation alternating: take the unanswered question back into the box.
         vm.chat.messages.pop();
         vm.chat.input = text;
         vm.chat.error = e.message;
+        vm.voice.handsFree = false;
       }).finally(function () { vm.chat.sending = false; scrollChat(); });
+    };
+
+    // ---------------------------------------------------------------- voice
+    // Mic: speech becomes the question and is sent when the seller stops talking.
+    // Hands-free: after each spoken reply, listen for the next question.
+    vm.voice = { canListen: Voice.canListen, canSpeak: Voice.canSpeak, listening: false, speaking: false, readAloud: false, handsFree: false };
+
+    function startListening() {
+      if (!vm.chat.open || vm.chat.sending) return;
+      vm.stopSpeaking();
+      vm.chat.error = null;
+      vm.voice.listening = Voice.listen({
+        interim: function (t) { vm.chat.input = t; },
+        final: function (t) { vm.chat.input = ''; vm.sendChat(t, true); },
+        end: function () { vm.voice.listening = false; },
+        error: function (msg) { vm.chat.error = msg; vm.voice.handsFree = false; }
+      });
+    }
+    function stopListening() { Voice.stopListening(); vm.voice.listening = false; }
+    function speakReply(text) {
+      if (!vm.voice.canSpeak) return;
+      vm.voice.speaking = true;
+      Voice.speak(text, function () {
+        if (!vm.voice.speaking) return; // stopped by the seller
+        vm.voice.speaking = false;
+        if (vm.voice.handsFree) startListening();
+      });
+    }
+    vm.toggleMic = function () {
+      if (vm.voice.listening) { stopListening(); vm.voice.handsFree = false; } else startListening();
+    };
+    vm.stopSpeaking = function () { vm.voice.speaking = false; Voice.stopSpeaking(); };
+    vm.readAloudChanged = function () {
+      if (!vm.voice.readAloud) { vm.voice.handsFree = false; vm.stopSpeaking(); }
+    };
+    vm.handsFreeChanged = function () {
+      if (vm.voice.handsFree) {
+        vm.voice.readAloud = true;
+        if (!vm.voice.listening && !vm.voice.speaking) startListening();
+      } else {
+        stopListening();
+      }
+    };
+    vm.closeChat = function () {
+      vm.voice.handsFree = false;
+      stopListening();
+      vm.stopSpeaking();
+      vm.chat.open = false;
     };
   }]);

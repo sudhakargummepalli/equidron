@@ -152,12 +152,14 @@ async function runTool(db, ctx, name, input, seen) {
   }
 }
 
-// ctx: { user } with user.seller_id. Returns { reply, products } where products are the
-// seller's listings the reply names ({id: listing id, title}).
+const VOICE = 'The seller asked this by voice and will hear your reply read aloud: answer in one to three short spoken sentences. No lists, symbols, IDs or long product titles unless asked; say amounts like "1,499 rupees".';
+
+// ctx: { user, voice } with user.seller_id; voice: the question was spoken.
+// Returns { reply, products } where products are the seller's listings the reply names ({id: listing id, title}).
 export function answerSeller(db, ctx, rawMessages, options = {}) {
   return converse(db, ctx, rawMessages, {
     system: SYSTEM,
-    context: `You are helping the seller "${ctx.user.seller_name}".`,
+    context: `You are helping the seller "${ctx.user.seller_name}".${ctx.voice ? `\n\n${VOICE}` : ''}`,
     tools: TOOLS,
     runTool,
     help: 'check the Submissions and Alerts pages',

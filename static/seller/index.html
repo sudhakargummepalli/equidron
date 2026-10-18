@@ -239,7 +239,7 @@
 <section class="chat" ng-if="vm.user && vm.chat.open" role="dialog" aria-label="Seller Central assistant">
   <div class="chat-head">
     <strong>Seller Central assistant</strong>
-    <button class="linkbtn" ng-click="vm.chat.open = false" aria-label="Close assistant">✕</button>
+    <button class="linkbtn" ng-click="vm.closeChat()" aria-label="Close assistant">✕</button>
   </div>
   <div class="chat-log" id="chat-log" aria-live="polite">
     <div class="chat-msg bot" ng-if="!vm.chat.messages.length">
@@ -259,10 +259,20 @@
   </div>
   <p class="chat-foot small" ng-if="!vm.chat.available">The assistant isn't available right now.</p>
   <form class="chat-form" ng-if="vm.chat.available" ng-submit="vm.sendChat()">
-    <input type="text" ng-model="vm.chat.input" placeholder="Ask a question" maxlength="2000" aria-label="Your question" ng-disabled="vm.chat.sending">
+    <button type="button" class="btn chat-mic" ng-if="vm.voice.canListen" ng-class="{on: vm.voice.listening}" ng-click="vm.toggleMic()"
+            ng-disabled="vm.chat.sending" aria-pressed="{{vm.voice.listening}}"
+            aria-label="{{vm.voice.listening ? 'Stop listening' : 'Ask by voice'}}" title="{{vm.voice.listening ? 'Stop listening' : 'Ask by voice'}}">🎤</button>
+    <input type="text" ng-model="vm.chat.input" placeholder="{{vm.voice.listening ? 'Listening…' : 'Ask a question'}}" maxlength="2000"
+           aria-label="Your question" ng-disabled="vm.chat.sending">
     <button class="btn primary" type="submit" ng-disabled="vm.chat.sending || !vm.chat.input.trim()">Send</button>
   </form>
-  <p class="chat-foot small muted">Answers come from an AI and can be wrong. It can look things up but can't change your listings or orders.</p>
+  <div class="chat-voice small" ng-if="vm.chat.available && vm.voice.canSpeak">
+    <label><input type="checkbox" ng-model="vm.voice.readAloud" ng-change="vm.readAloudChanged()"> Read replies aloud</label>
+    <label ng-if="vm.voice.canListen" title="After each spoken reply, listen for the next question">
+      <input type="checkbox" ng-model="vm.voice.handsFree" ng-change="vm.handsFreeChanged()"> Hands-free</label>
+    <button type="button" class="linkbtn" ng-if="vm.voice.speaking" ng-click="vm.stopSpeaking()">Stop speaking</button>
+  </div>
+  <p class="chat-foot small muted">Answers come from an AI and can be wrong. It can look things up but can't change your listings or orders.<span ng-if="vm.voice.canListen"> Voice input is turned into text by your browser.</span></p>
 </section>
 
 <div class="toast" ng-if="toast" role="status">{{toast}}</div>

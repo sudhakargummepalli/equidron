@@ -184,3 +184,10 @@ th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; color:
 .chat-form { display: flex; gap: 8px; padding: 10px 12px 4px; border-top: 1px solid var(--line); }
 .chat-form input { flex: 1; min-width: 0; }
 .chat-foot { margin: 0; padding: 4px 12px 10px; }
+.chat-mic { padding: 6px 10px; }
+.chat-mic.on { background: var(--bad-bg); border-color: #e7b4ae; animation: chat-pulse 1.2s ease-in-out infinite; }
+@keyframes chat-pulse { 50% { box-shadow: 0 0 0 4px rgba(179, 38, 30, .15); } }
+@media (prefers-reduced-motion: reduce) { .chat-mic.on { animation: none; } }
+.chat-voice { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 6px 12px 0; }
+.chat-voice label { display: inline-flex; align-items: center; gap: 5px; margin: 0; font-weight: 500; }
+.chat-voice input[type=checkbox] { width: auto; }

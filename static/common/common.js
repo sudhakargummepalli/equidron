@@ -80,6 +80,85 @@ angular.module('eqCommon', [])
     };
   })
 
+  // Voice in and out with the browser's Web Speech API (no server involved).
+  // Voice.canListen: speech recognition exists (Chrome, Edge, Safari; not Firefox).
+  // Voice.canSpeak: speech synthesis exists (all current browsers).
+  // Callbacks run inside an Angular digest.
+  .factory('Voice', ['$window', '$rootScope', function ($window, $rootScope) {
+    var Recognition = $window.SpeechRecognition || $window.webkitSpeechRecognition;
+    var synth = $window.speechSynthesis;
+    var LANG = 'en-IN';
+    var current = null;
+    function apply(fn) { return function (arg) { if (fn) $rootScope.$applyAsync(function () { fn(arg); }); }; }
+
+    // Read ₹ amounts and a few symbols the way a person would say them.
+    function speakable(text) {
+      return String(text || '')
+        .replace(/₹\s?([\d,]+(?:\.\d+)?)/g, '$1 rupees')
+        .replace(/\s×\s?(\d+)/g, ', quantity $1')
+        .replace(/https?:\/\/\S+/g, 'a link')
+        .replace(/[*_#`>]/g, '');
+    }
+    function voice() {
+      var voices = synth.getVoices();
+      return voices.filter(function (v) { return v.lang === LANG; })[0] ||
+        voices.filter(function (v) { return /^en[-_]/.test(v.lang); })[0] || null;
+    }
+
+    return {
+      canListen: !!Recognition,
+      canSpeak: !!synth,
+      // handlers: { interim(text), final(text), end(), error(message) }. Returns false if unsupported.
+      listen: function (handlers) {
+        if (!Recognition) return false;
+        this.stopListening();
+        var r = new Recognition();
+        r.lang = LANG;
+        r.interimResults = true;
+        r.continuous = false;
+        r.maxAlternatives = 1;
+        var finalText = '';
+        r.onresult = function (e) {
+          var interim = '';
+          for (var i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+            else interim += e.results[i][0].transcript;
+          }
+          apply(handlers.interim)((finalText + interim).trim());
+        };
+        r.onerror = function (e) {
+          var msg = e.error === 'not-allowed' || e.error === 'service-not-allowed'
+            ? 'Microphone access is blocked. Allow it in the browser to use voice.'
+            : e.error === 'no-speech' ? 'I didn\'t hear anything. Tap the mic and try again.'
+              : e.error === 'aborted' ? null : 'Voice input stopped (' + e.error + ').';
+          if (msg) apply(handlers.error)(msg);
+        };
+        r.onend = function () {
+          if (current === r) current = null;
+          if (finalText.trim()) apply(handlers.final)(finalText.trim());
+          apply(handlers.end)();
+        };
+        current = r;
+        r.start();
+        return true;
+      },
+      stopListening: function () { if (current) { current.abort(); current = null; } },
+      speak: function (text, onEnd) {
+        if (!synth) { apply(onEnd)(); return; }
+        synth.cancel();
+        var u = new $window.SpeechSynthesisUtterance(speakable(text));
+        u.lang = LANG;
+        var v = voice();
+        if (v) u.voice = v;
+        u.onend = apply(onEnd);
+        u.onerror = apply(onEnd);
+        synth.speak(u);
+      },
+      stopSpeaking: function () { if (synth) synth.cancel(); },
+      speakable: speakable
+    };
+  }])
+
   // Small toast helper: Toast.show('Saved')
   .factory('Toast', ['$timeout', '$rootScope', function ($timeout, $rootScope) {
     var t;
