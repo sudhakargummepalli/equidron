@@ -1,0 +1,48 @@
+<!-- Assistant chat panel shared by the store and Seller Central. Expects vm.chat = AssistantChat(...). -->
+<button class="chat-fab" ng-if="vm.chat.visible() && !vm.chat.open" ng-click="vm.chat.open = true" aria-label="{{vm.chat.t.title}}">💬 {{vm.chat.t.fab}}</button>
+<section class="chat" ng-if="vm.chat.visible() && vm.chat.open" role="dialog" aria-label="{{vm.chat.t.title}}" lang="{{vm.chat.lang}}">
+  <div class="chat-head">
+    <strong>{{vm.chat.t.title}}</strong>
+    <span class="chat-lang" role="group" aria-label="Language / భాష">
+      <button type="button" ng-class="{on: vm.chat.lang === 'en'}" aria-pressed="{{vm.chat.lang === 'en'}}" ng-click="vm.chat.setLang('en')" lang="en">EN</button>
+      <button type="button" ng-class="{on: vm.chat.lang === 'te'}" aria-pressed="{{vm.chat.lang === 'te'}}" ng-click="vm.chat.setLang('te')" lang="te">తెలుగు</button>
+    </span>
+    <button class="linkbtn" ng-click="vm.chat.close()" aria-label="{{vm.chat.t.close}}">✕</button>
+  </div>
+  <div class="chat-log" id="chat-log" aria-live="polite">
+    <div class="chat-msg bot" ng-if="!vm.chat.messages.length">
+      {{vm.chat.t.hello}}
+      <div class="chat-chips" ng-if="vm.chat.canChat()">
+        <button class="btn small" ng-repeat="s in vm.chat.t.suggestions" ng-click="vm.chat.send(s)">{{s}}</button>
+      </div>
+    </div>
+    <div class="chat-msg" ng-repeat="m in vm.chat.messages" ng-class="m.role === 'user' ? 'me' : 'bot'">
+      <div class="chat-text">{{m.content}}</div>
+      <div class="chat-links" ng-if="m.products.length">
+        <a ng-repeat="p in m.products" ng-href="{{vm.chat.linkFor(p)}}">{{vm.chat.t.linkPrefix}}{{p.title}}</a>
+      </div>
+    </div>
+    <div class="chat-msg bot muted" ng-if="vm.chat.sending">{{vm.chat.t.thinking}}</div>
+    <div class="alert bad small" ng-if="vm.chat.error">{{vm.chat.error}}</div>
+  </div>
+  <p class="chat-foot small" ng-if="!vm.chat.signedIn()">
+    {{vm.chat.t.signInBefore}} <a href="#/login" ng-click="vm.chat.close()">{{vm.chat.t.signInLink}}</a>{{vm.chat.t.signInAfter}}</p>
+  <p class="chat-foot small" ng-if="vm.chat.signedIn() && !vm.chat.available">{{vm.chat.t.unavailable}}
+    <a ng-if="vm.chat.t.supportLink" href="#/support">{{vm.chat.t.supportLink}}</a></p>
+  <form class="chat-form" ng-if="vm.chat.canChat()" ng-submit="vm.chat.send()">
+    <button type="button" class="btn chat-mic" ng-if="vm.chat.voice.canListen" ng-class="{on: vm.chat.voice.listening}" ng-click="vm.chat.toggleMic()"
+            ng-disabled="vm.chat.sending" aria-pressed="{{vm.chat.voice.listening}}"
+            aria-label="{{vm.chat.voice.listening ? vm.chat.t.micStop : vm.chat.t.mic}}" title="{{vm.chat.voice.listening ? vm.chat.t.micStop : vm.chat.t.mic}}">🎤</button>
+    <input type="text" ng-model="vm.chat.input" placeholder="{{vm.chat.voice.listening ? vm.chat.t.listening : vm.chat.t.placeholder}}" maxlength="2000"
+           aria-label="{{vm.chat.t.placeholder}}" ng-disabled="vm.chat.sending">
+    <button class="btn primary" type="submit" ng-disabled="vm.chat.sending || !vm.chat.input.trim()">{{vm.chat.t.send}}</button>
+  </form>
+  <div class="chat-voice small" ng-if="vm.chat.canChat() && vm.chat.voice.canSpeak">
+    <label><input type="checkbox" ng-model="vm.chat.voice.readAloud" ng-change="vm.chat.readAloudChanged()"> {{vm.chat.t.readAloud}}</label>
+    <label ng-if="vm.chat.voice.canListen" title="{{vm.chat.t.handsFreeHint}}">
+      <input type="checkbox" ng-model="vm.chat.voice.handsFree" ng-change="vm.chat.handsFreeChanged()"> {{vm.chat.t.handsFree}}</label>
+    <button type="button" class="linkbtn" ng-if="vm.chat.voice.speaking" ng-click="vm.chat.stopSpeaking()">{{vm.chat.t.stop}}</button>
+  </div>
+  <p class="chat-foot small warn" ng-if="vm.chat.canChat() && vm.chat.voice.canSpeak && (vm.chat.voice.readAloud || vm.chat.voice.handsFree) && !vm.chat.hasVoice()">{{vm.chat.t.noVoice}}</p>
+  <p class="chat-foot small muted">{{vm.chat.t.note}}<span ng-if="vm.chat.voice.canListen"> {{vm.chat.t.voiceNote}}</span></p>
+</section>

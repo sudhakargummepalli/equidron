@@ -84,7 +84,7 @@ test('spoken questions ask for a short reply that reads well aloud', async () =>
   const ask = [{ role: 'user', content: 'what is my balance' }];
   await answerSeller(db, { user: techbazaar, voice: true }, ask, { client });
   await answerSeller(db, { user: techbazaar }, ask, { client });
-  assert.match(systems[0], /asked this by voice/);
+  assert.match(systems[0], /asked by voice/);
   assert.doesNotMatch(systems[1], /by voice/);
 });
 
@@ -96,7 +96,7 @@ test('Telugu sellers get replies in Telugu, also by voice', async () => {
   await answerSeller(db, { user: techbazaar, language: 'en' }, ask, { client });
   assert.equal(out.reply, 'సరే');
   assert.match(systems[0], /chosen Telugu/);
-  assert.match(systems[0], /asked this by voice/);
+  assert.match(systems[0], /asked by voice/);
   assert.doesNotMatch(systems[1], /chosen Telugu/);
   assert.match(systems[1], /language the seller writes in/); // a Telugu question still gets a Telugu answer
 });

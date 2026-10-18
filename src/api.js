@@ -134,7 +134,9 @@ route('POST', 'shop', '/support/(\\d+)/reply', async (c, tid) => {
 
 route('GET', 'shop', '/assistant', async () => ({ available: assistant.isAvailable() }), true);
 route('POST', 'shop', '/assistant', async (c) =>
-  assistant.answer(c.db, { user: c.user, city: await c.city() }, c.body.messages), false, { readOnly: true });
+  assistant.answer(c.db, {
+    user: c.user, city: await c.city(), voice: c.body.voice === true, language: c.body.language === 'te' ? 'te' : 'en',
+  }, c.body.messages), false, { readOnly: true });
 
 // ---------------------------------------------------------------- Seller Central
 

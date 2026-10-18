@@ -87,6 +87,19 @@ test('tool calls stop after six rounds and the model must answer', async () => {
   assert.equal(client.calls[6].tool_choice.type, 'none');
 });
 
+test('customers can chat in Telugu and by voice', async () => {
+  const systems = [];
+  const client = { messages: { async create(p) { systems.push(p.system); return say('సరే'); } } };
+  const out = await answer(db, { user: rahul, city: 'Hyderabad', language: 'te', voice: true }, ask('నా ఆర్డర్ ఎక్కడ ఉంది?'), { client });
+  await answer(db, { user: rahul, city: 'Hyderabad' }, ask('Where is my order?'), { client });
+  assert.equal(out.reply, 'సరే');
+  assert.match(systems[0], /chosen Telugu/);
+  assert.match(systems[0], /Customer service/);
+  assert.match(systems[0], /asked by voice/);
+  assert.doesNotMatch(systems[1], /chosen Telugu|asked by voice/);
+  assert.match(systems[1], /language the customer writes in/);
+});
+
 test('a refusal gets a polite reply', async () => {
   const client = scripted(() => ({ stop_reason: 'refusal', content: [] }));
   const out = await answer(db, { user: asha, city: 'Pune' }, ask('...'), { client });

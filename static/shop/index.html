@@ -368,36 +368,7 @@
 </main>
 
 <!-- ============ ASSISTANT ============ -->
-<button class="chat-fab" ng-if="!vm.chat.open" ng-click="vm.chat.open = true" aria-label="Ask the Equidron assistant">💬 Ask Equidron</button>
-<section class="chat" ng-if="vm.chat.open" role="dialog" aria-label="Equidron assistant">
-  <div class="chat-head">
-    <strong>Equidron assistant</strong>
-    <button class="linkbtn" ng-click="vm.chat.open = false" aria-label="Close assistant">✕</button>
-  </div>
-  <div class="chat-log" id="chat-log" aria-live="polite">
-    <div class="chat-msg bot" ng-if="!vm.chat.messages.length">
-      Hi! Ask me about products, prices, delivery, payments, returns or your orders.
-      <div class="chat-chips" ng-if="vm.user && vm.chat.available">
-        <button class="btn small" ng-repeat="s in vm.chat.suggestions" ng-click="vm.sendChat(s)">{{s}}</button>
-      </div>
-    </div>
-    <div class="chat-msg" ng-repeat="m in vm.chat.messages" ng-class="m.role === 'user' ? 'me' : 'bot'">
-      <div class="chat-text">{{m.content}}</div>
-      <div class="chat-links" ng-if="m.products.length">
-        <a ng-repeat="p in m.products" href="#/product/{{p.id}}">{{p.title}}</a>
-      </div>
-    </div>
-    <div class="chat-msg bot muted" ng-if="vm.chat.sending">Looking that up…</div>
-    <div class="alert bad small" ng-if="vm.chat.error">{{vm.chat.error}}</div>
-  </div>
-  <p class="chat-foot small" ng-if="!vm.user">Please <a href="#/login" ng-click="vm.chat.open = false">sign in</a> to chat with the assistant.</p>
-  <p class="chat-foot small" ng-if="vm.user && !vm.chat.available">The assistant isn't available right now. <a href="#/support">Customer service</a> can help.</p>
-  <form class="chat-form" ng-if="vm.user && vm.chat.available" ng-submit="vm.sendChat()">
-    <input type="text" ng-model="vm.chat.input" placeholder="Ask a question" maxlength="2000" aria-label="Your question" ng-disabled="vm.chat.sending">
-    <button class="btn primary" type="submit" ng-disabled="vm.chat.sending || !vm.chat.input.trim()">Send</button>
-  </form>
-  <p class="chat-foot small muted">Answers come from an AI and can be wrong. It can look things up but can't change your orders.</p>
-</section>
+<div ng-include="'/common/chat.html'"></div>
 
 <div class="toast" ng-if="toast" role="status">{{toast}}</div>
 </body>

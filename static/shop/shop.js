@@ -1,6 +1,6 @@
 /* Equidron storefront (customers). */
-angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$location', '$window', '$timeout', 'Api', 'Router', 'Toast',
-  function ($scope, $location, $window, $timeout, Api, Router, Toast) {
+angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$location', '$window', 'Api', 'Router', 'Toast', 'AssistantChat',
+  function ($scope, $location, $window, Api, Router, Toast, AssistantChat) {
     var api = Api('shop');
     var vm = this;
     vm.STAGES = ['pending', 'picking', 'packed', 'shipped', 'in_transit', 'out_for_delivery', 'delivered'];
@@ -99,6 +99,7 @@ angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$locatio
     vm.logout = function () {
       api.post('/logout').then(function () {
         vm.user = null; vm.cart = { items: [], count: 0, estimate: {} }; vm.notes = []; vm.unread = 0;
+        vm.chat.reset();
         $location.url('/');
       });
     };
@@ -238,30 +239,42 @@ angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$locatio
     };
 
     // ---------------------------------------------------------------- assistant
-    vm.chat = {
-      open: false, messages: [], input: '', sending: false, available: true,
-      suggestions: ['Best gaming laptop under ₹1,00,000?', 'Where is my latest order?', 'How do returns work?']
-    };
-    api.get('/assistant').then(function (r) { vm.chat.available = r.available; });
-    function scrollChat() {
-      $timeout(function () { var log = $window.document.getElementById('chat-log'); if (log) log.scrollTop = log.scrollHeight; });
-    }
-    vm.sendChat = function (text) {
-      text = String(text || vm.chat.input || '').trim();
-      if (!text || vm.chat.sending) return;
-      vm.chat.error = null;
-      vm.chat.messages.push({ role: 'user', content: text });
-      vm.chat.input = '';
-      vm.chat.sending = true;
-      scrollChat();
-      var history = vm.chat.messages.map(function (m) { return { role: m.role, content: m.content }; });
-      api.post('/assistant?city=' + encodeURIComponent(vm.city || ''), { messages: history }).then(function (r) {
-        vm.chat.messages.push({ role: 'assistant', content: r.reply, products: r.products });
-      }, function (e) {
-        // Keep the conversation alternating: take the unanswered question back into the box.
-        vm.chat.messages.pop();
-        vm.chat.input = text;
-        vm.chat.error = e.message;
-      }).finally(function () { vm.chat.sending = false; scrollChat(); });
-    };
+    // Panel text in English and Telugu; the panel itself is static/common/chat.html.
+    vm.chat = AssistantChat({
+      api: api,
+      storageKey: 'eq.shop.lang',
+      signedIn: function () { return vm.user; },
+      showSignedOut: true,
+      linkFor: function (p) { return '#/product/' + p.id; },
+      params: function () { return { city: vm.city }; },
+      texts: {
+        en: {
+          fab: 'Ask Equidron', title: 'Equidron assistant', close: 'Close assistant',
+          hello: 'Hi! Ask me about products, prices, delivery, payments, returns or your orders.',
+          suggestions: ['Best gaming laptop under ₹1,00,000?', 'Where is my latest order?', 'How do returns work?'],
+          placeholder: 'Ask a question', listening: 'Listening…', send: 'Send', thinking: 'Looking that up…', linkPrefix: '',
+          mic: 'Ask by voice', micStop: 'Stop listening', readAloud: 'Read replies aloud', handsFree: 'Hands-free',
+          handsFreeHint: 'After each spoken reply, listen for the next question', stop: 'Stop speaking',
+          signInBefore: 'Please', signInLink: 'sign in', signInAfter: ' to chat with the assistant.',
+          unavailable: "The assistant isn't available right now.", supportLink: 'Customer service can help.',
+          noVoice: 'This device has no English voice, so replies are shown as text only.',
+          note: "Answers come from an AI and can be wrong. It can look things up but can't change your orders.",
+          voiceNote: 'Voice input is turned into text by your browser.'
+        },
+        te: {
+          fab: 'Equidron‌ని అడగండి', title: 'Equidron సహాయకుడు', close: 'సహాయకుడిని మూసివేయి',
+          hello: 'నమస్కారం! ఉత్పత్తులు, ధరలు, డెలివరీ, చెల్లింపులు, రిటర్న్‌లు లేదా మీ ఆర్డర్ల గురించి నన్ను అడగండి.',
+          suggestions: ['₹1,00,000 లోపు ఉత్తమ గేమింగ్ ల్యాప్‌టాప్ ఏది?', 'నా తాజా ఆర్డర్ ఎక్కడ ఉంది?', 'రిటర్న్‌లు ఎలా పనిచేస్తాయి?'],
+          placeholder: 'ప్రశ్న అడగండి', listening: 'వింటున్నాను…', send: 'పంపు', thinking: 'చూస్తున్నాను…', linkPrefix: '',
+          mic: 'వాయిస్‌తో అడగండి', micStop: 'వినడం ఆపు', readAloud: 'సమాధానాలు చదివి వినిపించు', handsFree: 'హ్యాండ్స్-ఫ్రీ',
+          handsFreeHint: 'ప్రతి సమాధానం తర్వాత తదుపరి ప్రశ్న కోసం వింటుంది', stop: 'మాట్లాడటం ఆపు',
+          signInBefore: 'సహాయకుడితో చాట్ చేయడానికి దయచేసి', signInLink: 'సైన్ ఇన్ చేయండి', signInAfter: '.',
+          unavailable: 'సహాయకుడు ప్రస్తుతం అందుబాటులో లేదు.', supportLink: 'కస్టమర్ సర్వీస్ సహాయం చేస్తుంది.',
+          noVoice: 'ఈ పరికరంలో తెలుగు వాయిస్ లేదు, కాబట్టి సమాధానాలు టెక్స్ట్‌గా మాత్రమే చూపబడతాయి. Edge బ్రౌజర్‌లో తెలుగు వాయిస్ ఉంటుంది.',
+          note: 'సమాధానాలు AI నుండి వస్తాయి, తప్పులు ఉండవచ్చు. ఇది సమాచారం చూడగలదు కానీ మీ ఆర్డర్లను మార్చలేదు.',
+          voiceNote: 'మీ వాయిస్‌ను మీ బ్రౌజర్ టెక్స్ట్‌గా మారుస్తుంది.'
+        }
+      }
+    });
+    vm.chat.load();
   }]);

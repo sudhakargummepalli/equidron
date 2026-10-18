@@ -185,6 +185,116 @@ angular.module('eqCommon', [])
     };
   }])
 
+  // State and behaviour of the assistant chat panel (static/common/chat.html), shared by
+  // the store and Seller Central. Typed or spoken questions, replies read aloud, hands-free
+  // back-and-forth, and English / Telugu.
+  // opts: { api, texts: {en, te}, storageKey, signedIn(), showSignedOut, linkFor(product), params() }
+  .factory('AssistantChat', ['$window', '$timeout', 'Voice', function ($window, $timeout, Voice) {
+    return function (opts) {
+      function savedLang() { try { return $window.localStorage.getItem(opts.storageKey) === 'te' ? 'te' : 'en'; } catch (e) { return 'en'; } }
+      var chat = { open: false, messages: [], input: '', sending: false, available: true, error: null, lang: savedLang() };
+      chat.t = opts.texts[chat.lang];
+      chat.voice = { canListen: Voice.canListen, canSpeak: Voice.canSpeak, listening: false, speaking: false, readAloud: false, handsFree: false };
+      chat.signedIn = function () { return !!opts.signedIn(); };
+      chat.visible = function () { return !!opts.showSignedOut || chat.signedIn(); };
+      chat.canChat = function () { return chat.signedIn() && chat.available; };
+      chat.linkFor = opts.linkFor;
+      chat.hasVoice = function () { return Voice.hasVoice(chat.lang); };
+      chat.load = function () { opts.api.get('/assistant').then(function (r) { chat.available = r.available; }); };
+
+      function scroll() {
+        $timeout(function () { var log = $window.document.getElementById('chat-log'); if (log) log.scrollTop = log.scrollHeight; });
+      }
+      function query() {
+        var p = opts.params ? opts.params() : {};
+        var q = Object.keys(p).filter(function (k) { return p[k]; })
+          .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(p[k]); }).join('&');
+        return q ? '?' + q : '';
+      }
+
+      // byVoice: the question was spoken, so the reply is read aloud and kept short.
+      chat.send = function (text, byVoice) {
+        text = String(text || chat.input || '').trim();
+        if (!text || chat.sending) return;
+        chat.error = null;
+        chat.messages.push({ role: 'user', content: text });
+        chat.input = '';
+        chat.sending = true;
+        scroll();
+        var history = chat.messages.map(function (m) { return { role: m.role, content: m.content }; });
+        opts.api.post('/assistant' + query(), { messages: history, voice: !!byVoice, language: chat.lang }).then(function (r) {
+          chat.messages.push({ role: 'assistant', content: r.reply, products: r.products });
+          if (byVoice || chat.voice.readAloud) speakReply(r.reply);
+        }, function (e) {
+          // Keep the conversation alternating: take the unanswered question back into the box.
+          chat.messages.pop();
+          chat.input = text;
+          chat.error = e.message;
+          chat.voice.handsFree = false;
+        }).finally(function () { chat.sending = false; scroll(); });
+      };
+
+      chat.setLang = function (lang) {
+        if (lang === chat.lang) return;
+        stopListening();
+        chat.stopSpeaking();
+        chat.voice.handsFree = false;
+        chat.lang = lang;
+        chat.t = opts.texts[lang];
+        chat.error = null;
+        try { $window.localStorage.setItem(opts.storageKey, lang); } catch (e) { /* storage unavailable */ }
+      };
+
+      // Mic: speech becomes the question and is sent when the speaker stops talking.
+      // Hands-free: after each spoken reply, listen for the next question.
+      function startListening() {
+        if (!chat.open || chat.sending) return;
+        chat.stopSpeaking();
+        chat.error = null;
+        chat.voice.listening = Voice.listen({
+          interim: function (t) { chat.input = t; },
+          final: function (t) { chat.input = ''; chat.send(t, true); },
+          end: function () { chat.voice.listening = false; },
+          error: function (msg) { chat.error = msg; chat.voice.handsFree = false; }
+        }, chat.lang);
+      }
+      function stopListening() { Voice.stopListening(); chat.voice.listening = false; }
+      function speakReply(text) {
+        chat.voice.speaking = Voice.speak(text, function () {
+          if (!chat.voice.speaking) return; // stopped by the user
+          chat.voice.speaking = false;
+          if (chat.voice.handsFree) startListening();
+        }, chat.lang);
+        // No voice for this language: the reply stays as text; hands-free still listens again.
+        if (!chat.voice.speaking && chat.voice.handsFree) startListening();
+      }
+      chat.toggleMic = function () {
+        if (chat.voice.listening) { stopListening(); chat.voice.handsFree = false; } else startListening();
+      };
+      chat.stopSpeaking = function () { chat.voice.speaking = false; Voice.stopSpeaking(); };
+      chat.readAloudChanged = function () {
+        if (!chat.voice.readAloud) { chat.voice.handsFree = false; chat.stopSpeaking(); }
+      };
+      chat.handsFreeChanged = function () {
+        if (chat.voice.handsFree) {
+          chat.voice.readAloud = true;
+          if (!chat.voice.listening && !chat.voice.speaking) startListening();
+        } else {
+          stopListening();
+        }
+      };
+      chat.close = function () {
+        chat.voice.handsFree = false;
+        stopListening();
+        chat.stopSpeaking();
+        chat.open = false;
+      };
+      // Sign-out: forget the conversation.
+      chat.reset = function () { chat.close(); chat.messages = []; chat.input = ''; chat.error = null; };
+      return chat;
+    };
+  }])
+
   // Small toast helper: Toast.show('Saved')
   .factory('Toast', ['$timeout', '$rootScope', function ($timeout, $rootScope) {
     var t;

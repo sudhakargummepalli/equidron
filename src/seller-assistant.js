@@ -3,7 +3,7 @@
 // credentials as the store assistant (src/assistant.js), with read-only tools that only
 // ever see the signed-in seller's own data. It can't change anything: it points the
 // seller to the right Seller Central page instead.
-import { converse } from './assistant.js';
+import { converse, telugu, VOICE_REPLY } from './assistant.js';
 import { CATEGORIES, CITIES, describeOffers } from './catalog.js';
 import { catalogLookup, listSubmissions, PRICE_REVIEW_THRESHOLD, RESTRICTED_TERMS, sellerListings } from './listings.js';
 import { inr, REFERRAL_FEE_RATE, sellerLedger, sellerOrders } from './orders.js';
@@ -153,8 +153,6 @@ async function runTool(db, ctx, name, input, seen) {
   }
 }
 
-const VOICE = 'The seller asked this by voice and will hear your reply read aloud: answer in one to three short spoken sentences. No lists, symbols, IDs or long product titles unless asked; say amounts as a number and the word for rupees (for example "1,499 rupees", or in Telugu "1,499 రూపాయలు").';
-const TELUGU = 'The seller has chosen Telugu. Reply in Telugu, in Telugu script, even if the question is in English. Keep product titles, listing and order numbers, and Seller Central page names (Dashboard, Inventory, Submissions, Orders, Payments) exactly as they appear in English, and write numbers with digits.';
 
 // ctx: { user, voice, language } with user.seller_id; voice: the question was spoken;
 // language: 'en' (default) or 'te' (Telugu).
@@ -162,7 +160,8 @@ const TELUGU = 'The seller has chosen Telugu. Reply in Telugu, in Telugu script,
 export function answerSeller(db, ctx, rawMessages, options = {}) {
   return converse(db, ctx, rawMessages, {
     system: SYSTEM,
-    context: [`You are helping the seller "${ctx.user.seller_name}".`, ctx.language === 'te' && TELUGU, ctx.voice && VOICE]
+    context: [`You are helping the seller "${ctx.user.seller_name}".`,
+      ctx.language === 'te' && telugu('Dashboard, Inventory, Submissions, Orders, Payments'), ctx.voice && VOICE_REPLY]
       .filter(Boolean).join('\n\n'),
     tools: TOOLS,
     runTool,
