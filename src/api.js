@@ -15,6 +15,7 @@ import * as notify from './notify.js';
 import * as orders from './orders.js';
 import { answerSeller } from './seller-assistant.js';
 import { PAYMENT_OPTIONS } from './payments.js';
+import { loadStatement } from './statement.js';
 
 export const AREAS = { shop: 'customer', seller: 'seller', ops: 'ops' };
 const SAMPLE_NOTICE = 'Sample data: every seller, product, customer and order here is fictional. Payments are simulated.';
@@ -22,8 +23,9 @@ const ROUTES = [];
 
 // readOnly: a non-GET route that writes nothing, so it runs outside a transaction
 // (the assistant waits seconds on the model and must not hold the write lock).
-function route(method, area, pattern, fn, isPublic = false, { readOnly = false } = {}) {
-  ROUTES.push({ method, area, pattern: new RegExp(`^${pattern}$`), fn, isPublic, readOnly });
+// prepare(body): slow work done before the transaction; its result is ctx.prepared.
+function route(method, area, pattern, fn, isPublic = false, { readOnly = false, prepare = null } = {}) {
+  ROUTES.push({ method, area, pattern: new RegExp(`^${pattern}$`), fn, isPublic, readOnly, prepare });
 }
 
 class Reply {
@@ -99,16 +101,25 @@ route('POST', 'shop', '/addresses', async (c) => {
 route('POST', 'shop', '/checkout/preview', async (c) => await orders.checkoutPreview(c.db, c.user.id, c.body.address_id));
 route('POST', 'shop', '/orders', async (c) => {
   const b = c.body;
-  const res = await orders.placeOrder(c.db, c.user.id, b.address_id, b.payment_method, b.payment_token);
+  const res = await orders.placeOrder(c.db, c.user.id, b.address_id, b.payment_method, b.payment_token, { statement: c.prepared });
   if (res.result === 'issues') {
     return new Reply(409, { error: 'Your cart changed since you last looked. Please review the updates.',
       details: { issues: res.issues, totals: res.totals } });
   }
   if (res.result === 'payment_failed') {
-    return new Reply(402, { error: `Payment was declined (${res.order.payment.decline_reason}). Nothing was charged and your cart is saved.`,
-      details: { order: res.order } });
+    const why = res.order.payment.decline_reason;
+    return new Reply(402, {
+      error: b.payment_method === 'bank'
+        ? `We couldn't confirm your payment: ${why} Your cart is saved.`
+        : `Payment was declined (${why}). Nothing was charged and your cart is saved.`,
+      details: { order: res.order },
+    });
   }
   return new Reply(201, res.order);
+}, false, {
+  // A bank-transfer order is checked against the bank statement: fetch it before the
+  // transaction so the database lock isn't held during the network call.
+  prepare: (body) => (body.payment_method === 'bank' ? loadStatement() : null),
 });
 route('GET', 'shop', '/orders', async (c) => await orders.listOrders(c.db, c.user.id));
 route('GET', 'shop', '/orders/(\\d+)', async (c, oid) => await orders.getOrder(c.db, int(oid), c.user.id));
@@ -218,13 +229,14 @@ export async function handleApi(db, { method, path, query, body, cookies }) {
       const pm = r.pattern.exec(sub);
       if (!pm) continue;
       // Reads run directly; anything else runs as one transaction.
+      const prepared = r.prepare ? await r.prepare(body || {}) : null;
       const scope = method === 'GET' || r.readOnly ? (fn) => fn() : (fn) => transaction(db, fn);
       const result = await scope(async () => {
         const token = cookies[`eq_${area}`] || null;
         const user = await auth.userForToken(db, token, AREAS[area]);
         if (!user && !r.isPublic) throw new AppError(401, 'Please sign in.');
         const ctx = {
-          db, user, body: body || {}, token,
+          db, user, body: body || {}, token, prepared,
           q: (name, fallback = null) => (query.has(name) ? query.get(name) : fallback),
           async city() {
             const city = this.q('city');

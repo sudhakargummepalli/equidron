@@ -9,6 +9,8 @@
 //   card - authorize at checkout, capture per shipment when it ships, void on cancel
 //   upi  - authorize and capture immediately at checkout
 //   cod  - nothing at checkout; collected by the courier on delivery
+//   bank - already paid by UPI or bank transfer; the customer's payment reference is
+//          checked against Equidron's bank statement (src/statement.js), not here
 import crypto from 'node:crypto';
 import { badRequest } from './errors.js';
 
@@ -26,13 +28,35 @@ export const PAYMENT_OPTIONS = [
   ...Object.entries(CARD_TOKENS).map(([token, [, label]]) => ({ method: 'card', token, label })),
   ...Object.entries(UPI_TOKENS).map(([token, [, label]]) => ({ method: 'upi', token, label })),
   { method: 'cod', token: 'cod', label: 'Cash on delivery' },
+  { method: 'bank', token: '', label: 'Already paid by UPI or bank transfer: enter your payment reference', reference: true },
 ];
 const PAN_LIKE = /\d[\d \-]{11,}\d/;
 const hex = (n) => crypto.randomBytes(n).toString('hex');
+const REFERENCE = /^[A-Za-z0-9]{6,30}$/;
+
+// 13-19 digits that pass the Luhn check look like a card number.
+function looksLikeCard(s) {
+  if (!/^\d{13,19}$/.test(s)) return false;
+  let sum = 0;
+  for (let i = 0; i < s.length; i++) {
+    let d = Number(s[s.length - 1 - i]);
+    if (i % 2) { d *= 2; if (d > 9) d -= 9; }
+    sum += d;
+  }
+  return sum % 10 === 0;
+}
 
 class SimulatedProvider {
   checkToken(method, token) {
     token = String(token || '').trim();
+    if (method === 'bank') {
+      // Bank references (NEFT UTRs) are long and digit-heavy, so only a card-shaped number is refused.
+      if (looksLikeCard(token.replace(/[\s-]/g, ''))) {
+        throw badRequest('That looks like a card number. Card numbers are never accepted; enter the payment reference (UTR) from your bank.');
+      }
+      if (!REFERENCE.test(token)) throw badRequest('Enter the payment reference (UTR) from your bank: 6-30 letters or digits.');
+      return token.toUpperCase();
+    }
     if (PAN_LIKE.test(token)) {
       throw badRequest('Raw card numbers are never accepted. Choose one of the simulated payment options.');
     }

@@ -179,12 +179,14 @@ angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$locatio
     };
     vm.placeOrder = function () {
       if (!vm.co.payment) { vm.co.payError = 'Choose a payment option.'; return; }
+      var token = vm.co.payment.reference ? String(vm.co.reference || '').trim() : vm.co.payment.token;
+      if (vm.co.payment.reference && !token) { vm.co.payError = 'Enter the payment reference from your bank.'; return; }
       vm.co.payError = null;
       vm.co.placing = true;
       api.post('/orders', {
         address_id: vm.co.address_id,
         payment_method: vm.co.payment.method,
-        payment_token: vm.co.payment.token
+        payment_token: token
       }).then(function (order) {
         vm.co.placing = false;
         refreshCart(); loadNotes();

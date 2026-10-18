@@ -16,6 +16,7 @@ import { all, dumps, isoDate, loads, now, one, run, scalar } from './db.js';
 import { badRequest, conflict, forbidden, notFound } from './errors.js';
 import { notify } from './notify.js';
 import { provider } from './payments.js';
+import { checkReference, loadStatement } from './statement.js';
 
 export const FREE_SHIPPING_FROM = 49_900;
 export const SHIPPING_FEE = 4_000;
@@ -208,11 +209,22 @@ function allocate(stock, qty, city) {
   return picks;
 }
 
+// A payment the customer already made by UPI or bank transfer: approved only if Equidron's
+// bank statement shows that reference paid in full for this order, and no other order used it.
+async function authorizeBankTransfer(db, ref, total, statement) {
+  const instrument = `UPI / bank transfer, ref ${ref}`;
+  const check = checkReference(statement, ref, total, inr);
+  if (!check.ok) return { approved: false, ref: null, declineReason: check.message, instrument };
+  const used = await one(db, "SELECT order_id FROM payments WHERE method = 'bank' AND provider_ref = ? AND status != 'declined'", ref);
+  if (used) return { approved: false, ref: null, declineReason: `Payment ${ref} was already used for order #${used.order_id}.`, instrument };
+  return { approved: true, ref, declineReason: null, instrument };
+}
+
 // Revalidate, reserve stock, authorize payment. Returns {result, ...} where result is
 // "issues" (nothing created), "payment_failed" (order recorded, stock released,
-// cart kept) or "placed".
-export async function placeOrder(db, userId, addressId, method, token) {
-  provider.checkToken(method, token);
+// cart kept) or "placed". statement: bank statement rows for method 'bank' (loaded here if not given).
+export async function placeOrder(db, userId, addressId, method, token, { statement = null } = {}) {
+  token = provider.checkToken(method, token);
   const check = await revalidate(db, userId, addressId);
   if (!check.ok) return { result: 'issues', issues: check.issues, totals: check.totals };
   const { address: addr, totals: t } = check;
@@ -250,7 +262,9 @@ export async function placeOrder(db, userId, addressId, method, token) {
     await run(db, 'UPDATE shipments SET amount_paise = ?, eta = ? WHERE id = ?', amount, etaDate(ship.days), ship.id);
   }
 
-  const auth = provider.authorize(method, token, t.total_paise);
+  const auth = method === 'bank'
+    ? await authorizeBankTransfer(db, token, t.total_paise, statement || await loadStatement())
+    : provider.authorize(method, token, t.total_paise);
   const payId = await run(db, `INSERT INTO payments (order_id, method, instrument, provider_ref, status, decline_reason, created_at, updated_at)
                          VALUES (?,?,?,?, 'pending', ?, ?, ?)`,
   orderId, method, auth.instrument, auth.ref, auth.declineReason, ts, ts);
@@ -273,6 +287,9 @@ export async function placeOrder(db, userId, addressId, method, token) {
     await run(db, 'UPDATE payments SET authorized_paise = ?, captured_paise = ? WHERE id = ?', total, total, payId);
     await paymentEvent(db, payId, 'authorize', total, 'Authorized.');
     await paymentEvent(db, payId, 'capture', total, 'Collected immediately (UPI).');
+  } else if (method === 'bank') {
+    await run(db, 'UPDATE payments SET authorized_paise = ?, captured_paise = ? WHERE id = ?', total, total, payId);
+    await paymentEvent(db, payId, 'capture', total, `Matched to bank statement entry ${auth.ref}.`);
   } else {
     await run(db, 'UPDATE payments SET authorized_paise = ? WHERE id = ?', total, payId);
     await paymentEvent(db, payId, 'cod_due', total, 'To be collected on delivery.');
@@ -437,7 +454,7 @@ export async function cancelOrder(db, userId, orderId) {
     provider.void(p.provider_ref, p.authorized_paise);
     await paymentEvent(db, p.id, 'void', p.authorized_paise, 'Authorization released; you were not charged.');
     await run(db, "UPDATE payments SET status = 'voided' WHERE id = ?", p.id);
-  } else if (p.method === 'upi') {
+  } else if (p.method === 'upi' || p.method === 'bank') {
     await refund(db, orderId, p.captured_paise, 'Order cancelled.');
   } else {
     await paymentEvent(db, p.id, 'cod_cancelled', p.authorized_paise, 'Nothing to collect.');

@@ -57,7 +57,7 @@ node --test
 
 The tests run on PGlite, so no database server is needed. The sample data is loaded once and restored before every test, so a run takes about 10 seconds.
 
-51 tests cover:
+59 tests cover:
 - search ranking and multi-seller offers
 - listing review rules and role separation
 - checkout revalidation, and payment authorization versus capture
@@ -67,6 +67,7 @@ The tests run on PGlite, so no database server is needed. The sample data is loa
 - a full customer order over real HTTP
 - the database layer: placeholders, ids from inserts, rollback
 - the Netlify function handler
+- bank-statement payment checks: every matching rule, refunds and the checkout API
 - the store assistant's tool loop, order privacy, input limits and daily question cap (with a stand-in for the AI model)
 - the Seller Central assistant's lookups, which only ever see the signed-in seller's own data
 
@@ -160,6 +161,21 @@ An order has three independent statuses: `status`, `payment_status` and `fulfilm
 | Cash on delivery | amount due | – | collect | nothing to collect / refund to Equidron balance |
 
 A declined payment records the order as `payment_failed`, releases reserved stock and keeps the cart.
+
+### Bank-transfer payments checked against a bank statement
+Besides the simulated options, a customer who has already paid by UPI or bank transfer can choose **"Already paid by UPI or bank transfer"** at checkout and enter the payment reference (UTR / RRN). The order is confirmed only when Equidron's bank statement shows that reference with:
+- status `SUCCESS`, and not reversed later (no `REVERSED` row pointing at it)
+- a credit of exactly the order total
+- no earlier order having used it, even one that was later cancelled and refunded
+
+Otherwise the order is declined with the reason ("still pending", "was ₹1,000.00, but this order is ₹1,099.00", "already used for order #4"), and the cart is kept. Payment is marked captured at once, and a cancellation refunds it.
+
+The statement is read from a Google Sheet published as CSV:
+1. In Google Sheets, **File → Import → Upload** `sample-bank-statement.csv`, or keep your own sheet with columns named `Reference…`, `Credit…`, `Status` and `Narration`.
+2. **File → Share → Publish to web**, choose that sheet and **Comma-separated values (.csv)**, then copy the link.
+3. Set it as `PAYMENT_STATEMENT_CSV_URL` (in Netlify, under **Site configuration → Environment variables**). The app re-reads the sheet at most every 30 seconds.
+
+Without that variable, the app uses the bundled sample statement (`src/sample-statement.js`, the same data as `sample-bank-statement.csv`). Every name, account and reference in it is fictional. **Publish to web makes the sheet readable by anyone with the link**, which is fine for this sample data but not for a real bank statement. Real data would need the Google Sheets API with a service account, or the bank's own API.
 
 ### Inventory and warehouses
 Stock is held per offer per location: Equidron fulfilment centres (Bengaluru, Hyderabad, Mumbai, Delhi) or a seller's own dispatch location. At checkout, stock is **reserved** at the nearest location that has it (same city first), and an order splits into several shipments when needed. Shipping removes it from `on_hand`. Cancelling releases the reservation, and a restocked return adds it back.

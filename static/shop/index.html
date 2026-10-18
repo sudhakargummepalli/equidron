@@ -193,11 +193,16 @@
         </div>
 
         <div class="card">
-          <h2>3. Payment (simulated)</h2>
-          <p class="small muted">Equidron uses a simulated payment provider. You never enter a card number; each option below is a test token with a fixed outcome.</p>
+          <h2>3. Payment</h2>
+          <p class="small muted">You never enter a card number here. Choose a simulated test option, or, if you have already paid by UPI or bank transfer, enter the payment reference and we check it against Equidron's bank statement.</p>
           <label class="radio" ng-repeat="p in vm.meta.payment_options" ng-class="{on: vm.co.payment === p}">
             <input type="radio" ng-model="vm.co.payment" ng-value="p"> <span>{{p.label}} <span class="muted small">({{p.method | uppercase}})</span></span>
           </label>
+          <div class="field" ng-if="vm.co.payment.reference" style="margin-top:8px">
+            <label for="pay-ref">Payment reference (UTR / RRN)</label>
+            <input id="pay-ref" type="text" ng-model="vm.co.reference" maxlength="30" autocomplete="off" placeholder="e.g. 629104857312">
+            <p class="small muted">Pay exactly {{vm.co.preview.totals.total_paise | inr}} to Equidron by UPI or bank transfer, then enter the reference your bank shows. It must match a completed payment of that amount that hasn't been used for another order.</p>
+          </div>
           <div class="alert bad" ng-if="vm.co.declined">{{vm.co.declined}}</div>
           <div class="alert bad" ng-if="vm.co.payError">{{vm.co.payError}}</div>
         </div>
@@ -207,7 +212,7 @@
         <div class="line"><span>Delivery</span><span>{{vm.co.preview.totals.shipping_paise ? (vm.co.preview.totals.shipping_paise | inr) : 'Free'}}</span></div>
         <div class="line total"><span>Order total</span><span>{{vm.co.preview.totals.total_paise | inr}}</span></div>
         <button class="btn primary" style="width:100%;margin-top:10px" ng-disabled="!vm.co.preview.ok || vm.co.placing" ng-click="vm.placeOrder()">{{vm.co.placing ? 'Placing order…' : 'Place your order'}}</button>
-        <p class="small muted">Card payments are authorized now and captured when each shipment leaves the warehouse. UPI is collected now. Cash on delivery is collected by the courier.</p>
+        <p class="small muted">Card payments are authorized now and captured when each shipment leaves the warehouse. UPI is collected now. Cash on delivery is collected by the courier. A bank transfer is confirmed against Equidron's bank statement.</p>
       </div>
     </div>
   </section>
