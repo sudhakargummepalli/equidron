@@ -129,3 +129,35 @@ test('the chat endpoint needs a signed-in customer', async () => {
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('each customer gets a daily cap of questions that resets the next day', async () => {
+  const day = new Date(2026, 0, 5, 10);
+  const nextDay = new Date(2026, 0, 6, 9);
+  const client = { calls: 0, messages: { async create() { client.calls++; return say('ok'); } } };
+  const ashaAsks = (today) => answer(db, { user: asha, city: 'Pune' }, ask('hi'), { client, today });
+  for (let i = 0; i < 30; i++) await ashaAsks(day);
+  await assert.rejects(ashaAsks(day), (e) => e instanceof AppError && e.status === 429 && /today's limit of 30/.test(e.message));
+  assert.equal(client.calls, 30); // the 31st question never reached the model
+  assert.equal((await one(db, 'SELECT questions FROM assistant_usage WHERE user_id = ? AND day = ?', asha.id, '2026-01-05')).questions, 30);
+
+  // Another customer is unaffected, and Asha can ask again the next day.
+  await answer(db, { user: rahul, city: 'Delhi' }, ask('hi'), { client, today: day });
+  await ashaAsks(nextDay);
+  assert.equal(client.calls, 32);
+});
+
+test('EQUIDRON_ASSISTANT_DAILY_LIMIT changes the cap, and rejected messages do not count', async () => {
+  const saved = process.env.EQUIDRON_ASSISTANT_DAILY_LIMIT;
+  process.env.EQUIDRON_ASSISTANT_DAILY_LIMIT = '2';
+  try {
+    const today = new Date(2026, 1, 1);
+    const ctx = { user: rahul, city: 'Delhi' };
+    await assert.rejects(answer(db, ctx, [], { client: scripted(), today }), (e) => e.status === 400);
+    await answer(db, ctx, ask('one'), { client: scripted(() => say('ok')), today });
+    await answer(db, ctx, ask('two'), { client: scripted(() => say('ok')), today });
+    await assert.rejects(answer(db, ctx, ask('three'), { client: scripted(), today }), (e) => e.status === 429 && /limit of 2 /.test(e.message));
+  } finally {
+    if (saved === undefined) delete process.env.EQUIDRON_ASSISTANT_DAILY_LIMIT;
+    else process.env.EQUIDRON_ASSISTANT_DAILY_LIMIT = saved;
+  }
+});

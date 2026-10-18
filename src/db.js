@@ -220,6 +220,12 @@ CREATE TABLE IF NOT EXISTS support_messages (
     body TEXT NOT NULL,
     at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS assistant_usage (
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    day TEXT NOT NULL,
+    questions INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, day)
+);
 `;
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -233,7 +239,7 @@ export function isoDate(d) {
 }
 
 export const TABLES = [...SCHEMA.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g)].map((m) => m[1]);
-const TABLES_WITHOUT_ID = new Set(['sessions', 'inventory', 'cart_items']);
+const TABLES_WITHOUT_ID = new Set(['sessions', 'inventory', 'cart_items', 'assistant_usage']);
 
 // ? placeholders become $1, $2, ... and LIKE becomes ILIKE, so searches ignore case.
 export function toPostgres(sql) {

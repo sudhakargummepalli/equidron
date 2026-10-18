@@ -19,7 +19,7 @@ import { provider } from './payments.js';
 
 export const FREE_SHIPPING_FROM = 49_900;
 export const SHIPPING_FEE = 4_000;
-const REFERRAL_FEE_RATE = 0.1;
+export const REFERRAL_FEE_RATE = 0.1;
 const MAX_LINE_QTY = 10;
 export const SHIPMENT_STAGES = ['pending', 'picking', 'packed', 'shipped', 'in_transit', 'out_for_delivery', 'delivered'];
 const STAGE_NOTES = {

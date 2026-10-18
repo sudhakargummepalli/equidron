@@ -1,7 +1,7 @@
 // Database layer and Netlify handler tests, run against PGlite (real PostgreSQL
 // compiled to WebAssembly, in-process), so no database server is needed.
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { settings } from '../src/auth.js';
 import { connect, initSchema, one, run, scalar, SCHEMA, toPostgres, transaction } from '../src/db.js';
@@ -30,9 +30,15 @@ test('inserts return ids, counts are numbers, failed transactions roll back', as
   await db.close();
 });
 
-test('the Netlify Database migration matches the schema', () => {
-  const file = readFileSync(new URL('../netlify/database/migrations/20261017000000_initial_schema.sql', import.meta.url), 'utf8');
-  assert.equal(file.replace(/^--.*\n/, '').trim(), SCHEMA.trim().replace(/\r\n/g, '\n'));
+test('the Netlify Database schema migrations add up to the schema', () => {
+  // Schema migrations hold only CREATE TABLE statements after their comment lines; data
+  // migrations (the sample laptops) are left out. New tables go at the end of SCHEMA.
+  const dir = new URL('../netlify/database/migrations/', import.meta.url);
+  const schemaMigrations = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()
+    .map((f) => readFileSync(new URL(f, dir), 'utf8').replace(/\r\n/g, '\n').replace(/^(--.*\n)+/, '').trim())
+    .filter((sql) => sql.startsWith('CREATE TABLE'));
+  assert.equal(schemaMigrations.length, 2);
+  assert.equal(schemaMigrations.join('\n'), SCHEMA.trim().replace(/\r\n/g, '\n'));
 });
 
 test('the sample laptops migration only fills databases seeded before the laptops existed', async () => {

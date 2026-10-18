@@ -13,6 +13,7 @@ import { AppError } from './errors.js';
 import * as listings from './listings.js';
 import * as notify from './notify.js';
 import * as orders from './orders.js';
+import { answerSeller } from './seller-assistant.js';
 import { PAYMENT_OPTIONS } from './payments.js';
 
 export const AREAS = { shop: 'customer', seller: 'seller', ops: 'ops' };
@@ -161,6 +162,8 @@ route('POST', 'seller', '/submissions', async (c) => new Reply(201, await listin
 route('GET', 'seller', '/orders', async (c) => await orders.sellerOrders(c.db, c.user.seller_id));
 route('POST', 'seller', '/shipments/(\\d+)/advance', async (c, sid) => await orders.advanceShipment(c.db, int(sid), 'seller', c.user.seller_id));
 route('GET', 'seller', '/ledger', async (c) => await orders.sellerLedger(c.db, c.user.seller_id));
+route('GET', 'seller', '/assistant', async () => ({ available: assistant.isAvailable() }));
+route('POST', 'seller', '/assistant', async (c) => answerSeller(c.db, { user: c.user }, c.body.messages), false, { readOnly: true });
 
 // ---------------------------------------------------------------- Equidron Ops
 

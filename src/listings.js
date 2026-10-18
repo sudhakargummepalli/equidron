@@ -10,7 +10,7 @@ import { badRequest, conflict, forbidden, notFound } from './errors.js';
 import { notify } from './notify.js';
 
 export const PRICE_REVIEW_THRESHOLD = 0.2;
-const RESTRICTED_TERMS = ['replica', 'counterfeit', 'first copy', 'fake', 'duplicate', 'imitation'];
+export const RESTRICTED_TERMS = ['replica', 'counterfeit', 'first copy', 'fake', 'duplicate', 'imitation'];
 const CONTENT_FIELDS = ['title', 'brand', 'category', 'description', 'specs', 'images'];
 const JSON_FIELDS = new Set(['specs', 'images']);
 const IMAGE_RE = /^(https:\/\/\S+|\/img\/[A-Za-z0-9_\-]+\.svg)$/;

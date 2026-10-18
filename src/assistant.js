@@ -8,6 +8,7 @@
 // ANTHROPIC_API_KEY to try it; without credentials the assistant reports it is unavailable.
 import Anthropic from '@anthropic-ai/sdk';
 import { CATEGORIES, CITIES, productDetail, search } from './catalog.js';
+import { isoDate, one, transaction } from './db.js';
 import { AppError, badRequest } from './errors.js';
 import { FREE_SHIPPING_FROM, getOrder, inr, listOrders, SHIPPING_FEE } from './orders.js';
 
@@ -15,6 +16,7 @@ export const MODEL = process.env.EQUIDRON_ASSISTANT_MODEL || 'claude-opus-5-5';
 const MAX_MESSAGES = 30;
 const MAX_CHARS = 2000;
 const MAX_TOOL_ROUNDS = 6;
+const DEFAULT_DAILY_LIMIT = 30; // questions per customer per day; EQUIDRON_ASSISTANT_DAILY_LIMIT overrides it
 
 const SYSTEM = `You are the Equidron Store assistant. You help shoppers on equidron, an online marketplace where several sellers can offer the same product. Answer questions about products, prices, delivery, orders, payments, returns and how the store works.
 
@@ -167,17 +169,51 @@ function cleanHistory(messages) {
 
 export const isAvailable = () => Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 
+export const dailyLimit = () => {
+  const n = Number(process.env.EQUIDRON_ASSISTANT_DAILY_LIMIT);
+  return Number.isInteger(n) && n > 0 ? n : DEFAULT_DAILY_LIMIT;
+};
+
+// Count one question against the customer's daily cap, in its own short transaction
+// (the chat route runs outside the request transaction so it doesn't hold it during model calls).
+// The upsert only bumps the count while it is under the limit, so concurrent questions can't overshoot.
+async function countQuestion(db, userId, day, help) {
+  const limit = dailyLimit();
+  const row = await transaction(db, () => one(db,
+    `INSERT INTO assistant_usage (user_id, day, questions) VALUES (?, ?, 1)
+     ON CONFLICT (user_id, day) DO UPDATE SET questions = assistant_usage.questions + 1
+     WHERE assistant_usage.questions < ?
+     RETURNING questions`, userId, day, limit));
+  if (!row) {
+    throw new AppError(429, `You've reached today's limit of ${limit} assistant questions. Please come back tomorrow, or ${help} for help now.`);
+  }
+}
+
 let defaultClient = null;
 
-// ctx: { user, city }. client: an Anthropic client (tests pass a stand-in).
+// The customer assistant. ctx: { user, city }. client: an Anthropic client (tests pass a
+// stand-in). today: the date questions count against.
 // Returns { reply, products: [{id, title}] } - products are ones the reply names.
-export async function answer(db, ctx, rawMessages, { client = null } = {}) {
+export function answer(db, ctx, rawMessages, options = {}) {
+  return converse(db, ctx, rawMessages, {
+    system: SYSTEM,
+    context: `The customer ${ctx.user ? `is signed in as ${ctx.user.name}` : 'is not signed in'} and is shopping for delivery to ${ctx.city || 'an unknown city'}.`,
+    tools: TOOLS,
+    runTool,
+    help: 'use Customer service',
+  }, options);
+}
+
+// The chat loop shared by the customer and seller assistants. profile: { system, context,
+// tools, runTool(db, ctx, name, input, seen), help }. Tools record what they looked up in
+// `seen` (id -> title); the reply returns the entries it names so the page can link them.
+export async function converse(db, ctx, rawMessages, profile, { client = null, today = new Date() } = {}) {
   const messages = cleanHistory(rawMessages);
   if (!client) {
-    if (!isAvailable()) throw new AppError(503, 'The assistant is not available right now. Please use Customer service.');
+    if (!isAvailable()) throw new AppError(503, `The assistant is not available right now. Please ${profile.help}.`);
     client = defaultClient ||= new Anthropic();
   }
-  const context = `The customer ${ctx.user ? `is signed in as ${ctx.user.name}` : 'is not signed in'} and is shopping for delivery to ${ctx.city || 'an unknown city'}.`;
+  if (ctx.user) await countQuestion(db, ctx.user.id, isoDate(today), profile.help);
   const seen = new Map();
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
@@ -186,9 +222,9 @@ export async function answer(db, ctx, rawMessages, { client = null } = {}) {
       response = await client.messages.create({
         model: MODEL,
         max_tokens: 4000,
-        system: `${SYSTEM}\n\n${context}`,
+        system: `${profile.system}\n\n${profile.context}`,
         output_config: { effort: 'low' },
-        tools: TOOLS,
+        tools: profile.tools,
         // Last round: answer with what has been looked up so far.
         tool_choice: { type: round < MAX_TOOL_ROUNDS ? 'auto' : 'none' },
         messages,
@@ -204,11 +240,11 @@ export async function answer(db, ctx, rawMessages, { client = null } = {}) {
 
     const text = response.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
     if (response.stop_reason === 'refusal') {
-      return { reply: "Sorry, I can't help with that. Customer service can help with anything about your orders.", products: [] };
+      return { reply: `Sorry, I can't help with that. Please ${profile.help}.`, products: [] };
     }
     const toolCalls = response.content.filter((b) => b.type === 'tool_use');
     if (response.stop_reason !== 'tool_use' || !toolCalls.length) {
-      const reply = text || 'Sorry, I could not find an answer. Please try rephrasing, or contact Customer service.';
+      const reply = text || `Sorry, I could not find an answer. Please try rephrasing, or ${profile.help}.`;
       const products = [...seen].filter(([, title]) => reply.includes(title)).map(([id, title]) => ({ id, title }));
       return { reply, products };
     }
@@ -219,7 +255,7 @@ export async function answer(db, ctx, rawMessages, { client = null } = {}) {
       let content;
       let isError = false;
       try {
-        content = JSON.stringify(await runTool(db, ctx, call.name, call.input || {}, seen));
+        content = JSON.stringify(await profile.runTool(db, ctx, call.name, call.input || {}, seen));
       } catch (e) {
         if (!(e instanceof AppError)) throw e;
         content = JSON.stringify({ error: e.message });

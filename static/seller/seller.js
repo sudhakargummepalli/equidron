@@ -1,6 +1,6 @@
 /* Equidron Seller Central. */
-angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$window', 'Api', 'Router', 'Toast',
-  function ($location, $window, Api, Router, Toast) {
+angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$window', '$timeout', 'Api', 'Router', 'Toast',
+  function ($location, $window, $timeout, Api, Router, Toast) {
     var api = Api('seller');
     var vm = this;
     vm.user = null;
@@ -16,6 +16,7 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
         if (vm.user) {
           api.get('/meta').then(function (m) { vm.meta = m; });
           loadNotes();
+          loadChat();
         }
       });
     }
@@ -53,11 +54,14 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
         vm.auth.form = {};
         api.get('/meta').then(function (m) { vm.meta = m; });
         loadNotes();
+        loadChat();
         $location.path('/');
       }, function (e) { vm.auth.error = e.message; });
     };
     vm.useDemo = function (email) { vm.auth.form = { email: email, password: 'equidron-demo' }; };
-    vm.logout = function () { api.post('/logout').then(function () { vm.user = null; $location.path('/login'); }); };
+    vm.logout = function () {
+      api.post('/logout').then(function () { vm.user = null; vm.chat.messages = []; vm.chat.open = false; $location.path('/login'); });
+    };
 
     // ---------------------------------------------------------------- inventory
     function loadListings() {
@@ -157,5 +161,33 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
         Toast.show('Shipment #' + item.shipment_id + ' marked ' + item.next_stage.replace(/_/g, ' ') + '.');
         loadOrders();
       }, function (e) { Toast.show(e.message); });
+    };
+
+    // ---------------------------------------------------------------- assistant
+    vm.chat = {
+      open: false, messages: [], input: '', sending: false, available: true,
+      suggestions: ['Why is my latest change waiting for review?', 'Which orders do I need to ship?', 'What is my unsettled balance?']
+    };
+    function loadChat() { api.get('/assistant').then(function (r) { vm.chat.available = r.available; }); }
+    function scrollChat() {
+      $timeout(function () { var log = $window.document.getElementById('chat-log'); if (log) log.scrollTop = log.scrollHeight; });
+    }
+    vm.sendChat = function (text) {
+      text = String(text || vm.chat.input || '').trim();
+      if (!text || vm.chat.sending) return;
+      vm.chat.error = null;
+      vm.chat.messages.push({ role: 'user', content: text });
+      vm.chat.input = '';
+      vm.chat.sending = true;
+      scrollChat();
+      var history = vm.chat.messages.map(function (m) { return { role: m.role, content: m.content }; });
+      api.post('/assistant', { messages: history }).then(function (r) {
+        vm.chat.messages.push({ role: 'assistant', content: r.reply, products: r.products });
+      }, function (e) {
+        // Keep the conversation alternating: take the unanswered question back into the box.
+        vm.chat.messages.pop();
+        vm.chat.input = text;
+        vm.chat.error = e.message;
+      }).finally(function () { vm.chat.sending = false; scrollChat(); });
     };
   }]);

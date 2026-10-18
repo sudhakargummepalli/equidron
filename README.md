@@ -57,7 +57,7 @@ node --test
 
 The tests run on PGlite, so no database server is needed. The sample data is loaded once and restored before every test, so a run takes about 10 seconds.
 
-40 tests cover:
+48 tests cover:
 - search ranking and multi-seller offers
 - listing review rules and role separation
 - checkout revalidation, and payment authorization versus capture
@@ -67,7 +67,8 @@ The tests run on PGlite, so no database server is needed. The sample data is loa
 - a full customer order over real HTTP
 - the database layer: placeholders, ids from inserts, rollback
 - the Netlify function handler
-- the store assistant's tool loop, order privacy and input limits (with a stand-in for the AI model)
+- the store assistant's tool loop, order privacy, input limits and daily question cap (with a stand-in for the AI model)
+- the Seller Central assistant's lookups, which only ever see the signed-in seller's own data
 
 See [DEMO.md](DEMO.md) for a click-by-click walkthrough of the seller and customer flows.
 
@@ -97,7 +98,8 @@ src/
   db.js                   PostgreSQL schema, query helpers, transactions; pg driver or in-process PGlite
   auth.js                 PBKDF2 password hashing, role-scoped sessions
   catalog.js              search ranking, product pages, featured offer, delivery promise
-  assistant.js            store chat assistant (Claude via the Anthropic SDK) with read-only store lookups
+  assistant.js            chat loop shared by both assistants (Claude via the Anthropic SDK), and the store assistant
+  seller-assistant.js     Seller Central assistant: listing rules plus read-only lookups of the seller's own data
   listings.js             seller submissions: validation, auto-approve vs review, approval
   orders.js               cart, checkout, payments, fulfilment, shipments, returns, settlement, support
   payments.js             simulated payment provider (tokens only, never card numbers)
@@ -169,7 +171,8 @@ Sellers move their own self-ship orders through picking, packing and shipping. E
 ### After-sales
 - **Returns** are available for 10 days after delivery (grocery is not returnable). A request schedules a pickup. When Ops marks the item received, the customer is refunded to the original payment method, stock is restocked if sellable, and the seller's ledger is debited.
 - **Support:** customers open tickets, optionally linked to an order, and Ops replies.
-- **Assistant:** signed-in customers can chat with the store assistant from the "Ask Equidron" button. It runs on Claude (`claude-opus-5-5`, low effort; set `EQUIDRON_ASSISTANT_MODEL` to change it) and looks up products, offers and the customer's own orders through read-only tools. It can't place, cancel or return orders, so it points customers to the right page. On Netlify the AI Gateway supplies the credentials, and usage is billed to the team's Netlify credits. Locally, set `ANTHROPIC_API_KEY` to try it; without a key the chat says it's unavailable.
+- **Assistant:** signed-in customers can chat with the store assistant from the "Ask Equidron" button. It runs on Claude (`claude-opus-5-5`, low effort; set `EQUIDRON_ASSISTANT_MODEL` to change it) and looks up products, offers and the customer's own orders through read-only tools. It can't place, cancel or return orders, so it points customers to the right page. Each customer can ask up to 30 questions a day (set `EQUIDRON_ASSISTANT_DAILY_LIMIT` to change it; counts are kept in the `assistant_usage` table), after which the chat says to come back tomorrow, so one account can't run up AI costs. On Netlify the AI Gateway supplies the credentials, and usage is billed to the team's Netlify credits. Locally, set `ANTHROPIC_API_KEY` to try it; without a key the chat says it's unavailable.
+- **Seller assistant:** signed-in sellers get a "Seller help" chat in Seller Central. It knows the listing rules (what is approved automatically, what goes to review, field limits, fees and settlement), and it looks up the seller's own listings, submissions and review notes, order lines to dispatch, and ledger. It can also compare a product's live offers. It can't edit or submit anything. It shares the store assistant's model, credentials and daily question limit.
 - **Seller settlement:** delivered sales credit the seller (minus a 10% referral fee) and refunds debit it. "Run settlement" in Ops pays out positive balances (simulated).
 
 ## Limits and next steps
