@@ -81,39 +81,64 @@ angular.module('eqCommon', [])
   })
 
   // Voice in and out with the browser's Web Speech API (no server involved).
+  // Languages: 'en' (Indian English) and 'te' (Telugu).
   // Voice.canListen: speech recognition exists (Chrome, Edge, Safari; not Firefox).
-  // Voice.canSpeak: speech synthesis exists (all current browsers).
+  // Voice.canSpeak: speech synthesis exists. Voice.hasVoice(lang): this device has a voice
+  // for that language (Telugu voices are built into Edge; elsewhere they may be missing).
   // Callbacks run inside an Angular digest.
   .factory('Voice', ['$window', '$rootScope', function ($window, $rootScope) {
     var Recognition = $window.SpeechRecognition || $window.webkitSpeechRecognition;
     var synth = $window.speechSynthesis;
-    var LANG = 'en-IN';
+    var LANGS = {
+      en: {
+        code: 'en-IN', rupees: 'rupees', quantity: 'quantity', link: 'a link',
+        blocked: 'Microphone access is blocked. Allow it in the browser to use voice.',
+        noSpeech: 'I didn\'t hear anything. Tap the mic and try again.',
+        stopped: 'Voice input stopped'
+      },
+      te: {
+        code: 'te-IN', rupees: 'రూపాయలు', quantity: 'పరిమాణం', link: 'ఒక లింక్',
+        blocked: 'మైక్రోఫోన్ అనుమతి లేదు. వాయిస్ కోసం బ్రౌజర్‌లో మైక్‌ను అనుమతించండి.',
+        noSpeech: 'ఏమీ వినిపించలేదు. మైక్ నొక్కి మళ్లీ ప్రయత్నించండి.',
+        stopped: 'వాయిస్ ఇన్‌పుట్ ఆగిపోయింది'
+      }
+    };
     var current = null;
+    function lang(l) { return LANGS[l] || LANGS.en; }
     function apply(fn) { return function (arg) { if (fn) $rootScope.$applyAsync(function () { fn(arg); }); }; }
+    // Voices load after the page; refresh bindings such as hasVoice() when they arrive.
+    if (synth && synth.addEventListener) synth.addEventListener('voiceschanged', function () { $rootScope.$applyAsync(); });
 
     // Read ₹ amounts and a few symbols the way a person would say them.
-    function speakable(text) {
+    function speakable(text, l) {
+      var L = lang(l);
       return String(text || '')
-        .replace(/₹\s?([\d,]+(?:\.\d+)?)/g, '$1 rupees')
-        .replace(/\s×\s?(\d+)/g, ', quantity $1')
-        .replace(/https?:\/\/\S+/g, 'a link')
+        .replace(/₹\s?([\d,]+(?:\.\d+)?)/g, '$1 ' + L.rupees)
+        .replace(/\s×\s?(\d+)/g, ', ' + L.quantity + ' $1')
+        .replace(/https?:\/\/\S+/g, L.link)
         .replace(/[*_#`>]/g, '');
     }
-    function voice() {
+    function voiceFor(l) {
+      if (!synth) return null;
+      var code = lang(l).code.toLowerCase();
+      var prefix = code.slice(0, 2);
       var voices = synth.getVoices();
-      return voices.filter(function (v) { return v.lang === LANG; })[0] ||
-        voices.filter(function (v) { return /^en[-_]/.test(v.lang); })[0] || null;
+      var norm = function (v) { return String(v.lang || '').replace('_', '-').toLowerCase(); };
+      return voices.filter(function (v) { return norm(v) === code; })[0] ||
+        voices.filter(function (v) { return norm(v).slice(0, 2) === prefix; })[0] || null;
     }
 
     return {
       canListen: !!Recognition,
       canSpeak: !!synth,
+      hasVoice: function (l) { return !!voiceFor(l); },
       // handlers: { interim(text), final(text), end(), error(message) }. Returns false if unsupported.
-      listen: function (handlers) {
+      listen: function (handlers, l) {
         if (!Recognition) return false;
+        var L = lang(l);
         this.stopListening();
         var r = new Recognition();
-        r.lang = LANG;
+        r.lang = L.code;
         r.interimResults = true;
         r.continuous = false;
         r.maxAlternatives = 1;
@@ -127,10 +152,9 @@ angular.module('eqCommon', [])
           apply(handlers.interim)((finalText + interim).trim());
         };
         r.onerror = function (e) {
-          var msg = e.error === 'not-allowed' || e.error === 'service-not-allowed'
-            ? 'Microphone access is blocked. Allow it in the browser to use voice.'
-            : e.error === 'no-speech' ? 'I didn\'t hear anything. Tap the mic and try again.'
-              : e.error === 'aborted' ? null : 'Voice input stopped (' + e.error + ').';
+          var msg = e.error === 'not-allowed' || e.error === 'service-not-allowed' ? L.blocked
+            : e.error === 'no-speech' ? L.noSpeech
+              : e.error === 'aborted' ? null : L.stopped + ' (' + e.error + ').';
           if (msg) apply(handlers.error)(msg);
         };
         r.onend = function () {
@@ -143,16 +167,18 @@ angular.module('eqCommon', [])
         return true;
       },
       stopListening: function () { if (current) { current.abort(); current = null; } },
-      speak: function (text, onEnd) {
-        if (!synth) { apply(onEnd)(); return; }
+      // Returns false (and calls nothing) when the device has no voice for the language.
+      speak: function (text, onEnd, l) {
+        var v = voiceFor(l);
+        if (!synth || !v) return false;
         synth.cancel();
-        var u = new $window.SpeechSynthesisUtterance(speakable(text));
-        u.lang = LANG;
-        var v = voice();
-        if (v) u.voice = v;
+        var u = new $window.SpeechSynthesisUtterance(speakable(text, l));
+        u.lang = lang(l).code;
+        u.voice = v;
         u.onend = apply(onEnd);
         u.onerror = apply(onEnd);
         synth.speak(u);
+        return true;
       },
       stopSpeaking: function () { if (synth) synth.cancel(); },
       speakable: speakable

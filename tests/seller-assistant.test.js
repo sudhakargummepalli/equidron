@@ -88,6 +88,19 @@ test('spoken questions ask for a short reply that reads well aloud', async () =>
   assert.doesNotMatch(systems[1], /by voice/);
 });
 
+test('Telugu sellers get replies in Telugu, also by voice', async () => {
+  const systems = [];
+  const client = { messages: { async create(p) { systems.push(p.system); return { stop_reason: 'end_turn', content: [{ type: 'text', text: 'సరే' }] }; } } };
+  const ask = [{ role: 'user', content: 'నా బ్యాలెన్స్ ఎంత?' }];
+  const out = await answerSeller(db, { user: techbazaar, language: 'te', voice: true }, ask, { client });
+  await answerSeller(db, { user: techbazaar, language: 'en' }, ask, { client });
+  assert.equal(out.reply, 'సరే');
+  assert.match(systems[0], /chosen Telugu/);
+  assert.match(systems[0], /asked this by voice/);
+  assert.doesNotMatch(systems[1], /chosen Telugu/);
+  assert.match(systems[1], /language the seller writes in/); // a Telugu question still gets a Telugu answer
+});
+
 test('the seller chat endpoint needs a seller session', async () => {
   const server = createServer(db, { quiet: true });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));

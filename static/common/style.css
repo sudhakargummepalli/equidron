@@ -191,3 +191,9 @@ th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; color:
 .chat-voice { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 6px 12px 0; }
 .chat-voice label { display: inline-flex; align-items: center; gap: 5px; margin: 0; font-weight: 500; }
 .chat-voice input[type=checkbox] { width: auto; }
+.chat-head { gap: 10px; }
+.chat-head strong { flex: 1; }
+.chat-lang { display: inline-flex; border: 1px solid rgba(255, 255, 255, .45); border-radius: 999px; overflow: hidden; }
+.chat-lang button { border: 0; background: transparent; color: #fff; font: inherit; font-size: .8rem; padding: 2px 9px; cursor: pointer; }
+.chat-lang button.on { background: #fff; color: var(--ink); font-weight: 700; }
+.chat-foot.warn { color: var(--warn); }

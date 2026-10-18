@@ -164,9 +164,46 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
     };
 
     // ---------------------------------------------------------------- assistant
-    vm.chat = {
-      open: false, messages: [], input: '', sending: false, available: true,
-      suggestions: ['Why is my latest change waiting for review?', 'Which orders do I need to ship?', 'What is my unsettled balance?']
+    // Chat panel text in English and Telugu. The assistant replies in the chosen language.
+    var CHAT_TEXT = {
+      en: {
+        fab: 'Seller help', title: 'Seller Central assistant', close: 'Close assistant',
+        hello: 'Hi! Ask me about listing rules and reviews, your inventory, orders to dispatch, or payments.',
+        suggestions: ['Why is my latest change waiting for review?', 'Which orders do I need to ship?', 'What is my unsettled balance?'],
+        placeholder: 'Ask a question', listening: 'Listening…', send: 'Send', thinking: 'Looking that up…', edit: 'Edit',
+        mic: 'Ask by voice', micStop: 'Stop listening', readAloud: 'Read replies aloud', handsFree: 'Hands-free',
+        handsFreeHint: 'After each spoken reply, listen for the next question', stop: 'Stop speaking',
+        unavailable: "The assistant isn't available right now.",
+        noVoice: 'This device has no English voice, so replies are shown as text only.',
+        note: "Answers come from an AI and can be wrong. It can look things up but can't change your listings or orders.",
+        voiceNote: 'Voice input is turned into text by your browser.'
+      },
+      te: {
+        fab: 'సెల్లర్ సహాయం', title: 'సెల్లర్ సెంట్రల్ సహాయకుడు', close: 'సహాయకుడిని మూసివేయి',
+        hello: 'నమస్కారం! లిస్టింగ్ నియమాలు, రివ్యూలు, మీ ఇన్వెంటరీ, పంపాల్సిన ఆర్డర్లు లేదా చెల్లింపుల గురించి నన్ను అడగండి.',
+        suggestions: ['నా తాజా మార్పు రివ్యూలో ఎందుకు ఉంది?', 'నేను ఏ ఆర్డర్లు పంపాలి?', 'నా సెటిల్ కాని బ్యాలెన్స్ ఎంత?'],
+        placeholder: 'ప్రశ్న అడగండి', listening: 'వింటున్నాను…', send: 'పంపు', thinking: 'చూస్తున్నాను…', edit: 'సవరించు',
+        mic: 'వాయిస్‌తో అడగండి', micStop: 'వినడం ఆపు', readAloud: 'సమాధానాలు చదివి వినిపించు', handsFree: 'హ్యాండ్స్-ఫ్రీ',
+        handsFreeHint: 'ప్రతి సమాధానం తర్వాత తదుపరి ప్రశ్న కోసం వింటుంది', stop: 'మాట్లాడటం ఆపు',
+        unavailable: 'సహాయకుడు ప్రస్తుతం అందుబాటులో లేదు.',
+        noVoice: 'ఈ పరికరంలో తెలుగు వాయిస్ లేదు, కాబట్టి సమాధానాలు టెక్స్ట్‌గా మాత్రమే చూపబడతాయి. Edge బ్రౌజర్‌లో తెలుగు వాయిస్ ఉంటుంది.',
+        note: 'సమాధానాలు AI నుండి వస్తాయి, తప్పులు ఉండవచ్చు. ఇది సమాచారం చూడగలదు కానీ మీ లిస్టింగ్‌లు లేదా ఆర్డర్లను మార్చలేదు.',
+        voiceNote: 'మీ వాయిస్‌ను మీ బ్రౌజర్ టెక్స్ట్‌గా మారుస్తుంది.'
+      }
+    };
+    function savedLang() { try { return $window.localStorage.getItem('eq.seller.lang') === 'te' ? 'te' : 'en'; } catch (e) { return 'en'; } }
+
+    vm.chat = { open: false, messages: [], input: '', sending: false, available: true, lang: savedLang() };
+    vm.t = CHAT_TEXT[vm.chat.lang];
+    vm.setLang = function (lang) {
+      if (lang === vm.chat.lang) return;
+      stopListening();
+      vm.stopSpeaking();
+      vm.voice.handsFree = false;
+      vm.chat.lang = lang;
+      vm.t = CHAT_TEXT[lang];
+      vm.chat.error = null;
+      try { $window.localStorage.setItem('eq.seller.lang', lang); } catch (e) { /* storage unavailable */ }
     };
     function loadChat() { api.get('/assistant').then(function (r) { vm.chat.available = r.available; }); }
     function scrollChat() {
@@ -182,7 +219,7 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
       vm.chat.sending = true;
       scrollChat();
       var history = vm.chat.messages.map(function (m) { return { role: m.role, content: m.content }; });
-      api.post('/assistant', { messages: history, voice: !!byVoice }).then(function (r) {
+      api.post('/assistant', { messages: history, voice: !!byVoice, language: vm.chat.lang }).then(function (r) {
         vm.chat.messages.push({ role: 'assistant', content: r.reply, products: r.products });
         if (byVoice || vm.voice.readAloud) speakReply(r.reply);
       }, function (e) {
@@ -198,6 +235,7 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
     // Mic: speech becomes the question and is sent when the seller stops talking.
     // Hands-free: after each spoken reply, listen for the next question.
     vm.voice = { canListen: Voice.canListen, canSpeak: Voice.canSpeak, listening: false, speaking: false, readAloud: false, handsFree: false };
+    vm.hasVoice = function () { return Voice.hasVoice(vm.chat.lang); };
 
     function startListening() {
       if (!vm.chat.open || vm.chat.sending) return;
@@ -208,22 +246,22 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
         final: function (t) { vm.chat.input = ''; vm.sendChat(t, true); },
         end: function () { vm.voice.listening = false; },
         error: function (msg) { vm.chat.error = msg; vm.voice.handsFree = false; }
-      });
+      }, vm.chat.lang);
     }
-    function stopListening() { Voice.stopListening(); vm.voice.listening = false; }
+    function stopListening() { Voice.stopListening(); if (vm.voice) vm.voice.listening = false; }
     function speakReply(text) {
-      if (!vm.voice.canSpeak) return;
-      vm.voice.speaking = true;
-      Voice.speak(text, function () {
+      vm.voice.speaking = Voice.speak(text, function () {
         if (!vm.voice.speaking) return; // stopped by the seller
         vm.voice.speaking = false;
         if (vm.voice.handsFree) startListening();
-      });
+      }, vm.chat.lang);
+      // No voice for this language: the reply stays as text; hands-free still listens again.
+      if (!vm.voice.speaking && vm.voice.handsFree) startListening();
     }
     vm.toggleMic = function () {
       if (vm.voice.listening) { stopListening(); vm.voice.handsFree = false; } else startListening();
     };
-    vm.stopSpeaking = function () { vm.voice.speaking = false; Voice.stopSpeaking(); };
+    vm.stopSpeaking = function () { if (vm.voice) vm.voice.speaking = false; Voice.stopSpeaking(); };
     vm.readAloudChanged = function () {
       if (!vm.voice.readAloud) { vm.voice.handsFree = false; vm.stopSpeaking(); }
     };

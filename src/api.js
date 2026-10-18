@@ -163,7 +163,7 @@ route('GET', 'seller', '/orders', async (c) => await orders.sellerOrders(c.db, c
 route('POST', 'seller', '/shipments/(\\d+)/advance', async (c, sid) => await orders.advanceShipment(c.db, int(sid), 'seller', c.user.seller_id));
 route('GET', 'seller', '/ledger', async (c) => await orders.sellerLedger(c.db, c.user.seller_id));
 route('GET', 'seller', '/assistant', async () => ({ available: assistant.isAvailable() }));
-route('POST', 'seller', '/assistant', async (c) => answerSeller(c.db, { user: c.user, voice: c.body.voice === true }, c.body.messages), false, { readOnly: true });
+route('POST', 'seller', '/assistant', async (c) => answerSeller(c.db, { user: c.user, voice: c.body.voice === true, language: c.body.language === 'te' ? 'te' : 'en' }, c.body.messages), false, { readOnly: true });
 
 // ---------------------------------------------------------------- Equidron Ops
 
