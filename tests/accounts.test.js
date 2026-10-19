@@ -140,3 +140,97 @@ test('"sign out of all devices" ends every session of that account', async () =>
   assert.equal((await laptop('GET', '/api/seller/dashboard')).status, 401);
   assert.equal((await phone('GET', '/api/seller/dashboard')).status, 401);
 });
+
+// The newest message in the outbox (the email stand-in) for this address, and the code in it.
+async function lastCode(email) {
+  const m = await one(db, 'SELECT * FROM outbox WHERE to_address = ? ORDER BY id DESC LIMIT 1', email);
+  return m && /\b(\d{6})\b/.exec(m.body)[1];
+}
+
+test('sign-up needs the emailed code, which works once', async () => {
+  const c = client();
+  const reg = await c('POST', '/api/shop/register', { email: 'Meera@Example.com', name: 'Meera', password: 'meera-password' });
+  assert.equal(reg.status, 201);
+  assert.equal(reg.payload.needs_verification, true);
+  assert.equal(c.cookies.eq_shop, undefined); // not signed in yet
+  const login = await c('POST', '/api/shop/login', { email: 'meera@example.com', password: 'meera-password' });
+  assert.equal(login.status, 403);
+  assert.equal(login.payload.details.needs_verification, true);
+
+  const code = await lastCode('meera@example.com');
+  assert.ok(code);
+  const wrong = String((Number(code) + 1) % 1e6).padStart(6, '0');
+  assert.equal((await c('POST', '/api/shop/verify-email', { email: 'meera@example.com', code: wrong })).status, 400);
+  assert.equal(await scalar(db, "SELECT attempts FROM auth_codes WHERE purpose = 'verify_email' ORDER BY id DESC LIMIT 1"), 1); // kept
+  const ok = await c('POST', '/api/shop/verify-email', { email: 'meera@example.com', code });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.payload.user.email, 'meera@example.com');
+  assert.ok(c.cookies.eq_shop);
+  assert.equal((await client()('POST', '/api/shop/verify-email', { email: 'meera@example.com', code })).status, 400);
+  assert.equal((await client()('POST', '/api/shop/login', { email: 'meera@example.com', password: 'meera-password' })).status, 200);
+});
+
+test('password reset: the code works once, expires, and ends every session', async () => {
+  const before = await scalar(db, 'SELECT COUNT(*) FROM outbox');
+  const anon = client();
+  const unknown = await anon('POST', '/api/shop/password/forgot', { email: 'nobody@example.com' });
+  assert.equal(unknown.status, 200); // the same answer, so nobody learns which emails have accounts
+  assert.equal(await scalar(db, 'SELECT COUNT(*) FROM outbox'), before);
+
+  const signedIn = client();
+  await signedIn('POST', '/api/shop/login', { email: 'meera@example.com', password: 'meera-password' });
+  assert.equal((await anon('POST', '/api/shop/password/forgot', { email: 'meera@example.com' })).status, 200);
+  const code = await lastCode('meera@example.com');
+  const reset = await anon('POST', '/api/shop/password/reset', { email: 'meera@example.com', code, password: 'meera-new-password' });
+  assert.equal(reset.status, 200);
+  assert.equal((await signedIn('GET', '/api/shop/cart')).status, 401); // signed out everywhere
+  assert.equal((await client()('POST', '/api/shop/login', { email: 'meera@example.com', password: 'meera-password' })).status, 401);
+  assert.equal((await client()('POST', '/api/shop/login', { email: 'meera@example.com', password: 'meera-new-password' })).status, 200);
+  assert.equal((await anon('POST', '/api/shop/password/reset', { email: 'meera@example.com', code, password: 'another-password' })).status, 400);
+
+  await anon('POST', '/api/shop/password/forgot', { email: 'meera@example.com' });
+  const late = await lastCode('meera@example.com');
+  await transaction(db, () => db.run("UPDATE auth_codes SET expires_at = 0 WHERE purpose = 'reset_password'"));
+  assert.equal((await anon('POST', '/api/shop/password/reset', { email: 'meera@example.com', code: late, password: 'another-password' })).status, 400);
+  // A reset code for the store doesn't reset a seller account.
+  assert.equal((await anon('POST', '/api/seller/password/forgot', { email: 'meera@example.com' })).status, 200);
+  assert.equal(await lastCode('meera@example.com'), late);
+});
+
+test('five failed sign-ins lock the account for a while, then it opens again', async () => {
+  const c = client();
+  for (let i = 0; i < 5; i++) {
+    assert.equal((await c('POST', '/api/shop/login', { email: 'rahul@example.com', password: `wrong-${i}` })).status, 401);
+  }
+  const locked = await c('POST', '/api/shop/login', { email: 'rahul@example.com', password: DEMO });
+  assert.equal(locked.status, 429);
+  assert.match(locked.payload.error, /Too many failed sign-ins/);
+  assert.equal(await scalar(db, "SELECT COUNT(*) FROM audit_log WHERE action = 'auth.locked'"), 1);
+  // Fifteen minutes later the lock has passed.
+  await transaction(db, () => db.run("UPDATE login_attempts SET at = at - 16 * 60 WHERE email = 'rahul@example.com'"));
+  assert.equal((await c('POST', '/api/shop/login', { email: 'rahul@example.com', password: DEMO })).status, 200);
+});
+
+test('two-step sign-in with an authenticator app, for sellers and staff', async () => {
+  const s = client();
+  await s('POST', '/api/seller/login', { email: 'urbancart.seller@example.com', password: DEMO });
+  const setup = await s('POST', '/api/seller/2fa/setup', {});
+  assert.equal(setup.status, 200);
+  assert.match(setup.payload.otpauth_url, /^otpauth:\/\/totp\/Equidron/);
+  const secret = setup.payload.secret;
+  assert.equal((await s('POST', '/api/seller/2fa/enable', { code: '000000' })).status, 400);
+  const t0 = Date.now();
+  assert.equal((await s('POST', '/api/seller/2fa/enable', { code: auth.totp(secret, t0) })).status, 200);
+
+  const c = client();
+  const noCode = await c('POST', '/api/seller/login', { email: 'urbancart.seller@example.com', password: DEMO });
+  assert.equal(noCode.status, 401);
+  assert.equal(noCode.payload.details.otp_required, true);
+  assert.equal((await c('POST', '/api/seller/login', { email: 'urbancart.seller@example.com', password: DEMO, otp: '123456' })).status, 401);
+  const next = auth.totp(secret, t0 + 30_000);
+  assert.equal((await c('POST', '/api/seller/login', { email: 'urbancart.seller@example.com', password: DEMO, otp: next })).status, 200);
+  // The same code can't be used twice.
+  assert.equal((await client()('POST', '/api/seller/login', { email: 'urbancart.seller@example.com', password: DEMO, otp: next })).status, 401);
+  // Customers don't have two-step sign-in in this phase.
+  assert.equal((await client()('POST', '/api/shop/2fa/setup', {})).status, 404);
+});
