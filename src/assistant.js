@@ -9,7 +9,7 @@
 import { mask } from './mask.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { CATEGORIES, CITIES, productDetail, search } from './catalog.js';
-import { isoDate, one, transaction } from './db.js';
+import { indiaDate, one, transaction } from './db.js';
 import { AppError, badRequest } from './errors.js';
 import { FREE_SHIPPING_FROM, getOrder, inr, listOrders, SHIPPING_FEE } from './orders.js';
 
@@ -224,7 +224,7 @@ export async function converse(db, ctx, rawMessages, profile, { client = null, t
     if (!isAvailable()) throw new AppError(503, `The assistant is not available right now. Please ${profile.help}.`);
     client = defaultClient ||= new Anthropic();
   }
-  if (ctx.user) await countQuestion(db, ctx.user.id, isoDate(today), profile.help);
+  if (ctx.user) await countQuestion(db, ctx.user.id, indiaDate(today), profile.help); // the limit resets at midnight in India
   const seen = new Map();
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {

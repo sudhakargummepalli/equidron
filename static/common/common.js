@@ -135,14 +135,17 @@ angular.module('eqCommon', [])
     return function (ts) {
       if (!ts) return '';
       var d = new Date(String(ts).replace(' ', 'T'));
-      return isNaN(d) ? ts : d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      return isNaN(d) ? ts : d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     };
   })
   .filter('day', function () {
     return function (ts) {
       if (!ts) return '';
-      var d = new Date(String(ts).slice(0, 10) + 'T00:00:00');
-      return isNaN(d) ? ts : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+      // A plain date (a delivery promise) is shown as it is; a moment is shown as its India date.
+      var plain = /^\d{4}-\d{2}-\d{2}$/.test(String(ts));
+      var d = plain ? new Date(ts + 'T00:00:00') : new Date(ts);
+      return isNaN(d) ? ts : d.toLocaleDateString('en-IN', plain ? { weekday: 'short', day: 'numeric', month: 'short' }
+        : { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short' });
     };
   })
 

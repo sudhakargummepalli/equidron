@@ -184,7 +184,7 @@ export async function submit(db, sellerId, data) {
   sellerId, product ? product.id : null, offer ? offer.id : null, kind, dumps(payload), dumps(reasons), now());
   if (!reasons.length) {
     await apply(db, subId);
-    await run(db, "UPDATE submissions SET status = 'approved', auto_decided = 1, decided_at = ?, reviewer_note = ? WHERE id = ?",
+    await run(db, "UPDATE submissions SET status = 'approved', auto_decided = true, decided_at = ?, reviewer_note = ? WHERE id = ?",
       now(), 'Approved automatically: no review needed.', subId);
   }
   return await getSubmission(db, subId);

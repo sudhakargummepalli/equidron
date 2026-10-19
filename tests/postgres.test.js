@@ -20,7 +20,7 @@ test('? placeholders are numbered and LIKE ignores case', () => {
 test('inserts return ids, counts are numbers, failed transactions roll back', async () => {
   const db = await connect('memory');
   await initSchema(db);
-  const add = (email) => run(db, "INSERT INTO users (email, name, role, pw_salt, pw_hash, created_at) VALUES (?, 'N', 'ops', 's', 'h', 't')", email);
+  const add = (email) => run(db, "INSERT INTO users (email, name, role, pw_salt, pw_hash, created_at) VALUES (?, 'N', 'ops', 's', 'h', now())", email);
   assert.equal(await add('a@example.com'), 1);
   await assert.rejects(transaction(db, async () => {
     await add('b@example.com');
@@ -32,13 +32,13 @@ test('inserts return ids, counts are numbers, failed transactions roll back', as
 });
 
 test('the Netlify Database schema migrations add up to the schema', () => {
-  // Schema migrations hold only CREATE TABLE statements after their comment lines; data
-  // migrations (the sample laptops) are left out. New tables go at the end of SCHEMA.
+  // Every migration except the data migrations (the sample laptops) is also in SCHEMA, in
+  // order, after its comment lines. New schema changes go at the end of SCHEMA.
+  const DATA_MIGRATIONS = ['20261017120000_sample_laptops.sql'];
   const dir = new URL('../netlify/database/migrations/', import.meta.url);
-  const schemaMigrations = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()
-    .map((f) => readFileSync(new URL(f, dir), 'utf8').replace(/\r\n/g, '\n').replace(/^(--.*\n)+/, '').trim())
-    .filter((sql) => sql.startsWith('CREATE TABLE'));
-  assert.equal(schemaMigrations.length, 4);
+  const schemaMigrations = readdirSync(dir).filter((f) => f.endsWith('.sql') && !DATA_MIGRATIONS.includes(f)).sort()
+    .map((f) => readFileSync(new URL(f, dir), 'utf8').replace(/\r\n/g, '\n').replace(/^(--.*\n)+/, '').trim());
+  assert.equal(schemaMigrations.length, 5);
   assert.equal(schemaMigrations.join('\n'), SCHEMA.trim().replace(/\r\n/g, '\n'));
 });
 
@@ -63,16 +63,28 @@ test('the sample laptops migration only fills databases seeded before the laptop
   await db.exec(migration); // already there: nothing happens
   assert.deepEqual(await counts(db), seeded);
 
-  // A database seeded before the laptops were added.
+  // A database seeded before the laptops were added. Migrations run in name order, so such a
+  // database still had the column types from before Phase 2b: put back the old types of the
+  // tables this migration writes, run it, then let the Phase 2b migration convert the result.
   const ids = `SELECT id FROM products WHERE title = ANY($1)`;
   await db.query(`DELETE FROM inventory WHERE offer_id IN (SELECT id FROM offers WHERE product_id IN (${ids}))`, [titles]);
   await db.query(`DELETE FROM offers WHERE product_id IN (${ids})`, [titles]);
   await db.query(`DELETE FROM products WHERE id IN (${ids})`, [titles]);
   assert.equal((await counts(db)).products, 2);
+  await db.exec(`DROP INDEX IF EXISTS products_search; DROP INDEX IF EXISTS products_title_trgm;
+    ALTER TABLE products ALTER COLUMN specs DROP DEFAULT, ALTER COLUMN specs TYPE text USING specs::text,
+      ALTER COLUMN images DROP DEFAULT, ALTER COLUMN images TYPE text USING images::text,
+      ALTER COLUMN is_sample DROP DEFAULT, ALTER COLUMN is_sample TYPE integer USING is_sample::int,
+      ALTER COLUMN created_at TYPE text USING to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS');
+    ALTER TABLE offers ALTER COLUMN ships_to DROP DEFAULT, ALTER COLUMN ships_to TYPE text USING ships_to::text,
+      ALTER COLUMN is_sample DROP DEFAULT, ALTER COLUMN is_sample TYPE integer USING is_sample::int,
+      ALTER COLUMN updated_at TYPE text USING to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')`);
   await db.exec(migration);
+  await db.exec(readFileSync(new URL('../netlify/database/migrations/20261020000000_types_and_search.sql', import.meta.url), 'utf8'));
   assert.deepEqual(await counts(db), seeded);
-  const p = await one(db, 'SELECT id, images FROM products WHERE title = ?', titles[0]);
-  assert.deepEqual(JSON.parse(p.images), [1, 2, 3].map((n) => `/img/p${p.id}-${n}.svg`));
+  const p = await one(db, 'SELECT id, images, is_sample FROM products WHERE title = ?', titles[0]);
+  assert.deepEqual(p.images, [1, 2, 3].map((n) => `/img/p${p.id}-${n}.svg`));
+  assert.equal(p.is_sample, true);
   await db.close();
 });
 

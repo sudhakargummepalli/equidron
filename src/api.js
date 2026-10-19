@@ -148,10 +148,16 @@ route('POST', 'shop', '/verify-email/resend', async (c) => {
   return { ok: true };
 }, true);
 
-route('GET', 'shop', '/search', async (c) => ({
-  city: await c.city(),
-  results: await catalog.search(c.db, c.q('q', ''), c.q('category') || null, c.q('sort', 'relevance'), await c.city()),
-}), true);
+route('GET', 'shop', '/search', async (c) => {
+  const city = await c.city();
+  return {
+    city,
+    ...await catalog.searchPage(c.db, {
+      q: c.q('q', ''), category: c.q('category') || null, sort: c.q('sort', 'relevance'), city,
+      page: c.q('page', 1), pageSize: c.q('page_size', catalog.PAGE_SIZE),
+    }),
+  };
+}, true);
 
 route('GET', 'shop', '/products/(\\d+)', async (c, pid) => await catalog.productDetail(c.db, int(pid), await c.city()), true);
 route('GET', 'shop', '/cart', async (c) => await orders.getCart(c.db, c.user.id));

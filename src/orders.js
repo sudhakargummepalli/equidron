@@ -13,7 +13,7 @@
 import crypto from 'node:crypto';
 import { actorUserId, audit } from './audit.js';
 import { CITIES, deliveryDays, etaDate, isDeliverable, stockByWarehouse } from './catalog.js';
-import { all, changes, dumps, isoDate, loads, lockNamed, now, one, run, scalar } from './db.js';
+import { addDays, all, changes, dumps, indiaDate, loads, lockNamed, now, one, run, scalar } from './db.js';
 import { badRequest, conflict, forbidden, notFound } from './errors.js';
 import { notify } from './notify.js';
 import { provider } from './payments.js';
@@ -495,7 +495,7 @@ export async function cancelOrder(db, userId, orderId) {
 
 async function deliveredOn(db, shipmentId) {
   const r = await one(db, "SELECT at FROM shipment_events WHERE shipment_id = ? AND status = 'delivered' ORDER BY id DESC LIMIT 1", shipmentId);
-  return r ? new Date(r.at.slice(0, 10) + 'T00:00:00') : null;
+  return r ? indiaDate(r.at) : null; // the India date it arrived
 }
 
 // Returns [eligible, reason, maxQty] for one order item.
@@ -504,13 +504,12 @@ export async function returnEligibility(db, item, today = new Date()) {
   if (window === 0) return [false, 'This item is not returnable.', 0];
   const delivered = await deliveredOn(db, item.shipment_id);
   if (!delivered) return [false, 'You can return this after it is delivered.', 0];
-  const lastDay = new Date(delivered);
-  lastDay.setDate(lastDay.getDate() + window);
-  if (isoDate(today) > isoDate(lastDay)) return [false, `The return window closed on ${isoDate(lastDay)}.`, 0];
+  const lastDay = addDays(delivered, window);
+  if (indiaDate(today) > lastDay) return [false, `The return window closed on ${lastDay}.`, 0];
   const openQty = await scalar(db, "SELECT COALESCE(SUM(qty), 0) FROM returns WHERE order_item_id = ? AND status IN ('pickup_scheduled', 'received')", item.id);
   const remaining = item.qty - item.returned_qty - openQty;
   if (remaining <= 0) return [false, 'Already returned.', 0];
-  return [true, `Returnable until ${isoDate(lastDay)}.`, remaining];
+  return [true, `Returnable until ${lastDay}.`, remaining];
 }
 
 export async function requestReturn(db, userId, orderId, orderItemId, qty, reason) {

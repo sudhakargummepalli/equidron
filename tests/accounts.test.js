@@ -105,7 +105,7 @@ test('new passwords use scrypt; an old PBKDF2 hash is upgraded at the next sign-
   // An account from before Phase 1: PBKDF2-SHA256 with 1,000 rounds.
   const [salt, hash] = auth.legacyPbkdf2('old-password-123', 1000);
   const old = await transaction(db, () => scalar(db, `INSERT INTO users (email, name, role, pw_salt, pw_hash, pw_algo, created_at)
-    VALUES ('old.user@example.com', 'Old', 'customer', ?, ?, 'pbkdf2:1000', 't') RETURNING id`, salt, hash));
+    VALUES ('old.user@example.com', 'Old', 'customer', ?, ?, 'pbkdf2:1000', now()) RETURNING id`, salt, hash));
   const c = client();
   assert.equal((await c('POST', '/api/shop/login', { email: 'old.user@example.com', password: 'wrong-password' })).status, 401);
   assert.equal((await one(db, 'SELECT pw_algo FROM users WHERE id = ?', old)).pw_algo, 'pbkdf2:1000');
