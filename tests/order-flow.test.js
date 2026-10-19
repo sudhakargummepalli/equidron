@@ -45,7 +45,7 @@ async function advance(order, stages, actor = 'ops') {
 
 const throwsApp = (fn, status) => assert.rejects(fn, (e) => e instanceof AppError && (status === undefined || e.status === status));
 
-const ID_TABLES = TABLES.filter((t) => !['sessions', 'inventory', 'cart_items', 'assistant_usage', 'idempotency_keys'].includes(t));
+const ID_TABLES = TABLES.filter((t) => !['sessions', 'inventory', 'cart_items', 'assistant_usage', 'idempotency_keys', 'settings'].includes(t));
 
 before(async () => {
   db = await connect('memory');

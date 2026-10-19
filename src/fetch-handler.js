@@ -21,7 +21,8 @@ export async function handleRequest(db, request) {
     cookies: parseCookies(request.headers.get('cookie')),
   });
 
-  const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
+  const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+    'X-Request-Id': out.requestId };
   if (out.setCookie) headers['Set-Cookie'] = `${out.setCookie}; Secure`;
   return new Response(JSON.stringify(out.payload), { status: out.status, headers });
 }

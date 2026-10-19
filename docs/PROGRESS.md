@@ -1,8 +1,9 @@
 # Progress
 
 ## Current phase
-Phase 2b · Types, search and paging, on branch `phase-2b-types-search` (built on `phase-2-concurrency`). Built and
-tested locally; its tests also run on real PostgreSQL in CI once the branch is pushed.
+Phase 3 · Events, background jobs and monitoring, on branch `phase-3-jobs` (built on `phase-2b-types-search`). Built and
+tested locally; its job tests also run on real PostgreSQL in CI once the branch is pushed.
+Phase 2b (`phase-2b-types-search`) is pushed, CI green including real PostgreSQL (run 39223008751).
 Phase 2a (`phase-2-concurrency`) is pushed, CI green including real PostgreSQL (run 39219849297).
 Phase 1 (`phase-1-accounts`) is pushed, CI green, waiting for the owner's review and merge.
 
@@ -24,6 +25,9 @@ Phase 1 (`phase-1-accounts`) is pushed, CI green, waiting for the owner's review
   `node --test`: 84 of 84 pass.
 - Phase 2b: TIMESTAMPTZ / DATE / JSONB / BOOLEAN columns (one re-runnable migration), India dates for calendar days,
   full-text search with synonyms and pg_trgm typo matching, paged search with Previous/Next. `node --test`: 93 of 93 pass.
+- Phase 3: events outbox, job queue (SKIP LOCKED, leases, backoff, dead jobs), tick and background worker functions, a
+  local ticker, order confirmation emails, the shipment simulator as a job, weekly JSON backups with a tested restore,
+  request ids, JSON logs, error_log (+ optional Sentry), /api/health and the Ops System page. `node --test`: 104 of 104 pass.
 
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
@@ -37,8 +41,11 @@ Phase 1 (`phase-1-accounts`) is pushed, CI green, waiting for the owner's review
   sample sign-ins stop working after the deploy. Then push `phase-1-accounts` and open its pull request.
 
 ## Next
-Push `phase-2b-types-search` so CI runs the migration and search tests on real PostgreSQL. Then Phase 3: events,
-background jobs and monitoring (roadmap gap 2: nothing runs on its own).
+Push `phase-3-jobs` so CI runs the job tests on real PostgreSQL. Then Phase 4: the agent runtime (tools, policy check,
+approvals, budgets, traces, kill switch).
+
+Owner, for Phase 3 to run on Netlify: add WORKER_SECRET (long random text) in Netlify environment variables; optionally
+SENTRY_DSN and an uptime check on /api/health; then a production deploy when you choose.
 
 Before Phase 2b reaches production: export a backup of the Netlify database (the migration rewrites columns).
 

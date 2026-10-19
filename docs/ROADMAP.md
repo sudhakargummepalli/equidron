@@ -58,14 +58,17 @@ the 2b migration is tested on fresh and existing data, and on real PostgreSQL in
 
 ## Phase 3 · Events, background jobs and monitoring (A · M)
 Goal: things happen without clicks; jobs retry; failures are visible.
-- [ ] `events` outbox written in the same transaction (order.placed, order.cancelled, payment.captured, shipment.status_changed, return.requested, return.received, submission.created, ticket.created, ticket.message, seller.signed_up)
-- [ ] `jobs` table: attempts, run_after backoff, locked_until lease, dead status, dedupe_key; claim with FOR UPDATE SKIP LOCKED
-- [ ] `netlify/functions/tick.mjs` (every minute) and `worker.mjs` (background, ~13 min, secret header, max N copies)
-- [ ] Logistics simulator as a scheduled job
-- [ ] JSON logs with request id; `/api/health`; error tracker; uptime check; weekly DB export + one test restore; `settings` table for switches
+- [x] `events` outbox written in the same transaction (order.placed, order.cancelled, payment.captured, shipment.status_changed, return.requested, return.received, submission.created, ticket.created, ticket.message, seller.signed_up)
+- [x] `jobs` table: attempts, run_after backoff, locked_until lease, dead status, dedupe_key; claim with FOR UPDATE SKIP LOCKED
+- [x] `netlify/functions/tick.mjs` (every minute) and `worker.mjs` (background, ~13 min, secret header, max N copies)
+- [x] Logistics simulator as a scheduled job
+- [x] JSON logs with request id; `/api/health`; error tracker; uptime check; weekly DB export + one test restore; `settings` table for switches
 
 Tests: one job per listening agent per event; retries with growing delays end as dead; two workers never claim the same job; expired leases are picked up.
 Done when: an order gives one order.placed event and a job that runs once; shipments move on their own in production; a deliberate error shows in the tracker.
+Status (branch phase-3-jobs): the first is tested; the other two need the owner (production deploy with WORKER_SECRET; a Sentry DSN) and are
+shown locally (node app.js moves shipments; Ops → System → Send a test error). Uptime check: the owner points one at /api/health.
+seller.signed_up waits for seller sign-up (Phase 11).
 
 ## Phase 4 · The agent runtime (B · L)
 Goal: one safe, visible way to run any agent.

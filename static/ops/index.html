@@ -27,6 +27,7 @@
   <a ng-if="vm.can('admin')" href="#/staff" ng-class="{on: vm.route.name === 'staff'}">Staff</a>
   <a ng-if="vm.can('admin')" href="#/audit" ng-class="{on: vm.route.name === 'audit'}">Audit log</a>
   <a ng-if="vm.can('admin')" href="#/outbox" ng-class="{on: vm.route.name === 'outbox'}">Outbox</a>
+  <a ng-if="vm.can('admin')" href="#/system" ng-class="{on: vm.route.name === 'system'}">System<span ng-if="vm.system.jobs.dead"> ({{vm.system.jobs.dead}} dead)</span></a>
 </div></div>
 <div class="sample">Sample data: every seller, product, customer and order here is fictional. Payments are simulated.</div>
 
@@ -192,6 +193,53 @@
           <td><code>{{a.action}}</code></td><td>{{a.entity}} {{a.entity_id}}</td>
           <td><span ng-if="a.before">{{a.before | json}} → </span>{{a.after | json}}</td>
         </tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ SYSTEM (admin) ============ -->
+  <section ng-if="vm.user && vm.route.name === 'system'">
+    <div class="row between"><h1>System</h1><button class="btn small" ng-click="vm.loadSystem()">Refresh</button></div>
+    <p class="small muted">Background jobs run every minute (on the production deploy, or while <code>node app.js</code> runs).
+      A job that fails waits longer each time; after its last try it is <strong>dead</strong> and waits here for a person.</p>
+    <div class="card">
+      <h2>Queue</h2>
+      <p>Queued {{vm.system.jobs.queued}} · running {{vm.system.jobs.running}} · waiting to retry {{vm.system.jobs.failed}} ·
+        <strong ng-style="vm.system.jobs.dead ? {color: 'var(--bad)'} : {}">dead {{vm.system.jobs.dead}}</strong> · done {{vm.system.jobs.done}} ·
+        events not yet dispatched {{vm.system.events_waiting}}</p>
+      <p class="small muted" ng-if="vm.system.jobs.oldest_ready_seconds != null">The oldest ready job has waited {{vm.system.jobs.oldest_ready_seconds}} seconds.</p>
+    </div>
+    <div class="card">
+      <h2>Switches</h2>
+      <label class="row"><input type="checkbox" ng-model="vm.system.settings['jobs.paused']" ng-change="vm.setSetting('jobs.paused')"> Pause all jobs</label>
+      <label class="row"><input type="checkbox" ng-model="vm.system.settings['simulator.enabled']" ng-change="vm.setSetting('simulator.enabled')"> Shipment simulator moves shipments every five minutes</label>
+      <p class="small muted">Last tick: {{vm.system.settings['tick.last'] | when}}</p>
+    </div>
+    <div class="card" ng-if="vm.system.dead.length">
+      <h2>Dead jobs</h2>
+      <table class="small">
+        <tr><th>Job</th><th>Kind</th><th>Tries</th><th>Last error</th><th></th></tr>
+        <tr ng-repeat="j in vm.system.dead">
+          <td>#{{j.id}}</td><td><code>{{j.kind}}</code></td><td>{{j.attempts}}</td><td>{{j.last_error}}</td>
+          <td class="right"><button class="btn small" ng-click="vm.retryJob(j)">Retry</button></td>
+        </tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="row between"><h2>Recent errors</h2><button class="btn small" ng-click="vm.testError()">Send a test error</button></div>
+      <table class="small" ng-if="vm.system.errors.length">
+        <tr><th>When</th><th>Where</th><th>What</th><th>Request</th></tr>
+        <tr ng-repeat="e in vm.system.errors"><td>{{e.at | when}}</td><td><code>{{e.source}}</code></td><td>{{e.message}}</td><td class="muted">{{e.request_id}}</td></tr>
+      </table>
+      <p class="muted small" ng-if="!vm.system.errors.length">No errors.</p>
+    </div>
+    <div class="card">
+      <h2>Recent jobs</h2>
+      <table class="small">
+        <tr><th>Job</th><th>Kind</th><th>Status</th><th>Tries</th><th>Finished</th></tr>
+        <tr ng-repeat="j in vm.system.recent"><td>#{{j.id}}</td><td><code>{{j.kind}}</code></td>
+          <td><span class="badge {{j.status === 'done' ? 'good' : j.status === 'dead' ? 'bad' : 'info'}}">{{j.status}}</span></td>
+          <td>{{j.attempts}}</td><td>{{j.finished_at | when}}</td></tr>
       </table>
     </div>
   </section>

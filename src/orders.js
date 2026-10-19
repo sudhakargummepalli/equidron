@@ -12,6 +12,7 @@
 // Every function here expects to run inside a transaction opened by the caller.
 import crypto from 'node:crypto';
 import { actorUserId, audit } from './audit.js';
+import { emit } from './events.js';
 import { CITIES, deliveryDays, etaDate, isDeliverable, stockByWarehouse } from './catalog.js';
 import { addDays, all, changes, dumps, indiaDate, loads, lockNamed, now, one, run, scalar } from './db.js';
 import { badRequest, conflict, forbidden, notFound } from './errors.js';
@@ -313,6 +314,8 @@ export async function placeOrder(db, userId, addressId, method, token, { stateme
   }
   await run(db, "UPDATE orders SET status = 'confirmed' WHERE id = ?", orderId);
   await syncPaymentStatus(db, orderId);
+  await emit(db, 'order.placed', 'order', orderId, { total_paise: total, payment_method: method, shipments: shipments.size });
+  if (method === 'upi' || method === 'bank') await emit(db, 'payment.captured', 'order', orderId, { amount_paise: total, method });
 
   for (const ship of shipments.values()) await shipmentEvent(db, ship.id, 'pending', STAGE_NOTES.pending(ship.name));
   await run(db, 'DELETE FROM cart_items WHERE user_id = ?', userId);
@@ -357,6 +360,7 @@ async function capture(db, orderId, amount, note) {
   await run(db, 'UPDATE payments SET captured_paise = captured_paise + ? WHERE id = ?', amount, p.id);
   await paymentEvent(db, p.id, p.method === 'cod' ? 'cod_collect' : 'capture', amount, note);
   await syncPaymentStatus(db, orderId);
+  await emit(db, 'payment.captured', 'order', orderId, { amount_paise: amount, method: p.method });
 }
 
 async function refund(db, orderId, amount, note) {
@@ -426,6 +430,7 @@ export async function advanceShipment(db, shipmentId, actor, sellerId = null) {
   }
   await shipmentEvent(db, shipmentId, nxt, STAGE_NOTES[nxt](s.warehouse_name));
   await audit(db, 'shipment.advance', 'shipment', shipmentId, { status: s.status }, { status: nxt, by: actor });
+  await emit(db, 'shipment.status_changed', 'shipment', shipmentId, { order_id: s.order_id, from: s.status, to: nxt });
   const method = (await one(db, 'SELECT method FROM payments WHERE order_id = ?', orderId)).method;
 
   if (nxt === 'shipped') {
@@ -483,6 +488,7 @@ export async function cancelOrder(db, userId, orderId) {
     await run(db, "UPDATE payments SET status = 'cancelled' WHERE id = ?", p.id);
   }
   await run(db, "UPDATE orders SET status = 'cancelled', fulfilment_status = 'cancelled', updated_at = ? WHERE id = ?", now(), orderId);
+  await emit(db, 'order.cancelled', 'order', orderId, { by: 'customer' });
   await syncPaymentStatus(db, orderId);
   await notify(db, userId, `Order #${orderId} was cancelled.`, `#/orders/${orderId}`);
   for (const s of await all(db, 'SELECT DISTINCT s.user_id FROM order_items oi JOIN sellers s ON s.id = oi.seller_id WHERE oi.order_id = ?', orderId)) {
@@ -525,6 +531,7 @@ export async function requestReturn(db, userId, orderId, orderItemId, qty, reaso
   const ts = now();
   const rid = await run(db, `INSERT INTO returns (order_id, order_item_id, user_id, qty, reason, status, created_at, updated_at)
                        VALUES (?,?,?,?,?, 'pickup_scheduled', ?, ?)`, orderId, orderItemId, userId, qty, reason, ts, ts);
+  await emit(db, 'return.requested', 'return', rid, { order_id: orderId, order_item_id: orderItemId, qty });
   await notify(db, userId, `Return #${rid} approved. A courier will collect ${item.title} within 2 days.`, `#/orders/${orderId}`);
   const sellerUser = (await one(db, 'SELECT user_id FROM sellers WHERE id = ?', item.seller_id)).user_id;
   await notify(db, sellerUser, `Return requested on order #${orderId}: ${item.title} × ${qty} (${reason}).`, '#/orders');
@@ -552,6 +559,7 @@ export async function receiveReturn(db, returnId, restock = true, decidedBy = ac
   }
   await run(db, 'UPDATE order_items SET returned_qty = returned_qty + ? WHERE id = ?', r.qty, item.id);
   await run(db, "UPDATE returns SET status = 'refunded', refund_paise = ?, updated_at = ?, decided_by = ? WHERE id = ?", refunded, now(), decidedBy, returnId);
+  await emit(db, 'return.received', 'return', returnId, { order_id: r.order_id, refund_paise: refunded, restock });
   await audit(db, 'return.refund', 'return', returnId, { status: r.status }, { status: 'refunded', refund_paise: refunded, restock, decided_by: decidedBy });
   await ledger(db, item.seller_id, item.id, 'refund', -amount, `Return #${returnId}: ${item.title} × ${r.qty}`);
   await ledger(db, item.seller_id, item.id, 'fee_reversal', Math.round(amount * REFERRAL_FEE_RATE), 'Referral fee returned');
@@ -686,6 +694,7 @@ export async function createTicket(db, userId, orderId, subject, body) {
   const tid = await run(db, "INSERT INTO support_tickets (user_id, order_id, subject, status, created_at) VALUES (?,?,?, 'open', ?)",
     userId, orderId ? Number(orderId) : null, subject, now());
   await run(db, "INSERT INTO support_messages (ticket_id, author_role, body, at) VALUES (?, 'customer', ?, ?)", tid, body, now());
+  await emit(db, 'ticket.created', 'ticket', tid, { order_id: orderId ? Number(orderId) : null });
   return tid;
 }
 
@@ -704,6 +713,7 @@ export async function replyTicket(db, ticketId, authorRole, body, close = false,
   body = String(body || '').trim();
   if (!body) throw badRequest('Write a message.');
   await run(db, 'INSERT INTO support_messages (ticket_id, author_role, body, at) VALUES (?,?,?,?)', ticketId, authorRole, body, now());
+  await emit(db, 'ticket.message', 'ticket', ticketId, { author_role: authorRole, closed: Boolean(close) });
   const status = close ? 'closed' : authorRole === 'ops' ? 'answered' : 'open';
   await run(db, 'UPDATE support_tickets SET status = ? WHERE id = ?', status, ticketId);
   if (authorRole === 'ops') await notify(db, t.user_id, `Equidron Support replied to "${t.subject}".`, '#/support');

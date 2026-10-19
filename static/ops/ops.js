@@ -35,6 +35,7 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
         case 'staff': return loadStaff();
         case 'audit': return api.get('/audit').then(function (x) { vm.audit = x; }, fail);
         case 'outbox': return api.get('/outbox').then(function (x) { vm.outbox = x; }, fail);
+        case 'system': return vm.loadSystem();
       }
     }
 
@@ -42,6 +43,21 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
 
     function signedOut() { vm.user = null; $location.path('/login'); }
     vm.logout = function () { api.post('/logout').then(signedOut); };
+
+    // ---------------------------------------------------------------- system (admin)
+    vm.loadSystem = function () { return api.get('/system').then(function (x) { vm.system = x; }, fail); };
+    vm.setSetting = function (key) {
+      api.post('/settings', { key: key, value: vm.system.settings[key] }).then(function (s) {
+        vm.system.settings = s; Toast.show('Saved.');
+      }, function (e) { Toast.show(e.message); vm.loadSystem(); });
+    };
+    vm.retryJob = function (j) {
+      api.post('/jobs/' + j.id + '/retry').then(function () { Toast.show('Job #' + j.id + ' will run again.'); vm.loadSystem(); },
+        function (e) { Toast.show(e.message); });
+    };
+    vm.testError = function () {
+      api.post('/system/test-error').then(null, function (e) { Toast.show('Test error sent: ' + e.message); vm.loadSystem(); });
+    };
 
     // ---------------------------------------------------------------- staff (admin)
     function loadStaff() {

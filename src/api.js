@@ -9,9 +9,11 @@ import * as assistant from './assistant.js';
 import { ANONYMOUS, actingAs, audit, auditsWritten, listAudit, safeBody, setActor, userActor } from './audit.js';
 import * as auth from './auth.js';
 import * as catalog from './catalog.js';
-import { changes, one, run, scalar, transaction } from './db.js';
+import { all, changes, one, run, scalar, transaction } from './db.js';
 import { AppError } from './errors.js';
 import * as listings from './listings.js';
+import * as jobs from './jobs.js';
+import { newRequestId, reportError, requestId, withRequestId } from './log.js';
 import { mask } from './mask.js';
 import { listOutbox } from './outbox.js';
 import * as notify from './notify.js';
@@ -321,11 +323,60 @@ route('POST', 'ops', '/staff/(\\d+)/permissions', async (c, uid) => await auth.s
 route('GET', 'ops', '/audit', async (c) => mask(await listAudit(c.db, { entity: c.q('entity') || null })));
 route('GET', 'ops', '/outbox', async (c) => await listOutbox(c.db)); // admin only: it holds sign-up and reset codes
 
+// The System page (admin): the job queue, dead jobs, recent errors and the switches.
+route('GET', 'ops', '/system', async (c) => ({
+  jobs: await jobs.queueStats(c.db),
+  dead: await all(c.db, "SELECT id, kind, attempts, last_error, finished_at FROM jobs WHERE status = 'dead' ORDER BY id DESC LIMIT 50"),
+  recent: await all(c.db, 'SELECT id, kind, status, attempts, run_after, finished_at FROM jobs ORDER BY id DESC LIMIT 30'),
+  errors: await all(c.db, 'SELECT id, source, request_id, message, at FROM error_log ORDER BY id DESC LIMIT 50'),
+  settings: await jobs.allSettings(c.db),
+  events_waiting: await scalar(c.db, 'SELECT COUNT(*) FROM events WHERE dispatched_at IS NULL'),
+}));
+route('POST', 'ops', '/jobs/(\\d+)/retry', async (c, jid) => {
+  if (!(await jobs.retry(c.db, int(jid)))) throw new AppError(409, 'Only failed or dead jobs can be retried.');
+  await audit(c.db, 'job.retry', 'job', jid);
+  return { ok: true };
+});
+route('POST', 'ops', '/settings', async (c) => {
+  const { key, value } = c.body;
+  if (!Object.hasOwn(jobs.SETTINGS, key) || typeof value !== typeof jobs.SETTINGS[key]) {
+    throw new AppError(400, `Choose one of: ${Object.keys(jobs.SETTINGS).join(', ')}.`);
+  }
+  const before = await jobs.getSetting(c.db, key);
+  await jobs.setSetting(c.db, key, value);
+  await audit(c.db, 'setting.change', 'setting', key, { value: before }, { value });
+  return await jobs.allSettings(c.db);
+});
+// A deliberate error, to check that errors reach the error log (and Sentry, when it is set up).
+route('POST', 'ops', '/system/test-error', async () => {
+  throw new Error('Test error from Ops → System (on purpose).');
+});
+
 // ---------------------------------------------------------------- dispatch
 
 // Handle one API call. query is a URLSearchParams; cookies a plain object.
 // Returns {status, payload, setCookie} where setCookie is a Set-Cookie header value or null.
-export async function handleApi(db, { method, path, query, body, cookies }) {
+// Every answer carries a request id (X-Request-Id), which is also on every log line for it.
+export async function handleApi(db, request) {
+  const requestId = newRequestId();
+  const out = await withRequestId(requestId, () => answer(db, request));
+  return { ...out, requestId };
+}
+
+// Public: is the database answering, and is the queue moving? For an uptime check.
+async function health(db) {
+  try {
+    await one(db, 'SELECT 1 AS ok');
+    const lastTick = await jobs.getSetting(db, 'tick.last', null);
+    return { status: 200, payload: { status: 'ok', database: 'ok', jobs: await jobs.queueStats(db), last_tick: lastTick }, setCookie: null };
+  } catch (e) {
+    await reportError(db, 'health', e);
+    return { status: 503, payload: { status: 'error', database: 'unavailable' }, setCookie: null };
+  }
+}
+
+async function answer(db, { method, path, query, body, cookies }) {
+  if (path === '/api/health' && method === 'GET') return await health(db);
   try {
     const m = /^\/api\/(shop|seller|ops)(\/.*)$/.exec(path);
     if (!m) throw new AppError(404, 'Unknown API endpoint.');
@@ -378,8 +429,8 @@ export async function handleApi(db, { method, path, query, body, cookies }) {
       if (e.details != null) payload.details = e.details;
       return { status: e.status, payload, setCookie: null };
     }
-    console.error(mask(e?.stack || String(e)));
-    return { status: 500, payload: { error: 'Something went wrong on our side. Please try again.' }, setCookie: null };
+    await reportError(db, `api ${method} ${path}`, e); // outside the failed transaction, so the record stays
+    return { status: 500, payload: { error: 'Something went wrong on our side. Please try again.', request_id: requestId() }, setCookie: null };
   }
 }
 
