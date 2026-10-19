@@ -1,6 +1,6 @@
 /* Equidron storefront (customers). */
-angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$location', '$window', 'Api', 'Router', 'Toast', 'AssistantChat',
-  function ($scope, $location, $window, Api, Router, Toast, AssistantChat) {
+angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$location', '$window', 'Api', 'Router', 'Toast', 'AssistantChat', 'AuthForm',
+  function ($scope, $location, $window, Api, Router, Toast, AssistantChat, AuthForm) {
     var api = Api('shop');
     var vm = this;
     vm.STAGES = ['pending', 'picking', 'packed', 'shipped', 'in_transit', 'out_for_delivery', 'delivered'];
@@ -12,7 +12,16 @@ angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$locatio
     vm.sort = 'relevance';
     vm.showFactors = false;
     vm.city = readCity();
-    vm.auth = { mode: 'login', form: {} };
+    vm.auth = AuthForm(api, {
+      register: true,
+      demoAccounts: [{ email: 'asha@example.com' }, { email: 'rahul@example.com' }],
+      signedIn: function (user) {
+        vm.user = user;
+        refreshCart(); loadAddresses(); loadNotes();
+        $location.url(vm.route.search.next || '/');
+      },
+    });
+    vm.auth.note = 'Customer accounts only. Sellers sign in at Seller Central (/seller/).';
     vm.co = {};
     vm.unread = 0;
 
@@ -25,6 +34,7 @@ angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$locatio
     function loadMe() {
       return api.get('/me').then(function (r) {
         vm.user = r.user;
+        vm.auth.demo = r.demo;
         if (vm.user) { refreshCart(); loadAddresses(); loadNotes(); }
       });
     }
@@ -79,30 +89,22 @@ angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$locatio
         case 'login':
           if (vm.user) { $location.url(r.search.next || '/'); }
           return;
+        case 'reset':
+          vm.auth.startReset(r.search.code);
+          return;
       }
     }
 
     loadMe().finally(function () { Router(route); });
 
     // ---------------------------------------------------------------- auth
-    vm.submitAuth = function () {
-      vm.auth.error = null;
-      var path = vm.auth.mode === 'login' ? '/login' : '/register';
-      api.post(path, vm.auth.form).then(function (r) {
-        vm.user = r.user;
-        vm.auth.form = {};
-        refreshCart(); loadAddresses(); loadNotes();
-        $location.url(vm.route.search.next || '/');
-      }, function (e) { vm.auth.error = e.message; });
-    };
-    vm.useDemo = function (email) { vm.auth.mode = 'login'; vm.auth.form = { email: email, password: 'equidron-demo' }; };
-    vm.logout = function () {
-      api.post('/logout').then(function () {
-        vm.user = null; vm.cart = { items: [], count: 0, estimate: {} }; vm.notes = []; vm.unread = 0;
-        vm.chat.reset();
-        $location.url('/');
-      });
-    };
+    vm.logoutAll = function () { api.post('/logout-all').then(signedOut); };
+    vm.logout = function () { api.post('/logout').then(signedOut); };
+    function signedOut() {
+      vm.user = null; vm.cart = { items: [], count: 0, estimate: {} }; vm.notes = []; vm.unread = 0;
+      vm.chat.reset();
+      $location.url('/');
+    }
 
     // ---------------------------------------------------------------- search
     function runSearch(s) {

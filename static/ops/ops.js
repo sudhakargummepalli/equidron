@@ -1,9 +1,17 @@
 /* Equidron Ops: listing review, logistics simulator, returns, support, settlement. */
-angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window', 'Api', 'Router', 'Toast',
-  function ($location, $window, Api, Router, Toast) {
+angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window', 'Api', 'Router', 'Toast', 'AuthForm', 'SecurityPanel',
+  function ($location, $window, Api, Router, Toast, AuthForm, SecurityPanel) {
     var api = Api('ops');
     var vm = this;
-    vm.auth = { form: {} };
+    vm.auth = AuthForm(api, {
+      demoAccounts: [{ email: 'ops@example.com', label: 'ops@example.com (admin)' },
+        { email: 'support@example.com', label: 'support@example.com' }, { email: 'finance@example.com', label: 'finance@example.com' }],
+      signedIn: function (user) { vm.user = user; $location.path('/'); },
+    });
+    vm.auth.note = 'Internal reviewers and operations staff only.';
+    vm.security = SecurityPanel(api, signedOut);
+    // Mirrors auth.hasPermission on the server, which is what actually enforces it.
+    vm.can = function (p) { var ps = (vm.user && vm.user.permissions) || []; return ps.indexOf('admin') >= 0 || ps.indexOf(p) >= 0; };
     vm.CONTENT = ['title', 'brand', 'category', 'description', 'specs', 'images'];
 
     function fail(e) { vm.err = e.message; }
@@ -12,27 +20,45 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
     function route(r) {
       vm.route = r;
       vm.err = null;
-      if (!vm.user && r.name !== 'login') { $location.path('/login'); return; }
+      if (!vm.user && r.name !== 'login' && r.name !== 'reset') { $location.path('/login'); return; }
       if (vm.user) refreshOverview();
       switch (r.name) {
-        case '': case 'reviews': return loadReviews();
+        case '': return vm.can('catalog') ? loadReviews() : null;
+        case 'reviews': return loadReviews();
         case 'shipments': return loadShipments();
         case 'returns': return api.get('/returns').then(function (x) { vm.returns = x; }, fail);
         case 'support': return api.get('/support').then(function (x) { vm.tickets = x; }, fail);
         case 'settlement': return;
         case 'login': if (vm.user) $location.path('/'); return;
+        case 'reset': vm.auth.startReset(r.search.code); return;
+        case 'security': return vm.security.load();
+        case 'staff': return loadStaff();
+        case 'audit': return api.get('/audit').then(function (x) { vm.audit = x; }, fail);
+        case 'outbox': return api.get('/outbox').then(function (x) { vm.outbox = x; }, fail);
       }
     }
 
-    api.get('/me').then(function (r) { vm.user = r.user; }).finally(function () { Router(route); });
+    api.get('/me').then(function (r) { vm.user = r.user; vm.auth.demo = r.demo; }).finally(function () { Router(route); });
 
-    vm.login = function () {
-      vm.auth.error = null;
-      api.post('/login', vm.auth.form).then(function (r) { vm.user = r.user; vm.auth.form = {}; $location.path('/'); },
-        function (e) { vm.auth.error = e.message; });
+    function signedOut() { vm.user = null; $location.path('/login'); }
+    vm.logout = function () { api.post('/logout').then(signedOut); };
+
+    // ---------------------------------------------------------------- staff (admin)
+    function loadStaff() {
+      return api.get('/staff').then(function (x) {
+        x.staff.forEach(function (s) {
+          s.edit = {};
+          s.permissions.forEach(function (p) { s.edit[p] = true; });
+        });
+        vm.staff = x;
+      }, fail);
+    }
+    vm.savePermissions = function (s) {
+      var chosen = vm.staff.permissions.filter(function (p) { return s.edit[p]; });
+      api.post('/staff/' + s.id + '/permissions', { permissions: chosen }).then(function () {
+        s.error = null; Toast.show('Permissions saved for ' + s.name + '.');
+      }, function (e) { s.error = e.message; });
     };
-    vm.useDemo = function () { vm.auth.form = { email: 'ops@example.com', password: 'equidron-demo' }; };
-    vm.logout = function () { api.post('/logout').then(function () { vm.user = null; $location.path('/login'); }); };
 
     // ---------------------------------------------------------------- listing review
     function loadReviews() {

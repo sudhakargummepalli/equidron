@@ -15,37 +15,37 @@
   <div class="inner">
     <a class="logo" href="#/">equi<span>dron</span><small>Ops (internal)</small></a>
     <div class="grow"></div>
-    <nav class="nav" ng-if="vm.user"><span>{{vm.user.name}}</span><button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logout()">Sign out</button></nav>
+    <nav class="nav" ng-if="vm.user"><span>{{vm.user.name}}</span><a href="#/security">Security</a><button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logout()">Sign out</button></nav>
   </div>
 </header>
 <div class="subnav" ng-if="vm.user"><div class="inner">
-  <a href="#/reviews" ng-class="{on: vm.route.name === '' || vm.route.name === 'reviews'}">Listing review ({{vm.overview.pending_reviews}})</a>
-  <a href="#/shipments" ng-class="{on: vm.route.name === 'shipments'}">Fulfilment &amp; shipping ({{vm.overview.active_shipments}})</a>
-  <a href="#/returns" ng-class="{on: vm.route.name === 'returns'}">Returns ({{vm.overview.open_returns}})</a>
-  <a href="#/support" ng-class="{on: vm.route.name === 'support'}">Support ({{vm.overview.open_tickets}})</a>
-  <a href="#/settlement" ng-class="{on: vm.route.name === 'settlement'}">Settlement</a>
+  <a ng-if="vm.can('catalog')" href="#/reviews" ng-class="{on: vm.route.name === '' || vm.route.name === 'reviews'}">Listing review ({{vm.overview.pending_reviews}})</a>
+  <a ng-if="vm.can('logistics')" href="#/shipments" ng-class="{on: vm.route.name === 'shipments'}">Fulfilment &amp; shipping ({{vm.overview.active_shipments}})</a>
+  <a ng-if="vm.can('support')" href="#/returns" ng-class="{on: vm.route.name === 'returns'}">Returns ({{vm.overview.open_returns}})</a>
+  <a ng-if="vm.can('support')" href="#/support" ng-class="{on: vm.route.name === 'support'}">Support ({{vm.overview.open_tickets}})</a>
+  <a ng-if="vm.can('finance')" href="#/settlement" ng-class="{on: vm.route.name === 'settlement'}">Settlement</a>
+  <a ng-if="vm.can('admin')" href="#/staff" ng-class="{on: vm.route.name === 'staff'}">Staff</a>
+  <a ng-if="vm.can('admin')" href="#/audit" ng-class="{on: vm.route.name === 'audit'}">Audit log</a>
+  <a ng-if="vm.can('admin')" href="#/outbox" ng-class="{on: vm.route.name === 'outbox'}">Outbox</a>
 </div></div>
 <div class="sample">Sample data: every seller, product, customer and order here is fictional. Payments are simulated.</div>
 
 <main>
   <div class="alert bad" ng-if="vm.err">{{vm.err}}</div>
 
-  <section ng-if="vm.route.name === 'login'" class="auth">
-    <div class="card">
-      <h1>Equidron Ops sign in</h1>
-      <p class="small muted">Internal reviewers and operations staff only.</p>
-      <form ng-submit="vm.login()">
-        <div class="field"><label>Email</label><input type="email" ng-model="vm.auth.form.email" autocomplete="username"></div>
-        <div class="field"><label>Password</label><input type="password" ng-model="vm.auth.form.password" autocomplete="current-password"></div>
-        <div class="alert bad" ng-if="vm.auth.error">{{vm.auth.error}}</div>
-        <button class="btn primary" style="width:100%" type="submit">Sign in</button>
-      </form>
-      <div class="demo-accounts" style="margin-top:12px">Sample reviewer: <button class="linkbtn" ng-click="vm.useDemo()">ops@example.com</button> (password <code>equidron-demo</code>)</div>
-    </div>
+  <section ng-if="vm.route.name === 'login' || vm.route.name === 'reset'" class="auth">
+    <div ng-include="'/common/auth.html'"></div>
+  </section>
+
+  <!-- ============ HOME (staff without listing review) ============ -->
+  <section ng-if="vm.user && vm.route.name === '' && !vm.can('catalog')">
+    <h1>Welcome, {{vm.user.name}}</h1>
+    <div class="card">Your permissions: <strong>{{vm.user.permissions.join(', ') || 'none yet'}}</strong>.
+      Use the tabs above. Ask an Equidron admin if you need access to more.</div>
   </section>
 
   <!-- ============ LISTING REVIEW ============ -->
-  <section ng-if="vm.user && (vm.route.name === '' || vm.route.name === 'reviews')">
+  <section ng-if="vm.user && ((vm.route.name === '' && vm.can('catalog')) || vm.route.name === 'reviews')">
     <div class="row between"><h1>Listing review</h1>
       <select ng-model="vm.reviewStatus" ng-change="vm.loadReviews()" style="width:auto" aria-label="Filter">
         <option value="pending">Waiting for review</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="all">All</option></select></div>
@@ -78,6 +78,7 @@
         <button class="btn danger" ng-click="vm.decide(s, false)">Reject</button>
       </div>
       <div class="small" style="color:var(--bad)" ng-if="s.error">{{s.error}}</div>
+      <div class="small muted" ng-if="s.status !== 'pending'">{{s.auto_decided ? 'Decided automatically' : 'Decided by ' + (s.decided_by_name || 'an earlier reviewer')}}<span ng-if="s.decided_at"> · {{s.decided_at | when}}</span></div>
       <div class="small muted" ng-if="s.reviewer_note">Note: {{s.reviewer_note}}</div>
     </div>
   </section>
@@ -113,7 +114,8 @@
           <td>#{{r.id}}<div class="small muted">Order #{{r.order_id}}</div></td>
           <td>{{r.title}} × {{r.qty}}<div class="small muted">{{r.seller_name}}</div></td>
           <td class="small">{{r.customer_name}}</td><td class="small">{{r.reason}}</td>
-          <td><span class="badge {{r.status | tone}}">{{r.status | label}}</span><div class="small" ng-if="r.refund_paise">{{r.refund_paise | inr}} refunded</div></td>
+          <td><span class="badge {{r.status | tone}}">{{r.status | label}}</span><div class="small" ng-if="r.refund_paise">{{r.refund_paise | inr}} refunded</div>
+            <div class="small muted" ng-if="r.decided_by_name">by {{r.decided_by_name}}</div></td>
           <td class="right" ng-if="r.status === 'pickup_scheduled'">
             <button class="btn small primary" ng-click="vm.receive(r, true)">Received, restock &amp; refund</button>
             <button class="btn small" ng-click="vm.receive(r, false)">Received damaged &amp; refund</button>
@@ -154,6 +156,57 @@
         <tr ng-if="!vm.payouts.length"><td colspan="2" class="muted">No balances to pay.</td></tr>
       </table>
     </div>
+  </section>
+
+  <!-- ============ SECURITY ============ -->
+  <section ng-if="vm.user && vm.route.name === 'security'">
+    <div ng-include="'/common/security.html'"></div>
+  </section>
+
+  <!-- ============ STAFF (admin) ============ -->
+  <section ng-if="vm.user && vm.route.name === 'staff'">
+    <h1>Staff and permissions</h1>
+    <p class="small muted">admin includes everything. Each change is kept in the audit log.</p>
+    <div class="card table-wrap">
+      <table>
+        <tr><th>Name</th><th>Email</th><th ng-repeat="p in vm.staff.permissions">{{p}}</th><th></th></tr>
+        <tr ng-repeat="s in vm.staff.staff">
+          <td>{{s.name}}</td><td class="small">{{s.email}}</td>
+          <td ng-repeat="p in vm.staff.permissions"><input type="checkbox" ng-model="s.edit[p]" aria-label="{{p}} for {{s.name}}"></td>
+          <td class="right"><button class="btn small" ng-click="vm.savePermissions(s)">Save</button><div class="small" style="color:var(--bad)" ng-if="s.error">{{s.error}}</div></td>
+        </tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ AUDIT LOG (admin) ============ -->
+  <section ng-if="vm.user && vm.route.name === 'audit'">
+    <h1>Audit log</h1>
+    <p class="small muted">Who did what, newest first (the latest 200). Emails, phones and account numbers are masked.</p>
+    <div class="card table-wrap">
+      <table class="small">
+        <tr><th>When</th><th>Who</th><th>Action</th><th>On</th><th>Change</th></tr>
+        <tr ng-repeat="a in vm.audit">
+          <td>{{a.at | date:'d MMM, HH:mm:ss'}}</td>
+          <td>{{a.actor_name || a.actor_id}}<div class="muted">{{a.actor_type}}</div></td>
+          <td><code>{{a.action}}</code></td><td>{{a.entity}} {{a.entity_id}}</td>
+          <td><span ng-if="a.before">{{a.before | json}} → </span>{{a.after | json}}</td>
+        </tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ OUTBOX (admin) ============ -->
+  <section ng-if="vm.user && vm.route.name === 'outbox'">
+    <h1>Outbox</h1>
+    <div class="alert warn">Emails aren't sent yet (that comes in Phase 10). They wait here, so sign-up and password-reset codes
+      can be tried. Codes are private: don't share this page.</div>
+    <div class="card" ng-repeat="m in vm.outbox">
+      <div class="row between"><strong>{{m.subject}}</strong><span class="small muted">{{m.at | when}}</span></div>
+      <div class="small muted">To {{m.to_address}} · {{m.channel}}</div>
+      <p>{{m.body}}</p>
+    </div>
+    <div class="empty card" ng-if="vm.outbox && !vm.outbox.length">No messages yet.</div>
   </section>
 </main>
 <div class="toast" ng-if="toast" role="status">{{toast}}</div>

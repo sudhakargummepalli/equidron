@@ -40,3 +40,12 @@ Start fresh with `node app.js --reset` (or `npm run reset`). Use three browser t
 ## Role separation check
 - Try signing in to the store with `techbazaar.seller@example.com`: you get *"This account can't sign in here. Please use Seller Central."*
 - A customer session can't call `/api/seller/*` or `/api/ops/*`. Each API has its own cookie and returns 401.
+
+## Part 5: Accounts, staff permissions and the audit trail
+20. **Sign up with a code.** In the store, **Sign in → New to Equidron? Create an account** with any made-up name, a fake `@example.com` email and a password. The page asks for a 6-digit code. In Ops (as `ops@example.com`), open **Outbox**: the code waits there because email isn't connected yet. Enter it in the store and you're signed in.
+21. **Forgotten password.** In any sign-in page, **Forgot your password?** sends a code to the Outbox. Use it with a new password: the code works once, and every other session of that account ends.
+22. **Lockout.** Sign in to the store as `rahul@example.com` with a wrong password five times. The sixth try, even with the right password, says *"Too many failed sign-ins"*. It opens again after 15 minutes, or at once after a password reset.
+23. **Staff permissions.** Sign out of Ops and sign in as `support@example.com`: only Returns and Support show, and running settlement is refused. As `ops@example.com`, open **Staff**, tick `finance` for Priya and **Save**. The change shows in the **Audit log**.
+24. **Who decided.** Approve or reject a listing, then look at it under **Approved** or **Rejected**: it says who decided. Returns show it too. **Audit log** lists every change with before and after, emails masked.
+25. **Two-step sign-in.** In Seller Central (or Ops), open **Security → Set up an authenticator app**, add the key to an app such as Google Authenticator, and enter its code. Sign out and in again: now the page asks for the app's code too. Turn it off the same way.
+26. **Sign out everywhere.** Sign in to Seller Central in two browsers, then **Security → Sign out of all devices** in one: both are signed out.

@@ -18,7 +18,7 @@ where we are is in `docs/PROGRESS.md`; why we chose what we chose is in `docs/DE
 - Environment variables (set in Netlify, or in a local `.env` that git ignores, never in code):
   `DATABASE_URL`, `NETLIFY_DB_URL` (set by Netlify Database), `ANTHROPIC_API_KEY` (local only; Netlify's AI
   Gateway supplies it there), `EQUIDRON_ASSISTANT_MODEL`, `EQUIDRON_ASSISTANT_DAILY_LIMIT`,
-  `PAYMENT_STATEMENT_CSV_URL`.
+  `PAYMENT_STATEMENT_CSV_URL`, `EQUIDRON_SEED_DEMO` (1 = sample accounts work).
 
 ## Map of the code
 
@@ -31,7 +31,11 @@ src/fetch-handler.js         Fetch-API adapter used by the Netlify function
 src/api.js                   route table (route(method, area, pattern, fn, isPublic, {readOnly, prepare}))
                              and handleApi(): area check, sign-in, one transaction per write request
 src/db.js                    SCHEMA, ? -> $n conversion, all/one/run/scalar, transaction()
-src/auth.js                  password hashing, sessions, role-scoped sign-in (customer / seller / ops)
+src/auth.js                  passwords (scrypt), sessions, sign-in, lockout, codes, TOTP, staff permissions, agent accounts
+src/audit.js                 audit_log: actingAs(), audit(), who did what
+src/mask.js                  mask(): hides emails, phones, PAN, card and bank numbers
+src/outbox.js                emails waiting to be sent (Ops admins read them until Phase 10)
+src/security-headers.js      CSP and other headers for the local server (same as netlify.toml)
 src/catalog.js               search, ranking, offers, delivery promise, stock by warehouse
 src/listings.js              seller listings, validation, submissions, automatic approval and Ops review
 src/orders.js                cart, checkout, payments, shipments, returns, tickets, settlement
@@ -60,6 +64,15 @@ tests/                       node:test suites (order flow, PostgreSQL, assistant
   one that has been applied, and keep `SCHEMA` in `src/db.js` in step (a test compares them).
 - Tests run on PGlite (`openDatabase('memory')`) and use the scripted AI stand-in (`scripted(...)` in the
   assistant tests). Lower `settings.pbkdf2Rounds` in tests to keep them fast.
+- Audit: a service function that changes something important calls `audit(db, action, entity, id, before, after)`
+  (`src/audit.js`); the actor comes from the request, so it isn't passed in. Write routes that record nothing get one
+  row automatically. Ops decisions also store `decided_by`.
+- Permissions: every Ops route needs a staff permission listed in `OPS_PERMISSIONS` in `src/api.js`; an unlisted
+  route needs admin. Agent accounts (role `agent`) never get a session.
+- Personal data in logs: pass log text through `mask()` (`src/mask.js`). Sign-in failures are answered with a
+  `Reply`, not thrown, so attempt records survive the transaction.
+- Demo mode: the sample accounts and shared password work only with `EQUIDRON_SEED_DEMO=1` (`node app.js` and the
+  tests set it). Security headers live in `src/security-headers.js` and `netlify.toml`, kept equal by a test.
 - Comments explain why, not what. Keep the existing plain style: ES modules, no build step, no framework on
   the server.
 

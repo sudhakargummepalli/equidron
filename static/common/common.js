@@ -38,6 +38,72 @@ angular.module('eqCommon', [])
     };
   }])
 
+  // The sign-in panel shared by all three pages (static/common/auth.html): sign in, create an
+  // account (store only), confirm the emailed code, forgotten password, and the authenticator
+  // code when two-step sign-in is on. AuthForm(api, {register, demoAccounts, signedIn(user)}).
+  .factory('AuthForm', function () {
+    return function (api, opts) {
+      var a = { mode: 'login', form: {}, register: !!opts.register, demo: false, demoAccounts: opts.demoAccounts || [] };
+      function reset(mode, info, form) { a.mode = mode; a.info = info || null; a.error = null; a.otp = false; a.form = form || {}; }
+      function signedIn(r) { reset('login'); opts.signedIn(r.user); }
+      function failed(e) {
+        a.error = e.message;
+        var d = e.details || {};
+        if (d.otp_required) a.otp = true;
+        if (d.needs_verification) { a.mode = 'verify'; a.info = 'Enter the 6-digit code we emailed you, or ask for a new one.'; }
+      }
+      a.go = function (mode) { reset(mode, null, { email: a.form.email }); };
+      a.submit = function () {
+        var f = a.form;
+        a.error = null;
+        if (a.mode === 'login') return api.post('/login', { email: f.email, password: f.password, otp: f.otp }).then(signedIn, failed);
+        if (a.mode === 'register') {
+          return api.post('/register', { email: f.email, name: f.name, password: f.password }).then(function (r) {
+            reset('verify', 'We sent a 6-digit code to ' + r.email + '. Enter it to finish.', { email: r.email });
+          }, failed);
+        }
+        if (a.mode === 'verify') return api.post('/verify-email', { email: f.email, code: f.code }).then(signedIn, failed);
+        if (a.mode === 'forgot') {
+          return api.post('/password/forgot', { email: f.email }).then(function (r) { reset('reset', r.message, { email: f.email }); }, failed);
+        }
+        if (a.mode === 'reset') {
+          return api.post('/password/reset', { email: f.email, code: f.code, password: f.password }).then(function () {
+            reset('login', 'Your password was changed. Sign in with the new one.', { email: f.email });
+          }, failed);
+        }
+      };
+      a.resend = function () {
+        api.post('/verify-email/resend', { email: a.form.email }).then(function () { a.info = 'We sent a new code.'; a.error = null; });
+      };
+      a.useDemo = function (email) { reset('login', null, { email: email, password: 'equidron-demo' }); };
+      // From the link in a reset email: #/reset?code=123456
+      a.startReset = function (code) { reset('reset', 'Enter your email and choose a new password.', { code: code }); };
+      return a;
+    };
+  })
+
+  // The Security page in Seller Central and Ops (static/common/security.html): two-step sign-in
+  // with an authenticator app, and "sign out of all devices". SecurityPanel(api, signedOut).
+  .factory('SecurityPanel', function () {
+    return function (api, signedOut) {
+      var p = { form: {} };
+      function failed(e) { p.error = e.message; }
+      p.load = function () {
+        p.error = null; p.setup = null; p.form = {};
+        return api.get('/2fa').then(function (s) { p.enabled = s.enabled; }, failed);
+      };
+      p.start = function () { api.post('/2fa/setup').then(function (s) { p.setup = s; p.error = null; }, failed); };
+      p.confirm = function (enable) {
+        api.post(enable ? '/2fa/enable' : '/2fa/disable', { code: p.form.code }).then(function (s) {
+          p.enabled = s.enabled; p.setup = null; p.form = {}; p.error = null;
+          p.info = s.enabled ? 'Two-step sign-in is on. You will need the app each time you sign in.' : 'Two-step sign-in is off.';
+        }, failed);
+      };
+      p.logoutAll = function () { api.post('/logout-all').then(signedOut, failed); };
+      return p;
+    };
+  })
+
   .filter('inr', function () {
     var fmt = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
     return function (paise) { return paise === null || paise === undefined ? '' : fmt.format(paise / 100); };
