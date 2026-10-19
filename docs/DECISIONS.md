@@ -21,3 +21,9 @@ One line per decision: date, decision, reason. Newest at the bottom.
 - 2026-10-19 · The idempotency key travels in the request body (idempotency_key), scoped to the signed-in customer · handleApi passes no request headers today; webhooks in Phase 8 will use the provider's event id.
 - 2026-10-19 · Row-Level Security (optional in the PDF) is left for later · the area checks in api.js already scope every query, and RLS needs a connection role per request that Netlify Database setup would have to change.
 - 2026-10-19 · The CI PostgreSQL service uses trust authentication · it is a throwaway database inside one CI run, and this keeps any password out of the repository.
+- 2026-10-20 · Existing text times are read as UTC by the Phase 2b migration · the Netlify functions, which wrote the live data, run in UTC. Local data/pg folders written in IST will look 5½ hours off: use `node app.js --reset`.
+- 2026-10-20 · Epoch-number columns (sessions.expires_at, login_attempts.at, auth_codes) stay DOUBLE PRECISION · they were never text, and the code compares them as seconds.
+- 2026-10-20 · The search index is an expression index, not a stored tsvector column · the test reset copies whole rows back, which a generated column refuses; catalog.SEARCH_VECTOR repeats the expression so queries use the index.
+- 2026-10-20 · Typo matching runs only when fewer than 5 products match exactly, with word_similarity >= 0.35 · it keeps exact results first and avoids noise; it is off where pg_trgm is unavailable.
+- 2026-10-20 · The 2026-10-17 laptops data migration is left as it is · applied migrations are never edited. After Phase 2b it is either already applied or a no-op (it runs before the first seed), so its fill test now runs on the old column types.
+- 2026-10-20 · Search pages default to 24 results, at most 60 · 60 was the old fixed cap; smaller pages load faster and paging reaches every match.

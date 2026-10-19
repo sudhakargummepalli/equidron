@@ -117,7 +117,7 @@ tests/                    node:test suites
 ```
 
 ### Database access
-Queries are written with `?` placeholders, which `db.js` numbers as `$1, $2, ...` before sending. It also turns `LIKE` into `ILIKE`, so searches ignore case, and adds `RETURNING id` to inserts so the new row's id comes back. Each API request runs as one transaction (a failed sign-in answers with the error instead of throwing it, so the attempt is still recorded). Transactions run side by side; there is no global lock. Code that reads and then writes locks only those rows: checkout reserves stock with a guarded update (`reserved = reserved + n` only while `on_hand - reserved >= n`, in offer and warehouse order so two checkouts can't deadlock), and listing decisions, cancellations, shipment stages and refunds lock their row with `SELECT ... FOR UPDATE`. Settlement and the first-start seed take named locks (`lockNamed` in `db.js`). Checkout also takes an `idempotency_key`, so the same order sent twice is placed once. The concurrency tests run against a real PostgreSQL server in CI.
+Columns have real types: times are `TIMESTAMPTZ` (stored in UTC, shown in India time), the delivery promise is a `DATE`, JSON fields are `JSONB` and flags are `BOOLEAN`. Calendar days (return windows, delivery promises, the assistant's daily limit) are India days (`indiaDate()` in `db.js`). Queries are written with `?` placeholders, which `db.js` numbers as `$1, $2, ...` before sending. It also turns `LIKE` into `ILIKE`, so searches ignore case, and adds `RETURNING id` to inserts so the new row's id comes back. Each API request runs as one transaction (a failed sign-in answers with the error instead of throwing it, so the attempt is still recorded). Transactions run side by side; there is no global lock. Code that reads and then writes locks only those rows: checkout reserves stock with a guarded update (`reserved = reserved + n` only while `on_hand - reserved >= n`, in offer and warehouse order so two checkouts can't deadlock), and listing decisions, cancellations, shipment stages and refunds lock their row with `SELECT ... FOR UPDATE`. Settlement and the first-start seed take named locks (`lockNamed` in `db.js`). Checkout also takes an `idempotency_key`, so the same order sent twice is placed once. The concurrency tests run against a real PostgreSQL server in CI.
 
 ### Roles are kept separate
 Each interface has its own login endpoint, session role and cookie (`eq_shop`, `eq_seller`, `eq_ops`), scoped to its own API path. A seller's session is rejected by the store API and the other way round. Signing in to the wrong interface gives "This account can't sign in here". POST requests must be JSON, which blocks cross-site form posts.
@@ -150,6 +150,8 @@ The live listing stays unchanged until Ops approves. Approval publishes it to th
 - *Delivery speed:* based on the featured offer's delivery estimate.
 
 Tick "Show ranking factors" on the results page to see each product's numbers.
+
+The database picks the candidates: a full-text index (`products_search`) matches each word as a prefix, with its synonyms, and the ranking above orders them. When few products match, `pg_trgm` adds near spellings, so "labtop" finds laptops (only where the server has that extension; otherwise typos simply find nothing). Results come in pages (`page`, `page_size` up to 60, `total`), with Previous and Next in the store.
 
 The sample catalogue has 124 products, 102 of them laptops (budget, thin and light, business, gaming, creator and 2-in-1) from eight fictional brands, sold by TechBazaar, Lakshmi and UrbanCart. A database seeded before the laptops existed gets them from the migration `20261017120000_sample_laptops.sql`.
 
@@ -208,6 +210,6 @@ Sellers move their own self-ship orders through picking, packing and shipping. E
 - **Seller settlement:** delivered sales credit the seller (minus a 10% referral fee) and refunds debit it. "Run settlement" in Ops pays out positive balances (simulated).
 
 ## Limits and next steps
-- Search loads offers and stock for all matching products in two queries, and shows at most 60 results.
+- Search ranks every match in Node after the index narrows them, which is fine for thousands of products; a much larger catalogue would rank in SQL too.
 - AngularJS 1.x is end-of-life and is used here because it needs no build step. A production build would move to modern Angular.
 - Product images are generated placeholders. Sellers can add their own `https://` image links.

@@ -15,7 +15,9 @@ settings.fastHashing = true;
 process.env.EQUIDRON_SEED_DEMO = '1';
 
 let db;
-before(async () => { db = await openDatabase('memory'); });
+// With TEST_DATABASE_URL (CI), this runs on a real PostgreSQL server, which it wipes first.
+const target = process.env.TEST_DATABASE_URL || 'memory';
+before(async () => { db = await openDatabase(target, { reset: target !== 'memory' }); });
 after(() => db.close());
 
 const typeOf = async (table, column) => scalar(db,
