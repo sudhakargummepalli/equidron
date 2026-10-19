@@ -42,16 +42,17 @@ Notes: two-step sign-in is opt-in for now (see DECISIONS); codes go to the Ops O
 
 ## Phase 2 · Data built for real traffic (A · M)
 Goal: many writers at once, correct times, searchable data.
-- [ ] Remove `pg_advisory_xact_lock(7426001)` from `db.transaction()`; lock only reserved inventory rows (FOR UPDATE in offer_id, warehouse_id order) or a guarded UPDATE; small named lock for settlement only
+- [x] Remove `pg_advisory_xact_lock(7426001)` from `db.transaction()`; lock only reserved inventory rows (FOR UPDATE in offer_id, warehouse_id order) or a guarded UPDATE; small named lock for settlement only
 - [ ] Migrations: TEXT dates to TIMESTAMPTZ (UTC stored, Asia/Kolkata shown); JSON text to JSONB; 0/1 to BOOLEAN
-- [ ] `idempotency_keys` table for checkout (later webhooks)
+- [x] `idempotency_keys` table for checkout (later webhooks)
 - [ ] Full-text search (tsvector + GIN), trigram typos if pg_trgm exists, paging (page, size, total)
 - [ ] Optional: Row-Level Security on seller tables with `SET LOCAL app.seller_id`
-- [ ] PostgreSQL service in GitHub Actions
+- [x] PostgreSQL service in GitHub Actions
 
 Tests: 20 checkouts for the last 5 units give exactly 5 orders, stock never negative; same key twice = one order;
 times keep their zone; paging returns all 102 laptops.
 Done when: the concurrency test passes on real PostgreSQL in CI; migrations apply to fresh and existing data; all green.
+Split: 2a (concurrency, branch phase-2-concurrency) is built; 2b (TIMESTAMPTZ / JSONB / BOOLEAN, full-text search, paging) is next.
 
 ## Phase 3 · Events, background jobs and monitoring (A · M)
 Goal: things happen without clicks; jobs retry; failures are visible.

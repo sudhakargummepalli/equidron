@@ -55,6 +55,10 @@ tests/                       node:test suites (order flow, PostgreSQL, assistant
   joining user input into a string.
 - Money is stored and passed as integer paise (`price_paise`, `amount_paise`); format with `orders.inr()`
   only for display.
+- No global lock: transactions run side by side. When code reads a row and then writes based on it, lock that
+  row (`SELECT ... FOR UPDATE`, order row before shipment or return rows) or use a guarded UPDATE and check
+  `changes()`. Jobs that must run alone use `lockNamed(db, name)`. Concurrency tests go in
+  `tests/concurrency.test.js`, which CI also runs on real PostgreSQL (`TEST_DATABASE_URL`).
 - Every write runs inside one transaction. `handleApi` opens it for every non-GET route; service functions
   expect to be called inside it and never open their own. Read-only POST routes use `{ readOnly: true }`;
   slow outside calls (such as fetching the bank statement) go in a `prepare` hook, which runs before the

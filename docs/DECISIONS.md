@@ -16,3 +16,8 @@ One line per decision: date, decision, reason. Newest at the bottom.
 - 2026-10-19 · Local cookies have no Secure flag · the local server is plain http://localhost; the Netlify function adds Secure.
 - 2026-10-19 · TOTP secrets are stored as-is in users.totp_secret · the server must read them to check codes; encrypting them at rest is a Phase 15 hardening item.
 - 2026-10-19 · CSP allows images from any https site and inline styles · sellers link product photos until Phase 11, and the pages use style attributes. Scripts stay limited to this site and cdnjs, without eval.
+- 2026-10-19 · Phase 2 is split into 2a (concurrency: no global lock, row locks, idempotent checkout, PostgreSQL in CI) and 2b (column types, search, paging) · each is reviewable on its own, and 2a fixes the bigger risk first.
+- 2026-10-19 · Stock is reserved with a guarded UPDATE rather than SELECT ... FOR UPDATE · one statement both checks and reserves; rows are taken in (offer_id, warehouse_id) order to avoid deadlocks.
+- 2026-10-19 · The idempotency key travels in the request body (idempotency_key), scoped to the signed-in customer · handleApi passes no request headers today; webhooks in Phase 8 will use the provider's event id.
+- 2026-10-19 · Row-Level Security (optional in the PDF) is left for later · the area checks in api.js already scope every query, and RLS needs a connection role per request that Netlify Database setup would have to change.
+- 2026-10-19 · The CI PostgreSQL service uses trust authentication · it is a throwaway database inside one CI run, and this keeps any password out of the repository.
