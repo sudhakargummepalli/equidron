@@ -4,7 +4,7 @@
 // Otherwise each gets a random password nobody knows, and auth.login() refuses sample accounts anyway.
 import crypto from 'node:crypto';
 import { createUser, demoMode } from './auth.js';
-import { dumps, now, one, run, scalar, transaction } from './db.js';
+import { dumps, lockNamed, now, one, run, scalar, transaction } from './db.js';
 import * as listings from './listings.js';
 import * as orders from './orders.js';
 import DATA from './sample-data.json' with { type: 'json' };
@@ -21,7 +21,10 @@ async function offerId(db, titlePrefix, sellerName) {
 // The check and the load share one transaction, so two serverless instances
 // starting at once can't both seed a shared Postgres database.
 export function seed(db) {
-  return transaction(db, () => seedEmpty(db));
+  return transaction(db, async () => {
+    await lockNamed(db, 'seed');
+    return await seedEmpty(db);
+  });
 }
 
 async function seedEmpty(db) {

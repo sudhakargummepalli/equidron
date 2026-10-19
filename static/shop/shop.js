@@ -185,11 +185,15 @@ angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$locatio
       if (vm.co.payment.reference && !token) { vm.co.payError = 'Enter the payment reference from your bank.'; return; }
       vm.co.payError = null;
       vm.co.placing = true;
+      // One key per attempt: if this request is sent twice, the server places one order.
+      // After an answer the key is dropped, so trying again (another card, say) is a new attempt.
+      vm.co.key = vm.co.key || ('co-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12));
       api.post('/orders', {
         address_id: vm.co.address_id,
         payment_method: vm.co.payment.method,
-        payment_token: token
-      }).then(function (order) {
+        payment_token: token,
+        idempotency_key: vm.co.key
+      }).finally(function () { vm.co.key = null; }).then(function (order) {
         vm.co.placing = false;
         refreshCart(); loadNotes();
         $location.path('/orders/' + order.id).search({ placed: 1 });

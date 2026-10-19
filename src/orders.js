@@ -13,7 +13,7 @@
 import crypto from 'node:crypto';
 import { actorUserId, audit } from './audit.js';
 import { CITIES, deliveryDays, etaDate, isDeliverable, stockByWarehouse } from './catalog.js';
-import { all, dumps, isoDate, loads, now, one, run, scalar } from './db.js';
+import { all, changes, dumps, isoDate, loads, lockNamed, now, one, run, scalar } from './db.js';
 import { badRequest, conflict, forbidden, notFound } from './errors.js';
 import { notify } from './notify.js';
 import { provider } from './payments.js';
@@ -74,14 +74,12 @@ export async function addToCart(db, userId, offerId, qty = 1) {
   const offer = await liveOffer(db, offerId);
   if (!offer || offer.status !== 'active' || offer.product_status !== 'live') throw notFound('Offer');
   qty = toQty(qty);
-  const existing = await one(db, 'SELECT qty FROM cart_items WHERE user_id = ? AND offer_id = ?', userId, offerId);
-  const total = qty + (existing ? existing.qty : 0);
-  if (total < 1 || total > MAX_LINE_QTY) throw badRequest(`You can buy 1–${MAX_LINE_QTY} of each item.`);
-  if (existing) await run(db, 'UPDATE cart_items SET qty = ? WHERE user_id = ? AND offer_id = ?', total, userId, offerId);
-  else {
-    await run(db, 'INSERT INTO cart_items (user_id, offer_id, qty, price_at_add_paise, added_at) VALUES (?,?,?,?,?)',
-      userId, offerId, qty, offer.price_paise, now());
-  }
+  if (qty < 1 || qty > MAX_LINE_QTY) throw badRequest(`You can buy 1–${MAX_LINE_QTY} of each item.`);
+  // One statement, so two tabs adding at once both count. Too many rolls the whole request back.
+  const [{ qty: total }] = await all(db, `INSERT INTO cart_items (user_id, offer_id, qty, price_at_add_paise, added_at) VALUES (?,?,?,?,?)
+    ON CONFLICT (user_id, offer_id) DO UPDATE SET qty = cart_items.qty + EXCLUDED.qty RETURNING qty`,
+  userId, offerId, qty, offer.price_paise, now());
+  if (total > MAX_LINE_QTY) throw badRequest(`You can buy 1–${MAX_LINE_QTY} of each item.`);
 }
 
 export async function setCartQty(db, userId, offerId, qty) {
@@ -194,7 +192,12 @@ export async function checkoutPreview(db, userId, addressId) {
 }
 
 // Pick warehouses for qty units: same-city first, then the location with most stock.
-function allocate(stock, qty, city) {
+// Another checkout took the last units first. The customer's cart is kept (the order rolls back).
+const soldOut = (offer) => conflict(`Sorry, ${offer.title} just sold out. Your cart is saved: please review it.`, {
+  issues: [{ type: 'out_of_stock', offer_id: offer.id, title: offer.title, message: `${offer.title} just sold out.` }],
+});
+
+function allocate(stock, qty, city, offer) {
   const picks = [];
   const ordered = [...stock].sort((a, b) =>
     Number(a.city !== city) - Number(b.city !== city) || b.available - a.available || a.warehouse_id - b.warehouse_id);
@@ -206,7 +209,7 @@ function allocate(stock, qty, city) {
       qty -= take;
     }
   }
-  if (qty) throw conflict('Stock changed while placing the order. Please try again.');
+  if (qty) throw soldOut(offer);
   return picks;
 }
 
@@ -232,15 +235,29 @@ export async function placeOrder(db, userId, addressId, method, token, { stateme
   const city = addr.city;
   const ts = now();
 
+  // Reserve the stock before anything else. The stock read above isn't locked, so another
+  // checkout may take the same units first: each guarded UPDATE reserves only while enough is
+  // still free, and if one changes nothing we stop and the transaction rolls back. Rows are
+  // reserved in (offer, warehouse) order, so two checkouts always lock them in the same order
+  // and can't deadlock.
+  const plan = check.lines.map((line) => ({ line, picks: allocate(line.stock, line.qty, city, line.offer) }));
+  const holds = plan.flatMap(({ line, picks }) => picks.map(([s, take]) => ({ offer: line.offer, warehouseId: s.warehouse_id, take })))
+    .sort((a, b) => a.offer.id - b.offer.id || a.warehouseId - b.warehouseId);
+  for (const h of holds) {
+    const held = await changes(db, `UPDATE inventory SET reserved = reserved + ?
+                                    WHERE offer_id = ? AND warehouse_id = ? AND on_hand - reserved >= ?`, h.take, h.offer.id, h.warehouseId, h.take);
+    if (!held) throw soldOut(h.offer);
+  }
+
   const orderId = await run(db, `INSERT INTO orders (user_id, address, status, payment_status, fulfilment_status, payment_method,
                                                subtotal_paise, shipping_paise, total_paise, created_at, updated_at)
                            VALUES (?,?, 'pending_payment', 'pending', 'not_started', ?,?,?,?,?,?)`,
   userId, dumps(addr), method, t.subtotal_paise, t.shipping_paise, t.total_paise, ts, ts);
 
   const shipments = new Map(); // warehouse_id -> {id, amount, days, name}
-  for (const line of check.lines) {
+  for (const { line, picks } of plan) {
     const o = line.offer;
-    for (const [s, take] of allocate(line.stock, line.qty, city)) {
+    for (const [s, take] of picks) {
       let ship = shipments.get(s.warehouse_id);
       if (!ship) {
         const sid = await run(db, `INSERT INTO shipments (order_id, warehouse_id, status, amount_paise, created_at, updated_at)
@@ -253,7 +270,6 @@ export async function placeOrder(db, userId, addressId, method, token, { stateme
       await run(db, `INSERT INTO order_items (order_id, shipment_id, offer_id, product_id, seller_id, warehouse_id, title,
                                         qty, unit_price_paise) VALUES (?,?,?,?,?,?,?,?,?)`,
       orderId, ship.id, o.id, o.product_id, o.seller_id, s.warehouse_id, o.title, take, o.price_paise);
-      await run(db, 'UPDATE inventory SET reserved = reserved + ? WHERE offer_id = ? AND warehouse_id = ?', take, o.id, s.warehouse_id);
     }
   }
   let first = true;
@@ -382,9 +398,13 @@ export async function refreshOrder(db, orderId) {
 // Sellers can only pick, pack and ship their own seller-dispatched shipments;
 // carrier stages after that are driven by Equidron ops (the logistics simulator).
 export async function advanceShipment(db, shipmentId, actor, sellerId = null) {
+  const where = await one(db, 'SELECT order_id FROM shipments WHERE id = ?', shipmentId);
+  if (!where) throw notFound('Shipment');
+  // Lock the order, then the shipment: cancelling and advancing can't cross, and a double
+  // click can't move it two stages. Always order first, so two requests can't deadlock.
+  await one(db, 'SELECT id FROM orders WHERE id = ? FOR UPDATE', where.order_id);
   const s = await one(db, `SELECT sh.*, w.name AS warehouse_name, w.kind, w.seller_id AS wh_seller_id
-                     FROM shipments sh JOIN warehouses w ON w.id = sh.warehouse_id WHERE sh.id = ?`, shipmentId);
-  if (!s) throw notFound('Shipment');
+                     FROM shipments sh JOIN warehouses w ON w.id = sh.warehouse_id WHERE sh.id = ? FOR UPDATE OF sh`, shipmentId);
   if (['delivered', 'cancelled'].includes(s.status)) throw conflict(`This shipment is already ${s.status}.`);
   const nxt = SHIPMENT_STAGES[stage(s.status) + 1];
   if (actor === 'seller') {
@@ -439,7 +459,7 @@ export async function confirmDelivery(db, userId, shipmentId) {
 }
 
 export async function cancelOrder(db, userId, orderId) {
-  const o = await one(db, 'SELECT * FROM orders WHERE id = ? AND user_id = ?', orderId, userId);
+  const o = await one(db, 'SELECT * FROM orders WHERE id = ? AND user_id = ? FOR UPDATE', orderId, userId);
   if (!o) throw notFound('Order');
   if (o.status !== 'confirmed') throw conflict('Only confirmed orders can be cancelled.');
   const stages = (await all(db, 'SELECT status FROM shipments WHERE order_id = ?', orderId)).map((r) => r.status);
@@ -495,7 +515,7 @@ export async function returnEligibility(db, item, today = new Date()) {
 
 export async function requestReturn(db, userId, orderId, orderItemId, qty, reason) {
   const item = await one(db, `SELECT oi.* FROM order_items oi JOIN orders o ON o.id = oi.order_id
-                        WHERE oi.id = ? AND oi.order_id = ? AND o.user_id = ?`, orderItemId, orderId, userId);
+                        WHERE oi.id = ? AND oi.order_id = ? AND o.user_id = ? FOR UPDATE OF oi`, orderItemId, orderId, userId);
   if (!item) throw notFound('Order item');
   reason = String(reason || '').trim();
   if (!reason) throw badRequest("Tell us why you're returning it.");
@@ -512,9 +532,17 @@ export async function requestReturn(db, userId, orderId, orderItemId, qty, reaso
   return rid;
 }
 
+// Lock the order, then the return, and read it fresh: the second of two clicks sees the first's result.
+async function lockReturn(db, returnId) {
+  const where = await one(db, 'SELECT order_id FROM returns WHERE id = ?', returnId);
+  if (!where) return null;
+  await one(db, 'SELECT id FROM orders WHERE id = ? FOR UPDATE', where.order_id);
+  return await one(db, 'SELECT * FROM returns WHERE id = ? FOR UPDATE', returnId);
+}
+
 // Ops marks the returned item as received: refund the customer, restock, debit the seller.
 export async function receiveReturn(db, returnId, restock = true, decidedBy = actorUserId()) {
-  const r = await one(db, 'SELECT * FROM returns WHERE id = ?', returnId);
+  const r = await lockReturn(db, returnId); // two clicks can't refund twice
   if (!r) throw notFound('Return');
   if (r.status !== 'pickup_scheduled') throw conflict(`This return is already ${r.status}.`);
   const item = await one(db, 'SELECT * FROM order_items WHERE id = ?', r.order_item_id);
@@ -533,7 +561,7 @@ export async function receiveReturn(db, returnId, restock = true, decidedBy = ac
 }
 
 export async function rejectReturn(db, returnId, note, decidedBy = actorUserId()) {
-  const r = await one(db, 'SELECT * FROM returns WHERE id = ?', returnId);
+  const r = await lockReturn(db, returnId);
   if (!r) throw notFound('Return');
   if (r.status !== 'pickup_scheduled') throw conflict(`This return is already ${r.status}.`);
   await run(db, "UPDATE returns SET status = 'rejected', updated_at = ?, decided_by = ? WHERE id = ?", now(), decidedBy, returnId);
@@ -566,6 +594,7 @@ export async function sellerLedger(db, sellerId) {
 
 // Pay out every seller's positive balance (simulated bank transfer).
 export async function runSettlement(db) {
+  await lockNamed(db, 'settlement'); // a second run waits, then finds the balances already paid
   const payouts = [];
   for (const s of await all(db, 'SELECT id, name, user_id FROM sellers')) {
     const balance = await scalar(db, 'SELECT COALESCE(SUM(amount_paise), 0) FROM seller_ledger WHERE seller_id = ?', s.id);

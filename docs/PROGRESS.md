@@ -1,8 +1,9 @@
 # Progress
 
 ## Current phase
-Phase 1 · Real accounts, roles and an audit trail, on branch `phase-1-accounts` (built on `phase-0-setup`).
-Built and tested; waiting for the owner's review and merge.
+Phase 2a · Concurrency, on branch `phase-2-concurrency` (built on `phase-1-accounts`). Built and tested locally on
+PGlite; the real-PostgreSQL concurrency run happens in CI once the branch is pushed.
+Phase 1 (`phase-1-accounts`) is pushed, CI green, waiting for the owner's review and merge.
 
 ## Done
 - Phase 0: CLAUDE.md, docs/ROADMAP.md, docs/PROGRESS.md, docs/DECISIONS.md, the PDF in docs/, and
@@ -17,6 +18,9 @@ Built and tested; waiting for the owner's review and merge.
   - Outbox (Ops → Outbox) holds the emails until Phase 10.
   - Demo switch `EQUIDRON_SEED_DEMO=1`; security headers in netlify.toml and the local server; SRI on AngularJS.
 - `node --test`: 79 of 79 pass (59 from before, 20 new).
+- Phase 2a: the global write lock is gone; guarded stock reservation; row locks on decisions, cancels, shipments and
+  refunds; named locks for settlement and the seed; idempotent checkout (`idempotency_keys`); PostgreSQL 16 in CI.
+  `node --test`: 84 of 84 pass.
 
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
@@ -30,7 +34,8 @@ Built and tested; waiting for the owner's review and merge.
   sample sign-ins stop working after the deploy. Then push `phase-1-accounts` and open its pull request.
 
 ## Next
-Phase 2 · Data built for real traffic (removes the global write lock, roadmap gap 1).
+Push `phase-2-concurrency` so CI runs the concurrency tests on real PostgreSQL. Then Phase 2b: TIMESTAMPTZ, JSONB and
+BOOLEAN columns, full-text search with paging.
 
 ## Open questions
 - Should two-step sign-in become required for admin staff now, or at go-live (Phase 15)? Recommended: Phase 15.

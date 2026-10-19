@@ -226,14 +226,15 @@ async function apply(db, subId) {
 
   // Quantity is the number of sellable units at the seller's home location.
   const home = await homeWarehouse(db, sellerId, fulfilment);
-  const inv = await one(db, 'SELECT reserved FROM inventory WHERE offer_id = ? AND warehouse_id = ?', offerId, home);
-  if (!inv) await run(db, 'INSERT INTO inventory (offer_id, warehouse_id, on_hand, reserved) VALUES (?,?,?,0)', offerId, home, p.quantity);
-  else await run(db, 'UPDATE inventory SET on_hand = ? WHERE offer_id = ? AND warehouse_id = ?', inv.reserved + p.quantity, offerId, home);
+  // One statement, so a checkout reserving units at the same moment can't be overwritten.
+  await run(db, `INSERT INTO inventory (offer_id, warehouse_id, on_hand, reserved) VALUES (?,?,?,0)
+                 ON CONFLICT (offer_id, warehouse_id) DO UPDATE SET on_hand = inventory.reserved + EXCLUDED.on_hand`,
+  offerId, home, p.quantity);
 }
 
 // decidedBy: the reviewer's user id, kept on the submission and in the audit log.
 export async function decide(db, subId, approve, note = '', decidedBy = actorUserId()) {
-  const sub = await one(db, 'SELECT * FROM submissions WHERE id = ?', subId);
+  const sub = await one(db, 'SELECT * FROM submissions WHERE id = ? FOR UPDATE', subId); // two reviewers can't both decide
   if (!sub) throw notFound('Submission');
   if (sub.status !== 'pending') throw conflict(`This submission was already ${sub.status}.`);
   if (approve) await apply(db, subId);

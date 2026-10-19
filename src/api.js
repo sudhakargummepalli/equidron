@@ -9,7 +9,7 @@ import * as assistant from './assistant.js';
 import { ANONYMOUS, actingAs, audit, auditsWritten, listAudit, safeBody, setActor, userActor } from './audit.js';
 import * as auth from './auth.js';
 import * as catalog from './catalog.js';
-import { one, scalar, transaction } from './db.js';
+import { changes, one, run, scalar, transaction } from './db.js';
 import { AppError } from './errors.js';
 import * as listings from './listings.js';
 import { mask } from './mask.js';
@@ -173,7 +173,33 @@ route('POST', 'shop', '/addresses', async (c) => {
   return new Reply(201, await orders.listAddresses(c.db, c.user.id));
 });
 route('POST', 'shop', '/checkout/preview', async (c) => await orders.checkoutPreview(c.db, c.user.id, c.body.address_id));
+// With an idempotency_key (the page makes one per "Place your order" click), the same request
+// sent twice gets the first answer back instead of a second order. The second request waits on
+// the key's row until the first commits; if the first failed and rolled back, the key is free
+// again and the second goes ahead.
 route('POST', 'shop', '/orders', async (c) => {
+  const key = c.body.idempotency_key;
+  if (key == null) return await placeOrderReply(c);
+  if (typeof key !== 'string' || !/^[A-Za-z0-9_-]{8,100}$/.test(key)) {
+    throw new AppError(400, 'idempotency_key must be 8-100 letters, digits, - or _.');
+  }
+  const fresh = await changes(c.db, `INSERT INTO idempotency_keys (user_id, key, route) VALUES (?,?, 'shop.orders')
+                                     ON CONFLICT (user_id, key) DO NOTHING`, c.user.id, key);
+  if (!fresh) {
+    const first = await one(c.db, 'SELECT status, response FROM idempotency_keys WHERE user_id = ? AND key = ?', c.user.id, key);
+    return new Reply(first.status, first.response);
+  }
+  const reply = await placeOrderReply(c);
+  await run(c.db, 'UPDATE idempotency_keys SET status = ?, response = ? WHERE user_id = ? AND key = ?',
+    reply.status, JSON.stringify(reply.payload), c.user.id, key);
+  return reply;
+}, false, {
+  // A bank-transfer order is checked against the bank statement: fetch it before the
+  // transaction so no database rows are locked during the network call.
+  prepare: (body) => (body.payment_method === 'bank' ? loadStatement() : null),
+});
+
+async function placeOrderReply(c) {
   const b = c.body;
   const res = await orders.placeOrder(c.db, c.user.id, b.address_id, b.payment_method, b.payment_token, { statement: c.prepared });
   if (res.result === 'issues') {
@@ -190,11 +216,7 @@ route('POST', 'shop', '/orders', async (c) => {
     });
   }
   return new Reply(201, res.order);
-}, false, {
-  // A bank-transfer order is checked against the bank statement: fetch it before the
-  // transaction so the database lock isn't held during the network call.
-  prepare: (body) => (body.payment_method === 'bank' ? loadStatement() : null),
-});
+}
 route('GET', 'shop', '/orders', async (c) => await orders.listOrders(c.db, c.user.id));
 route('GET', 'shop', '/orders/(\\d+)', async (c, oid) => await orders.getOrder(c.db, int(oid), c.user.id));
 route('POST', 'shop', '/orders/(\\d+)/cancel', async (c, oid) => await orders.cancelOrder(c.db, c.user.id, int(oid)));
