@@ -104,7 +104,10 @@ export async function ensureAgents(db, profiles) {
   const created = [];
   for (const [id, p] of Object.entries(profiles)) {
     if (await scalar(db, 'SELECT COUNT(*) FROM agents WHERE id = ?', id)) continue;
-    await createAgent(db, { id, name: p.name, model: p.model, effort: p.effort ?? 'low', level: p.level ?? 1, dailyBudgetUsd: p.dailyBudgetUsd ?? 2 });
+    await createAgent(db, {
+      id, name: p.name, model: p.model, effort: p.effort ?? 'low', level: p.level ?? 1,
+      enabled: p.enabled === true, maxSteps: p.maxSteps ?? 8, dailyBudgetUsd: p.dailyBudgetUsd ?? 2,
+    });
     created.push(id);
   }
   return created;

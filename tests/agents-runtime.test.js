@@ -3,6 +3,7 @@
 // limits (budget, pause, tokens, steps, retries, refusals, structured output, masking).
 import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
+import { answer } from '../src/assistant.js';
 import { settings } from '../src/auth.js';
 import { createAgent, getAgent, pauseAll, updateAgent } from '../src/agents/agents.js';
 import { decideApproval, listApprovals } from '../src/agents/approvals.js';
@@ -315,4 +316,28 @@ test('an agent that must answer in a shape is checked in code', async () => {
   const failed = await runAgent(db, { agentId: 'test_decider', task: 'decide', trigger: 'test' }, { client: bad, sleep: async () => {} });
   assert.equal(failed.status, 'failed');
   assert.match(failed.error, /confidence/);
+});
+
+test('the shop assistant is a run too: a chat leaves its steps, tokens and cost in Ops', async () => {
+  // The customer's own order, asked about through the chat the way the page does it.
+  const order = await one(db, `SELECT o.id FROM orders o JOIN shipments s ON s.order_id = o.id
+                               WHERE o.user_id = ? AND s.status = 'delivered' ORDER BY o.id DESC LIMIT 1`, asha);
+  const client = scripted(
+    () => toolUse('get_my_order', { order_id: order.id }, 'tu_chat'),
+    () => say('Yes, that order was delivered.'),
+  );
+  const out = await answer(db, { user: { id: asha, name: 'Asha' }, city: 'Bengaluru' },
+    [{ role: 'user', content: 'Was my order delivered?' }], { client, sleep: async () => {} });
+  assert.equal(out.reply, 'Yes, that order was delivered.');
+  assert.deepEqual(out.products, []); // no product names in the reply
+
+  const run = await one(db, "SELECT * FROM agent_runs WHERE agent_id = 'store_assistant' ORDER BY id DESC LIMIT 1");
+  assert.equal(run.trigger, 'chat');
+  assert.equal(run.status, 'done');
+  assert.ok(run.input_tokens > 0 && run.output_tokens > 0);
+  assert.ok(Number(run.cost_usd) > 0);
+  const steps = await all(db, 'SELECT * FROM agent_steps WHERE run_id = ? ORDER BY step', run.id);
+  assert.deepEqual(steps.map((s) => s.kind), ['model', 'tool', 'model']);
+  assert.equal(steps[1].tool, 'get_my_order');
+  assert.equal(steps[1].decision, 'execute'); // a read needs nobody's permission
 });

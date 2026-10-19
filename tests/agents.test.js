@@ -219,7 +219,10 @@ test('only the tools an agent is allowed are offered to it', () => {
   assert.deepEqual(toolDefsFor('demo_reader'), []); // not registered for it at all
   const ops = toolDefsFor('ops_helper').map((t) => t.name).sort();
   assert.deepEqual(ops, ['advance_shipment', 'get_order', 'refund_return']);
-  assert.deepEqual(toolDefsFor('store_assistant').map((t) => t.name), ['get_order']); // look, don't act
+  const chat = toolDefsFor('store_assistant').map((t) => t.name).sort();
+  assert.deepEqual(chat, ['get_my_order', 'get_product', 'list_my_orders', 'search_products']);
+  // The shop assistant can look, never act.
+  assert.ok(toolsFor('store_assistant').every((t) => t.risk === 'read'));
   // What the model sees is the schema and nothing about risk or limits.
   assert.equal(Object.hasOwn(toolDefsFor('ops_helper')[0], 'risk'), false);
   assert.ok(toolsFor('ops_helper').every((t) => t.agents.includes('ops_helper')));

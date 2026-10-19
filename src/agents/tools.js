@@ -108,7 +108,7 @@ registerTool({
   name: 'get_order',
   description: 'One order: status, payment, total, and each shipment with its stage and tracking number. Read-only.',
   risk: 'read',
-  agents: ['ops_helper', 'store_assistant'],
+  agents: ['ops_helper'],
   input_schema: {
     type: 'object', additionalProperties: false,
     properties: { order_id: { type: 'integer', description: 'The order number.' } },
@@ -169,5 +169,121 @@ registerTool({
   async run(db, ctx, input) {
     const refunded = await orders.receiveReturn(db, input.return_id, true, ctx.decidedBy ?? ctx.agent.user_id);
     return { return_id: input.return_id, refunded_paise: refunded };
+  },
+});
+
+// ---------------------------------------------------------------- the store assistant
+//
+// Read-only lookups, the same shape the shop chat has always returned. They are tools like any
+// other: the customer in the case comes from ctx (never from the model), and the policy check
+// sees `risk: 'read'`.
+
+const rupees = (paise) => (paise == null ? null : orders.inr(paise));
+
+registerTool({
+  name: 'search_products',
+  description: 'Search the Equidron catalogue. Returns up to 8 matching products with the featured price, rating, stock and delivery estimate for the customer\'s city. Use it to find or compare products.',
+  risk: 'read',
+  agents: ['store_assistant'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      query: { type: 'string', description: 'What to search for, e.g. "gaming laptop 32GB" or "kettle". Empty to browse a category.' },
+      category: { type: 'string', enum: CATEGORIES, description: 'Optional category filter.' },
+      max_price_rupees: { type: 'number', description: 'Optional maximum price in rupees.' },
+      sort: { type: 'string', enum: ['relevance', 'price_asc', 'price_desc', 'rating'], description: 'Optional sort order. Default relevance.' },
+    },
+    required: ['query'],
+  },
+  async run(db, ctx, input) {
+    const query = String(input.query ?? '').slice(0, 200);
+    const category = CATEGORIES.includes(input.category) ? input.category : null;
+    const sort = ['relevance', 'price_asc', 'price_desc', 'rating'].includes(input.sort) ? input.sort : 'relevance';
+    let results = await search(db, query, category, sort, ctx.city);
+    const max = Number(input.max_price_rupees);
+    if (Number.isFinite(max) && max > 0) {
+      results = results.filter((p) => (p.featured_offer ? p.featured_offer.price_paise : p.min_price_paise) <= max * 100);
+    }
+    return results.slice(0, 8).map((p) => {
+      ctx.seen?.set(p.id, p.title);
+      return {
+        product_id: p.id, title: p.title, brand: p.brand, category: p.category,
+        rating: p.rating, reviews: p.review_count,
+        price: rupees(p.featured_offer ? p.featured_offer.price_paise : p.min_price_paise),
+        mrp: rupees(p.featured_offer && p.featured_offer.mrp_paise),
+        seller: p.featured_offer && p.featured_offer.seller_name,
+        delivery_by: p.featured_offer && p.featured_offer.eta,
+        offers: p.offer_count,
+        availability: p.featured_offer ? 'in stock' : p.in_stock ? `not deliverable to ${ctx.city}` : 'out of stock',
+        key_specs: Object.fromEntries(Object.entries(p.specs).slice(0, 5)),
+      };
+    });
+  },
+});
+
+registerTool({
+  name: 'get_product',
+  description: 'Full details for one product: description, specifications, and every seller offer with price, condition, stock, delivery estimate and who ships it.',
+  risk: 'read',
+  agents: ['store_assistant'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: { product_id: { type: 'integer', description: 'Product id from search_products.' } },
+    required: ['product_id'],
+  },
+  async run(db, ctx, input) {
+    const p = await productDetail(db, Number(input.product_id), ctx.city);
+    ctx.seen?.set(p.id, p.title);
+    return {
+      product_id: p.id, title: p.title, brand: p.brand, category: p.category, rating: p.rating, reviews: p.review_count,
+      description: p.description, specs: p.specs,
+      returns: p.return_window_days ? `Returnable within ${p.return_window_days} days of delivery` : 'Not returnable',
+      offers: p.offers.map((o) => ({
+        seller: o.seller_name, seller_rating: o.seller_rating, price: rupees(o.price_paise), mrp: rupees(o.mrp_paise),
+        condition: o.condition, in_stock: o.available, deliverable_to_city: o.deliverable, delivery_by: o.eta,
+        shipped_by: o.fulfilment_label, featured: o.is_featured,
+      })),
+    };
+  },
+});
+
+registerTool({
+  name: 'list_my_orders',
+  description: "The signed-in customer's orders, newest first, with status, total and items.",
+  risk: 'read',
+  agents: ['store_assistant'],
+  input_schema: { type: 'object', additionalProperties: false, properties: {} },
+  async run(db, ctx) {
+    if (!ctx.customerId) return { error: 'The customer is not signed in.' };
+    return (await orders.listOrders(db, ctx.customerId)).slice(0, 20).map((o) => ({
+      order_id: o.id, placed: o.created_at, status: o.status, payment: o.payment_status, fulfilment: o.fulfilment_status,
+      total: rupees(o.total_paise), items: o.items.map((i) => `${i.title} × ${i.qty}`),
+    }));
+  },
+});
+
+registerTool({
+  name: 'get_my_order',
+  description: "One of the signed-in customer's orders: payment, each shipment's stage, tracking number and delivery estimate, and which items can still be returned.",
+  risk: 'read',
+  agents: ['store_assistant'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: { order_id: { type: 'integer' } },
+    required: ['order_id'],
+  },
+  async run(db, ctx, input) {
+    if (!ctx.customerId) return { error: 'The customer is not signed in.' };
+    const o = await orders.getOrder(db, Number(input.order_id), ctx.customerId); // someone else's order: not found
+    return {
+      order_id: o.id, placed: o.created_at, status: o.status, payment_status: o.payment_status, fulfilment: o.fulfilment_status,
+      total: rupees(o.total_paise), payment_method: o.payment_method, can_cancel: o.cancellable,
+      deliver_to: o.address.city,
+      shipments: o.shipments.map((s) => ({
+        stage: s.status, from: s.warehouse_name, carrier: s.carrier, tracking: s.tracking_no, delivery_by: s.eta,
+        items: s.items.map((i) => ({ title: i.title, qty: i.qty, price: rupees(i.unit_price_paise), returnable: i.returnable, return_note: i.return_note })),
+      })),
+      returns: o.returns.map((r) => ({ item: r.title, qty: r.qty, status: r.status, refund: rupees(r.refund_paise) })),
+    };
   },
 });
