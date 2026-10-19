@@ -23,6 +23,17 @@ export const AREAS = { shop: 'customer', seller: 'seller', ops: 'ops' };
 const SAMPLE_NOTICE = 'Sample data: every seller, product, customer and order here is fictional. Payments are simulated.';
 const ROUTES = [];
 
+// The staff permission each part of Ops needs (see auth.PERMISSIONS). An Ops route
+// that isn't listed needs admin, so a new route is closed until someone opens it.
+const OPS_PERMISSIONS = [
+  [/^\/(login|logout|me|notifications|notifications\/read|overview)$/, null],
+  [/^\/submissions/, 'catalog'],
+  [/^\/shipments/, 'logistics'],
+  [/^\/(returns|support)/, 'support'],
+  [/^\/settlement/, 'finance'],
+];
+const opsPermission = (pattern) => (OPS_PERMISSIONS.find(([re]) => re.test(pattern)) ?? [null, 'admin'])[1];
+
 // readOnly: a non-GET route that writes nothing, so it runs outside a transaction
 // (the assistant waits seconds on the model and must not hold the write lock).
 // prepare(body): slow work done before the transaction; its result is ctx.prepared.
@@ -31,7 +42,8 @@ const ROUTES = [];
 function route(method, area, pattern, fn, isPublic = false, { readOnly = false, prepare = null } = {}) {
   const words = pattern.split('/').filter((s) => s && !s.startsWith('('));
   const action = [area, ...words].join('.') + (method === 'POST' ? '' : `.${method.toLowerCase()}`);
-  ROUTES.push({ method, area, pattern: new RegExp(`^${pattern}$`), fn, isPublic, readOnly, prepare, action, entity: words[0] || area });
+  const permission = area === 'ops' ? opsPermission(pattern) : null;
+  ROUTES.push({ method, area, pattern: new RegExp(`^${pattern}$`), fn, isPublic, readOnly, prepare, action, entity: words[0] || area, permission });
 }
 
 class Reply {
@@ -231,6 +243,8 @@ route('POST', 'ops', '/support/(\\d+)/reply', async (c, tid) => {
   return await orders.listTickets(c.db);
 });
 route('POST', 'ops', '/settlement/run', async (c) => ({ payouts: await orders.runSettlement(c.db) }));
+route('GET', 'ops', '/staff', async (c) => ({ staff: await auth.staffList(c.db), permissions: auth.PERMISSIONS }));
+route('POST', 'ops', '/staff/(\\d+)/permissions', async (c, uid) => await auth.setPermissions(c.db, int(uid), c.body.permissions, c.user.id));
 route('GET', 'ops', '/audit', async (c) => mask(await listAudit(c.db, { entity: c.q('entity') || null })));
 
 // ---------------------------------------------------------------- dispatch
@@ -255,6 +269,9 @@ export async function handleApi(db, { method, path, query, body, cookies }) {
         const user = await auth.userForToken(db, token, AREAS[area]);
         if (!user && !r.isPublic) throw new AppError(401, 'Please sign in.');
         if (user) setActor(userActor(user));
+        if (r.permission && !auth.hasPermission(user, r.permission)) {
+          throw new AppError(403, `You need the "${r.permission}" permission for this. Ask an Equidron admin.`);
+        }
         const ctx = {
           db, user, body: body || {}, token, prepared,
           q: (name, fallback = null) => (query.has(name) ? query.get(name) : fallback),

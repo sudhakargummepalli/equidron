@@ -27,7 +27,7 @@ async function seedEmpty(db) {
   const sellers = {};
   const customerIds = {};
   await transaction(db, async () => {
-    for (const [email, name] of DATA.ops) await createUser(db, email, name, DEMO_PASSWORD, 'ops', true);
+    for (const [email, name] of DATA.ops) await createUser(db, email, name, DEMO_PASSWORD, 'ops', true, { permissions: ['admin'] });
     for (const [email, name, addr] of DATA.customers) {
       const uid = await createUser(db, email, name, DEMO_PASSWORD, 'customer', true);
       const [aName, line1, city, pincode, phone] = addr;
@@ -82,6 +82,8 @@ async function seedEmpty(db) {
     await orders.addToCart(db, asha, await offerId(db, 'Kitchora 1.5L', 'GreenLeaf Home Store'), 1);
     const onWay = (await orders.placeOrder(db, asha, addressId, 'upi', 'upi_sim_ok@equidron')).order;
     for (const sh of onWay.shipments) for (let i = 0; i < 4; i++) await orders.advanceShipment(db, sh.id, 'ops');
+    // Staff with only some permissions, to show what each part of Ops needs.
+    for (const [email, name, permissions] of DATA.staff) await createUser(db, email, name, DEMO_PASSWORD, 'ops', true, { permissions });
   });
   return true;
 }
