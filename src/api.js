@@ -392,9 +392,11 @@ route('POST', 'ops', '/agents/([a-z][a-z0-9_]*)', async (c, id) => {
 // Run the agent once, by hand, on a task typed in Ops. The runtime writes its own rows, so
 // this route runs outside the request transaction (readOnly: it must not hold one for minutes).
 route('POST', 'ops', '/agents/([a-z][a-z0-9_]*)/run', async (c, id) => {
+  // A task typed by a person, so it is short: a long prompt costs money and is usually a paste.
+  const task = String(c.body.task || '').trim().slice(0, 2000) || 'Look at the most recent open case and do what is right.';
   const run = await runAgent(c.db, {
     agentId: id,
-    task: String(c.body.task || '').trim() || 'Look at the most recent open case and do what is right.',
+    task,
     trigger: 'ops',
     subject: c.body.subject ? String(c.body.subject).slice(0, 100) : null,
   });

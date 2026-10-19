@@ -55,3 +55,24 @@ Start fresh with `node app.js --reset` (or `npm run reset`). Use three browser t
 28. Leave the app running: every five minutes the shipment simulator moves each active shipment one stage, without anyone clicking. Turn it off under **System → Switches**.
 29. **System → Send a test error**: it appears under *Recent errors* with its request id (and in Sentry, if `SENTRY_DSN` is set).
 30. Open **http://localhost:8000/api/health**: the database, the queue and the time of the last tick.
+
+## Part 7: Agents, with a person in charge
+This part needs a model: put `ANTHROPIC_API_KEY=...` in a local `.env` (never in git), or run it on Netlify, where the
+AI Gateway supplies one. Without credentials everything below still opens and explains itself; a run is refused.
+
+31. **Look at the agents.** In Ops (as `ops@example.com`) open **Agents**. Two agents are listed: *Ops helper* (off) and
+   *Store assistant* (on). Each shows its level, model, daily budget and today's spending. **Pause all** is the big red
+   button: nothing new starts, and a run that is going stops at its next step.
+32. **Shadow first (L1).** Turn *Ops helper* on, leave it at **L1 · shadow**, type a task such as *"Shipment 2 is late.
+   Check the order and move it on."* and press **Run once**. Open **Agent runs**: the run has a model step and a tool step;
+   the tool step says `shadow` and the shipment has **not** moved. Press it again at L1 and compare: same outcome.
+33. **Ask a person (L2).** Set the level to **L2 · propose** and run the same task. The run ends as `waiting` and the action
+   appears in **Approvals** with its risk, amount and the agent's reason. **Reject** one: nothing happens. Run again and
+   **Approve**: the shipment moves, once. Two people clicking approve at the same time still move it once.
+34. **Act within limits (L3).** Set **L3 · act within limits** and run it: the tool step says `execute` and the shipment
+   moves without an approval. The run's tokens and its cost in dollars are on **Agent runs**; the daily budget on
+   **Agents** goes up by that much. When the budget is spent, the next run stops instead of starting.
+35. **The shop chat is an agent too.** Ask the store assistant *"Was my order delivered?"*: the reply arrives as before,
+   and a new run appears in **Agent runs** with a `get_my_order` step marked `execute`. Reads never need approval.
+36. **Evals.** `node scripts/eval.js ops_helper` is free: it lists the cases and the likely cost. `--yes` calls the real
+   model and spends credit; ask before running it.

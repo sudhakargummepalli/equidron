@@ -179,6 +179,9 @@ test('only the switches a person controls can be changed, and only to sane value
   assert.equal(on.max_steps, 6);
   await assert.rejects(updateAgent(shop, 'demo_writer', { autonomy_level: 5 }), (e) => e.status === 400);
   await assert.rejects(updateAgent(shop, 'demo_writer', { daily_budget_usd: -1 }), (e) => e.status === 400);
+  // An empty box on the page must not read as "budget 0", which would switch the agent off.
+  await assert.rejects(updateAgent(shop, 'demo_writer', { daily_budget_usd: null }), (e) => e.status === 400);
+  assert.equal((await getAgent(shop, 'demo_writer')).daily_budget_usd, 1.5); // unchanged by the refused edits
   await assert.rejects(updateAgent(shop, 'nobody', { enabled: true }), (e) => e.status === 404);
   assert.ok((await listAgents(shop)).some((a) => a.id === 'demo_writer'));
 });

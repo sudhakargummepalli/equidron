@@ -72,16 +72,21 @@ seller.signed_up waits for seller sign-up (Phase 11).
 
 ## Phase 4 · The agent runtime (B · L)
 Goal: one safe, visible way to run any agent.
-- [ ] Tables: agents, agent_runs, agent_steps, approvals, eval_cases, eval_results (Appendix A); a user account per agent
-- [ ] `src/agents/runtime.js`: runAgent() grown from converse(): model per agent, step/token/daily-spend limits, retries on 429/5xx, refusals, structured output, cost from usage, masked step records
-- [ ] `src/agents/tools.js`: registry with schema, risk (read/write/money/irreversible), allowed agents, limits, run() via service functions in a transaction with an idempotency key
-- [ ] `src/agents/policy.js`: decide() = execute | shadow | needs_approval | deny; hard gates; global pause
-- [ ] Ops pages: Approvals, Agents (on/off, level, model, budget, spend, pause all), Agent runs (step view)
-- [ ] Model routing; move the store assistant onto runAgent()
-- [ ] `scripts/eval.js <agent>` (real model, costs credits, ask first)
+- [x] Tables: agents, agent_runs, agent_steps, approvals, eval_cases, eval_results (Appendix A); a user account per agent
+- [x] `src/agents/runtime.js`: runAgent() grown from converse(): model per agent, step/token/daily-spend limits, retries on 429/5xx, refusals, structured output, cost from usage, masked step records
+- [x] `src/agents/tools.js`: registry with schema, risk (read/write/money/irreversible), allowed agents, limits, run() via service functions in a transaction with an idempotency key
+- [x] `src/agents/policy.js`: decide() = execute | shadow | needs_approval | deny; hard gates; global pause
+- [x] Ops pages: Approvals, Agents (on/off, level, model, budget, spend, pause all), Agent runs (step view)
+- [x] Model routing; move the store assistant onto runAgent()
+- [x] `scripts/eval.js <agent>` (real model, costs credits, ask first)
 
 Tests: policy table; budget stop; pause all stops new and running runs; approved action runs once; denied tool never reaches the service.
 Done when: a demo agent runs a read and a write tool; the write is recorded at L1, needs approval at L2, runs at L3; runs, steps and costs visible; all green.
+Status (branch phase-4-agent-runtime): all four are proved by `tests/agents-runtime.test.js` (a read and a write in one run;
+the same write recorded at L1, waiting at L2, running at L3; the run's steps, tokens and cost in the tables the Ops pages read).
+A hands-on demo needs model credentials (`ANTHROPIC_API_KEY` in a local `.env`, or the Netlify AI Gateway): the runtime refuses
+to start without them, so the pages can be checked without, but no run can happen. No eval cases exist yet; the runner is
+built and its dry run is free.
 
 ## Phase 5 · First Ops agents (B · M)
 - [ ] Listing Review (Sonnet) on submission.created: {decision, reasons, confidence, policy_refs}; L1 agreement score; L3 only clean high-confidence cases

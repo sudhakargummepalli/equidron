@@ -50,12 +50,20 @@ src/listings.js              seller listings, validation, submissions, automatic
 src/orders.js                cart, checkout, payments, shipments, returns, tickets, settlement
 src/payments.js              SimulatedProvider (cards, UPI, COD, bank transfer)
 src/statement.js             bank-statement check for bank-transfer payments (Google Sheet CSV or sample)
-src/assistant.js             store assistant: converse() tool loop, daily question limit
-src/seller-assistant.js      Seller Central assistant on the same loop
+src/assistant.js             store assistant: answer() on the agent runtime, daily question limit
+src/seller-assistant.js      Seller Central assistant on the older converse() loop
+src/agents/runtime.js        runAgent(): one loop for every agent, with limits, retries and masked traces
+src/agents/tools.js          the tool registry: risk, allowed agents, one transaction + idempotency key
+src/agents/policy.js         decide(): execute / shadow / needs_approval / deny, hard gates, budget, pause
+src/agents/approvals.js      the approval inbox: an approved action runs from its stored payload, once
+src/agents/agents.js         agent rows, their own accounts, levels, budgets, pause all
+src/agents/models.js         model routing and the price table that turns usage into cost
+src/agents/profiles.js       each agent's prompt, its context and its defaults
+scripts/eval.js              an agent's eval set against the real model (dry run free; --yes costs credits)
 src/notify.js                in-app notifications
 src/seed.js, sample-data.json  sample sellers, products, offers, users and orders
 static/shop|seller|ops       AngularJS 1.8 pages; static/common holds shared JS, CSS and the chat panel
-tests/                       node:test suites (order flow, PostgreSQL, assistants, bank statement)
+tests/                       node:test suites (order flow, PostgreSQL, assistants, bank statement, agents)
 ```
 
 ## Conventions
@@ -93,6 +101,12 @@ tests/                       node:test suites (order flow, PostgreSQL, assistant
   ids and amounts only. New work is a job kind in `src/job-kinds.js` plus a line in `LISTENERS` (or an `enqueue()`
   with a dedupe key). A handler runs in one transaction with marking its job done, and must be safe to run again if it
   fails part-way. Log with `log()`/`reportError()` from `src/log.js`, not console.
+- Agents: a tool is the only way an agent changes anything. A new tool names its risk (read, write, money,
+  irreversible) and the agents allowed to use it, requires a `reason` unless it is a read, and calls a service
+  function (never raw SQL) so `executeTool()` can run it in one transaction under an idempotency key. The policy
+  check in `src/agents/policy.js` decides execute, shadow, needs approval or deny, in code and never only in the
+  prompt. `runAgent()` writes `agent_runs`/`agent_steps` with `mask()`ed text, and keeps its own short writes, so
+  call it outside a request transaction (a `readOnly` route).
 - Comments explain why, not what. Keep the existing plain style: ES modules, no build step, no framework on
   the server.
 

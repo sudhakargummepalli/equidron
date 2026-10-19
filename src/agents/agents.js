@@ -59,6 +59,9 @@ export async function updateAgent(db, id, patch = {}) {
     next.max_steps = patch.max_steps;
   }
   if (patch.daily_budget_usd !== undefined) {
+    // An empty box on the page arrives as null; Number(null) is 0, which would silently switch
+    // the agent off by budget, so refuse it instead.
+    if (patch.daily_budget_usd === null || patch.daily_budget_usd === '') throw badRequest('The daily budget needs a number, for example 1 or 2.50.');
     const usd = Number(patch.daily_budget_usd);
     if (!Number.isFinite(usd) || usd < 0 || usd > 100) throw badRequest('The daily budget is between 0 and 100 US dollars.');
     next.daily_budget_usd = Math.round(usd * 100) / 100;
