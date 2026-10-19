@@ -28,6 +28,9 @@
   <a ng-if="vm.can('admin')" href="#/audit" ng-class="{on: vm.route.name === 'audit'}">Audit log</a>
   <a ng-if="vm.can('admin')" href="#/outbox" ng-class="{on: vm.route.name === 'outbox'}">Outbox</a>
   <a ng-if="vm.can('admin')" href="#/system" ng-class="{on: vm.route.name === 'system'}">System<span ng-if="vm.system.jobs.dead"> ({{vm.system.jobs.dead}} dead)</span></a>
+  <a ng-if="vm.can('admin')" href="#/approvals" ng-class="{on: vm.route.name === 'approvals'}">Approvals<span ng-if="vm.overview.pending_approvals"> ({{vm.overview.pending_approvals}})</span></a>
+  <a ng-if="vm.can('admin')" href="#/agents" ng-class="{on: vm.route.name === 'agents'}">Agents<span ng-if="vm.overview.agents_paused"> (paused)</span></a>
+  <a ng-if="vm.can('admin')" href="#/runs" ng-class="{on: vm.route.name === 'runs'}">Agent runs</a>
 </div></div>
 <div class="sample">Sample data: every seller, product, customer and order here is fictional. Payments are simulated.</div>
 
@@ -240,6 +243,108 @@
         <tr ng-repeat="j in vm.system.recent"><td>#{{j.id}}</td><td><code>{{j.kind}}</code></td>
           <td><span class="badge {{j.status === 'done' ? 'good' : j.status === 'dead' ? 'bad' : 'info'}}">{{j.status}}</span></td>
           <td>{{j.attempts}}</td><td>{{j.finished_at | when}}</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ APPROVALS (admin) ============ -->
+  <section ng-if="vm.user && vm.route.name === 'approvals'">
+    <div class="row between"><h1>Approvals</h1><button class="btn small" ng-click="vm.loadApprovals()">Refresh</button></div>
+    <p class="small muted">Actions the policy check would not let an agent take alone. Approving runs exactly the tool and
+      input shown, once, and records who said yes. Rejecting does nothing.</p>
+    <div class="card table-wrap" ng-if="vm.approvals.length">
+      <table class="small">
+        <tr><th>Asked</th><th>Agent</th><th>Would do</th><th>Risk</th><th>Amount</th><th>Why</th><th>Note</th><th></th></tr>
+        <tr ng-repeat="a in vm.approvals">
+          <td>{{a.created_at | when}}<div class="muted" ng-if="a.subject">{{a.subject}}</div></td>
+          <td>{{a.agent_id}}</td>
+          <td><code>{{a.tool}}</code><div class="muted">{{a.payload | json}}</div></td>
+          <td><span class="badge {{a.risk === 'money' || a.risk === 'irreversible' ? 'bad' : 'info'}}">{{a.risk}}</span></td>
+          <td>{{a.amount_paise != null ? (a.amount_paise / 100 | currency:'₹':0) : '—'}}</td>
+          <td>{{a.reason}}</td>
+          <td><input ng-model="a.decision_note" placeholder="optional" style="width:120px"></td>
+          <td class="right">
+            <button class="btn small" ng-click="vm.decide(a, true)">Approve</button>
+            <button class="btn small ghost" ng-click="vm.decide(a, false)">Reject</button>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <p class="muted small" ng-if="!vm.approvals.length">Nothing is waiting for a person.</p>
+  </section>
+
+  <!-- ============ AGENTS (admin) ============ -->
+  <section ng-if="vm.user && vm.route.name === 'agents'">
+    <div class="row between">
+      <h1>Agents</h1>
+      <div>
+        <button class="btn small ghost" ng-click="vm.pauseAll(!vm.agentsPaused)">{{vm.agentsPaused ? 'Unpause all' : 'Pause all'}}</button>
+        <button class="btn small" ng-click="vm.loadAgents()">Refresh</button>
+      </div>
+    </div>
+    <div class="alert bad" ng-if="vm.agentsPaused">All agents are paused. Nothing new starts, and a run that is going stops at
+      its next step. Every other part of Ops keeps working.</div>
+    <p class="small muted">An agent starts <strong>off</strong> at <strong>L1 shadow</strong>: it decides and records, and people
+      still do the work. L2 asks a person before every change. L3 acts on low-value cases within its limit. L4 acts except on
+      the hard gates. The model is chosen per agent; the budget is per day in US dollars of AI credit.</p>
+    <div class="card" ng-repeat="a in vm.agents">
+      <div class="row between">
+        <h2>{{a.name}} <code class="small">{{a.id}}</code></h2>
+        <label class="row"><input type="checkbox" ng-model="a.enabled" ng-change="vm.saveAgent(a)"> On</label>
+      </div>
+      <div class="row" style="gap:14px;flex-wrap:wrap;align-items:flex-end">
+        <label>Level
+          <select ng-model="a.autonomy_level" ng-change="vm.saveAgent(a)"
+                  ng-options="l.value as l.label for l in vm.levelList"></select>
+        </label>
+        <label>Model <input ng-model="a.model" ng-change="vm.saveAgent(a)" style="width:210px"></label>
+        <label>Daily budget (USD)
+          <input type="number" step="0.01" min="0" ng-model="a.daily_budget_usd" ng-change="vm.saveAgent(a)" style="width:90px">
+        </label>
+        <label>Most steps <input type="number" min="1" max="50" ng-model="a.max_steps" ng-change="vm.saveAgent(a)" style="width:70px"></label>
+      </div>
+      <p class="small">Spent today ${{a.spent_today_usd || 0}} of ${{a.daily_budget_usd}} · {{a.runs}} runs · last run {{a.last_run | when}}</p>
+      <div class="row">
+        <input ng-model="a.task" style="flex:1"
+               placeholder="A task to try, for example: Shipment 12 is late. Check the order and move it on if that is right.">
+        <button class="btn small" ng-click="vm.runAgent(a)">Run once</button>
+      </div>
+      <p class="small" ng-if="a.run_message">{{a.run_message}}</p>
+    </div>
+  </section>
+
+  <!-- ============ AGENT RUNS (admin) ============ -->
+  <section ng-if="vm.user && vm.route.name === 'runs'">
+    <div class="row between"><h1>Agent runs</h1><button class="btn small" ng-click="vm.loadRuns()">Refresh</button></div>
+    <p class="small muted">Every run, newest first. Open one to see each model call and tool call. Phones, emails, PANs and
+      account numbers are masked before a step is stored.</p>
+    <div class="card table-wrap">
+      <table class="small">
+        <tr><th>#</th><th>Agent</th><th>Trigger</th><th>Subject</th><th>Status</th><th>Steps</th><th>Tokens</th><th>Cost</th><th>Started</th></tr>
+        <tr ng-repeat="r in vm.runs" ng-click="vm.openRun(r)" style="cursor:pointer">
+          <td>#{{r.id}}</td><td>{{r.agent_id}}</td><td><code>{{r.trigger}}</code></td><td>{{r.subject || '—'}}</td>
+          <td><span class="badge {{r.status === 'done' ? 'good' : r.status === 'failed' ? 'bad' : r.status === 'waiting' ? 'warn' : 'info'}}">{{r.status}}</span></td>
+          <td>{{r.steps}}</td><td>{{r.input_tokens + r.output_tokens}}</td><td>${{r.cost_usd}}</td><td>{{r.started_at | when}}</td>
+        </tr>
+      </table>
+      <p class="muted small" ng-if="!vm.runs.length">No runs yet. Try one from the Agents page, or ask the shop assistant something.</p>
+    </div>
+
+    <div class="card" ng-if="vm.runDetail">
+      <div class="row between">
+        <h2>Run #{{vm.runDetail.run.id}} · {{vm.runDetail.run.agent_id}}</h2>
+        <button class="btn small ghost" ng-click="vm.runDetail = null">Close</button>
+      </div>
+      <p class="small"><span class="badge info">{{vm.runDetail.run.status}}</span> {{vm.runDetail.run.summary}}</p>
+      <p class="small muted" ng-if="vm.runDetail.run.error">Error: {{vm.runDetail.run.error}}</p>
+      <table class="small">
+        <tr><th>Step</th><th>Kind</th><th>Tool</th><th>Decision</th><th>Input → output</th><th>When</th></tr>
+        <tr ng-repeat="s in vm.runDetail.steps">
+          <td>{{s.step}}</td><td>{{s.kind}}</td><td><code>{{s.tool || '—'}}</code></td>
+          <td><span class="badge {{s.decision === 'execute' ? 'good' : s.decision === 'deny' ? 'bad' : 'info'}}">{{s.decision || '—'}}</span></td>
+          <td><pre class="small" style="margin:0;white-space:pre-wrap">{{s.input | json}{{s.input && s.output ? ' → ' : ''}}{{s.output | json}}</pre></td>
+          <td>{{s.at | when}}</td>
+        </tr>
       </table>
     </div>
   </section>
