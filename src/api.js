@@ -6,11 +6,13 @@
 //   /api/seller/...  seller     (cookie eq_seller, Path=/api/seller)
 //   /api/ops/...     ops        (cookie eq_ops,    Path=/api/ops)
 import * as assistant from './assistant.js';
+import { ANONYMOUS, actingAs, audit, auditsWritten, listAudit, safeBody, setActor, userActor } from './audit.js';
 import * as auth from './auth.js';
 import * as catalog from './catalog.js';
 import { one, scalar, transaction } from './db.js';
 import { AppError } from './errors.js';
 import * as listings from './listings.js';
+import { mask } from './mask.js';
 import * as notify from './notify.js';
 import * as orders from './orders.js';
 import { answerSeller } from './seller-assistant.js';
@@ -24,8 +26,12 @@ const ROUTES = [];
 // readOnly: a non-GET route that writes nothing, so it runs outside a transaction
 // (the assistant waits seconds on the model and must not hold the write lock).
 // prepare(body): slow work done before the transaction; its result is ctx.prepared.
+// Each write route also has an audit name, used when its service functions record nothing:
+// POST /orders/(\d+)/cancel in shop is "shop.orders.cancel" on entity "orders".
 function route(method, area, pattern, fn, isPublic = false, { readOnly = false, prepare = null } = {}) {
-  ROUTES.push({ method, area, pattern: new RegExp(`^${pattern}$`), fn, isPublic, readOnly, prepare });
+  const words = pattern.split('/').filter((s) => s && !s.startsWith('('));
+  const action = [area, ...words].join('.') + (method === 'POST' ? '' : `.${method.toLowerCase()}`);
+  ROUTES.push({ method, area, pattern: new RegExp(`^${pattern}$`), fn, isPublic, readOnly, prepare, action, entity: words[0] || area });
 }
 
 class Reply {
@@ -45,8 +51,19 @@ const int = (v) => {
 for (const area of Object.keys(AREAS)) {
   const role = AREAS[area];
   route('POST', area, '/login', async (c) => {
-    const token = await auth.login(c.db, c.body.email, c.body.password, role);
-    return new Reply(200, { user: await auth.userForToken(c.db, token, role) }, [area, token]);
+    let token;
+    try {
+      token = await auth.login(c.db, c.body.email, c.body.password, role);
+    } catch (e) {
+      // Answered, not thrown, so the record of the failed attempt is kept.
+      if (!(e instanceof AppError) || e.status !== 401) throw e;
+      await audit(c.db, 'auth.login_failed', 'user', mask(String(c.body.email || '').trim().toLowerCase()), null, { area });
+      return new Reply(401, { error: e.message });
+    }
+    const user = await auth.userForToken(c.db, token, role);
+    setActor(userActor(user));
+    await audit(c.db, 'auth.login', 'user', user.id, null, { area });
+    return new Reply(200, { user }, [area, token]);
   }, true);
   route('POST', area, '/logout', async (c) => {
     if (c.token) await auth.logout(c.db, c.token);
@@ -193,7 +210,7 @@ route('GET', 'ops', '/overview', async (c) => {
 });
 route('GET', 'ops', '/submissions', async (c) => await listings.listSubmissions(c.db, null, c.q('status') || null));
 route('POST', 'ops', '/submissions/(\\d+)/decide', async (c, sid) =>
-  await listings.decide(c.db, int(sid), Boolean(c.body.approve), String(c.body.note || '').trim()));
+  await listings.decide(c.db, int(sid), Boolean(c.body.approve), String(c.body.note || '').trim(), c.user.id));
 route('GET', 'ops', '/shipments', async (c) => await orders.listShipments(c.db, c.q('all') !== '1'));
 route('POST', 'ops', '/shipments/(\\d+)/advance', async (c, sid) => await orders.advanceShipment(c.db, int(sid), 'ops'));
 route('POST', 'ops', '/shipments/advance-all', async (c) => {
@@ -203,9 +220,9 @@ route('POST', 'ops', '/shipments/advance-all', async (c) => {
 });
 route('GET', 'ops', '/returns', async (c) => await orders.listReturns(c.db));
 route('POST', 'ops', '/returns/(\\d+)/receive', async (c, rid) =>
-  ({ refunded_paise: await orders.receiveReturn(c.db, int(rid), c.body.restock !== false) }));
+  ({ refunded_paise: await orders.receiveReturn(c.db, int(rid), c.body.restock !== false, c.user.id) }));
 route('POST', 'ops', '/returns/(\\d+)/reject', async (c, rid) => {
-  await orders.rejectReturn(c.db, int(rid), String(c.body.note || '').trim());
+  await orders.rejectReturn(c.db, int(rid), String(c.body.note || '').trim(), c.user.id);
   return { ok: true };
 });
 route('GET', 'ops', '/support', async (c) => await orders.listTickets(c.db));
@@ -214,6 +231,7 @@ route('POST', 'ops', '/support/(\\d+)/reply', async (c, tid) => {
   return await orders.listTickets(c.db);
 });
 route('POST', 'ops', '/settlement/run', async (c) => ({ payouts: await orders.runSettlement(c.db) }));
+route('GET', 'ops', '/audit', async (c) => mask(await listAudit(c.db, { entity: c.q('entity') || null })));
 
 // ---------------------------------------------------------------- dispatch
 
@@ -230,11 +248,13 @@ export async function handleApi(db, { method, path, query, body, cookies }) {
       if (!pm) continue;
       // Reads run directly; anything else runs as one transaction.
       const prepared = r.prepare ? await r.prepare(body || {}) : null;
-      const scope = method === 'GET' || r.readOnly ? (fn) => fn() : (fn) => transaction(db, fn);
-      const result = await scope(async () => {
+      const writes = method !== 'GET' && !r.readOnly;
+      const scope = writes ? (fn) => transaction(db, fn) : (fn) => fn();
+      const result = await actingAs(ANONYMOUS, () => scope(async () => {
         const token = cookies[`eq_${area}`] || null;
         const user = await auth.userForToken(db, token, AREAS[area]);
         if (!user && !r.isPublic) throw new AppError(401, 'Please sign in.');
+        if (user) setActor(userActor(user));
         const ctx = {
           db, user, body: body || {}, token, prepared,
           q: (name, fallback = null) => (query.has(name) ? query.get(name) : fallback),
@@ -248,8 +268,10 @@ export async function handleApi(db, { method, path, query, body, cookies }) {
             return null;
           },
         };
-        return r.fn(ctx, ...pm.slice(1));
-      });
+        const out = await r.fn(ctx, ...pm.slice(1));
+        if (writes && !auditsWritten()) await audit(db, r.action, r.entity, pm[1] ?? '-', null, { request: safeBody(body) });
+        return out;
+      }));
       const reply = result instanceof Reply ? result : new Reply(200, result);
       let setCookie = null;
       if (reply.cookie) {
@@ -265,7 +287,7 @@ export async function handleApi(db, { method, path, query, body, cookies }) {
       if (e.details != null) payload.details = e.details;
       return { status: e.status, payload, setCookie: null };
     }
-    console.error(e);
+    console.error(mask(e?.stack || String(e)));
     return { status: 500, payload: { error: 'Something went wrong on our side. Please try again.' }, setCookie: null };
   }
 }
