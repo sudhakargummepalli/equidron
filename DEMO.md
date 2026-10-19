@@ -48,10 +48,10 @@ Start fresh with `node app.js --reset` (or `npm run reset`). Use three browser t
 23. **Staff permissions.** Sign out of Ops and sign in as `support@example.com`: only Returns and Support show, and running settlement is refused. As `ops@example.com`, open **Staff**, tick `finance` for Priya and **Save**. The change shows in the **Audit log**.
 24. **Who decided.** Approve or reject a listing, then look at it under **Approved** or **Rejected**: it says who decided. Returns show it too. **Audit log** lists every change with before and after, emails masked.
 25. **Two-step sign-in.** In Seller Central (or Ops), open **Security → Set up an authenticator app**, add the key to an app such as Google Authenticator, and enter its code. Sign out and in again: now the page asks for the app's code too. Turn it off the same way.
+26. **Sign out everywhere.** Sign in to Seller Central in two browsers, then **Security → Sign out of all devices** in one: both are signed out.
+
 ## Part 6: Things that happen on their own
 27. Start the app (`node app.js`) and place an order in the store. Within a minute, **Ops → Outbox** has its confirmation email, and **Ops → System** shows the `email:order_confirmation` job as done.
 28. Leave the app running: every five minutes the shipment simulator moves each active shipment one stage, without anyone clicking. Turn it off under **System → Switches**.
 29. **System → Send a test error**: it appears under *Recent errors* with its request id (and in Sentry, if `SENTRY_DSN` is set).
 30. Open **http://localhost:8000/api/health**: the database, the queue and the time of the last tick.
-
-26. **Sign out everywhere.** Sign in to Seller Central in two browsers, then **Security → Sign out of all devices** in one: both are signed out.
