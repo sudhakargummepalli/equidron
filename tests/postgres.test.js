@@ -38,7 +38,7 @@ test('the Netlify Database schema migrations add up to the schema', () => {
   const schemaMigrations = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()
     .map((f) => readFileSync(new URL(f, dir), 'utf8').replace(/\r\n/g, '\n').replace(/^(--.*\n)+/, '').trim())
     .filter((sql) => sql.startsWith('CREATE TABLE'));
-  assert.equal(schemaMigrations.length, 3);
+  assert.equal(schemaMigrations.length, 4);
   assert.equal(schemaMigrations.join('\n'), SCHEMA.trim().replace(/\r\n/g, '\n'));
 });
 

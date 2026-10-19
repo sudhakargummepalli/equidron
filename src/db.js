@@ -284,6 +284,15 @@ BEGIN
         ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('customer', 'seller', 'ops', 'agent'));
     END IF;
 END $$;
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    key TEXT NOT NULL,
+    route TEXT NOT NULL,
+    status INTEGER,
+    response JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, key)
+);
 `;
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -297,7 +306,7 @@ export function isoDate(d) {
 }
 
 export const TABLES = [...SCHEMA.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g)].map((m) => m[1]);
-const TABLES_WITHOUT_ID = new Set(['sessions', 'inventory', 'cart_items', 'assistant_usage']);
+const TABLES_WITHOUT_ID = new Set(['sessions', 'inventory', 'cart_items', 'assistant_usage', 'idempotency_keys']);
 
 // ? placeholders become $1, $2, ... and LIKE becomes ILIKE, so searches ignore case.
 export function toPostgres(sql) {
@@ -344,6 +353,12 @@ class PostgresDb {
     return Number((await this.query(`${sql} RETURNING id`, params))[0].id);
   }
 
+  // The number of rows an UPDATE or DELETE changed.
+  async changes(sql, params = []) {
+    const r = await this.#target().query(toPostgres(sql), bind(params));
+    return r.rowCount ?? r.affectedRows ?? 0;
+  }
+
   async exec(sql) {
     await this.#target().query(sql);
   }
@@ -354,9 +369,10 @@ class PostgresDb {
     if (this.#tx.getStore()) return fn();
     const client = await this.#pool.connect();
     try {
+      // No global lock: transactions run side by side. Code that reads and then writes the
+      // same rows locks just those rows (SELECT ... FOR UPDATE, or a guarded UPDATE; see
+      // orders.js), and the few jobs that must run alone take a named lock (lockNamed).
       await client.query('BEGIN');
-      // One writer at a time: checkout reads stock and then reserves it, and nothing may slip in between.
-      await client.query('SELECT pg_advisory_xact_lock(7426001)');
       const result = await this.#tx.run(client, fn);
       await client.query('COMMIT');
       return result;
@@ -428,6 +444,16 @@ export async function scalar(db, sql, ...params) {
 }
 
 export const run = (db, sql, ...params) => db.run(sql, params);
+
+// For guarded updates: UPDATE ... WHERE <still true>, then check that a row changed.
+export const changes = (db, sql, ...params) => db.changes(sql, params);
+
+// Named locks for the few jobs that must never run twice at once. Held until the
+// transaction ends. Everything else locks only the rows it changes.
+export const LOCKS = { seed: 7426002, settlement: 7426003 };
+export async function lockNamed(db, name) {
+  await db.query('SELECT pg_advisory_xact_lock(?) AS locked', [LOCKS[name]]);
+}
 
 // Run fn in a transaction, rolling back if it throws.
 export const transaction = (db, fn) => db.transaction(fn);
