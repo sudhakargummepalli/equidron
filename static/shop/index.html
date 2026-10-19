@@ -78,6 +78,11 @@
         </div>
       </a>
     </div>
+    <nav class="row" style="justify-content:center;margin-top:16px" ng-if="!vm.loading && vm.paging.pages > 1" aria-label="Pages">
+      <button class="btn small" ng-disabled="vm.paging.page <= 1" ng-click="vm.search(vm.paging.page - 1)">← Previous</button>
+      <span class="small muted">Page {{vm.paging.page}} of {{vm.paging.pages}} · {{vm.paging.total}} products</span>
+      <button class="btn small" ng-disabled="vm.paging.page >= vm.paging.pages" ng-click="vm.search(vm.paging.page + 1)">Next →</button>
+    </nav>
   </section>
 
   <!-- ============ PRODUCT ============ -->

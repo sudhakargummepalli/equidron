@@ -1,5 +1,5 @@
 // SAMPLE DATA. Every seller, brand, product, customer and order in sample-data.json is fictional.
-// Rows created here are flagged is_sample = 1 and the UI shows a "Sample data" banner.
+// Rows created here are flagged is_sample and the UI shows a "Sample data" banner.
 // Demo accounts all use the password in DEMO_PASSWORD, but only in demo mode (EQUIDRON_SEED_DEMO=1).
 // Otherwise each gets a random password nobody knows, and auth.login() refuses sample accounts anyway.
 import crypto from 'node:crypto';
@@ -46,7 +46,7 @@ async function seedEmpty(db) {
     }
     for (const [key, email, store, city, rating, count] of DATA.sellers) {
       const uid = await createUser(db, email, store + ' (sample)', samplePassword(), 'seller', true);
-      const sid = await run(db, 'INSERT INTO sellers (user_id, name, rating, rating_count, city, is_sample) VALUES (?,?,?,?,?,1)',
+      const sid = await run(db, 'INSERT INTO sellers (user_id, name, rating, rating_count, city, is_sample) VALUES (?,?,?,?,?, true)',
         uid, store, rating, count, city);
       sellers[key] = sid;
       warehouses['seller:' + key] = await run(db, "INSERT INTO warehouses (code, name, city, kind, seller_id) VALUES (?,?,?, 'seller_dispatch', ?)",
@@ -54,12 +54,12 @@ async function seedEmpty(db) {
     }
     for (const p of DATA.products) {
       const pid = await run(db, `INSERT INTO products (title, brand, category, description, specs, images, rating, review_count,
-                                                 return_window_days, status, is_sample, created_at) VALUES (?,?,?,?,?, '[]', ?,?,?, 'live', 1, ?)`,
+                                                 return_window_days, status, is_sample, created_at) VALUES (?,?,?,?,?, '[]', ?,?,?, 'live', true, ?)`,
       p.title, p.brand, p.category, p.description, dumps(p.specs), p.rating, p.reviews, p.category === 'Grocery' ? 0 : 10, ts);
       await run(db, 'UPDATE products SET images = ? WHERE id = ?', dumps([1, 2, 3].map((n) => `/img/p${pid}-${n}.svg`)), pid);
       for (const o of p.offers) {
         const oid = await run(db, `INSERT INTO offers (product_id, seller_id, price_paise, mrp_paise, condition, fulfilment, handling_days,
-                                                 ships_to, status, is_sample, updated_at) VALUES (?,?,?,?,?,?,?,?, 'active', 1, ?)`,
+                                                 ships_to, status, is_sample, updated_at) VALUES (?,?,?,?,?,?,?,?, 'active', true, ?)`,
         pid, sellers[o.seller], o.price * 100, o.mrp * 100, o.condition, o.fulfilment, o.handling_days, dumps(o.ships_to), ts);
         for (const [where, qty] of Object.entries(o.stock)) {
           const wid = where === 'seller' ? warehouses['seller:' + o.seller] : warehouses[where];

@@ -293,16 +293,101 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, key)
 );
+DO $$
+DECLARE
+    c RECORD;
+BEGIN
+    FOR c IN SELECT * FROM (VALUES
+        ('users', 'created_at', 'timestamptz', NULL),
+        ('products', 'created_at', 'timestamptz', NULL),
+        ('offers', 'updated_at', 'timestamptz', NULL),
+        ('submissions', 'created_at', 'timestamptz', NULL),
+        ('submissions', 'decided_at', 'timestamptz', NULL),
+        ('cart_items', 'added_at', 'timestamptz', NULL),
+        ('orders', 'created_at', 'timestamptz', NULL),
+        ('orders', 'updated_at', 'timestamptz', NULL),
+        ('shipments', 'created_at', 'timestamptz', NULL),
+        ('shipments', 'updated_at', 'timestamptz', NULL),
+        ('shipment_events', 'at', 'timestamptz', NULL),
+        ('payments', 'created_at', 'timestamptz', NULL),
+        ('payments', 'updated_at', 'timestamptz', NULL),
+        ('payment_events', 'at', 'timestamptz', NULL),
+        ('returns', 'created_at', 'timestamptz', NULL),
+        ('returns', 'updated_at', 'timestamptz', NULL),
+        ('seller_ledger', 'at', 'timestamptz', NULL),
+        ('notifications', 'at', 'timestamptz', NULL),
+        ('support_tickets', 'created_at', 'timestamptz', NULL),
+        ('support_messages', 'at', 'timestamptz', NULL),
+        ('outbox', 'at', 'timestamptz', NULL),
+        ('shipments', 'eta', 'date', NULL),
+        ('assistant_usage', 'day', 'date', NULL),
+        ('products', 'specs', 'jsonb', '''{}''::jsonb'),
+        ('products', 'images', 'jsonb', '''[]''::jsonb'),
+        ('offers', 'ships_to', 'jsonb', '''["ALL"]''::jsonb'),
+        ('submissions', 'payload', 'jsonb', NULL),
+        ('submissions', 'review_reasons', 'jsonb', '''[]''::jsonb'),
+        ('orders', 'address', 'jsonb', NULL),
+        ('users', 'permissions', 'jsonb', '''[]''::jsonb'),
+        ('users', 'is_sample', 'boolean', 'false'),
+        ('users', 'email_verified', 'boolean', 'true'),
+        ('users', 'totp_enabled', 'boolean', 'false'),
+        ('sellers', 'is_sample', 'boolean', 'false'),
+        ('products', 'is_sample', 'boolean', 'false'),
+        ('offers', 'is_sample', 'boolean', 'false'),
+        ('submissions', 'auto_decided', 'boolean', 'false'),
+        ('notifications', 'is_read', 'boolean', 'false'),
+        ('login_attempts', 'ok', 'boolean', NULL)
+    ) AS v(tbl, col, typ, dflt)
+    LOOP
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema()
+                   AND table_name = c.tbl AND column_name = c.col AND data_type IN ('text', 'integer')) THEN
+            EXECUTE format('ALTER TABLE %I ALTER COLUMN %I DROP DEFAULT', c.tbl, c.col);
+            EXECUTE format('ALTER TABLE %I ALTER COLUMN %I TYPE %s USING %s', c.tbl, c.col, c.typ,
+                CASE c.typ
+                    WHEN 'timestamptz' THEN format('(%I::timestamp AT TIME ZONE ''UTC'')', c.col)
+                    WHEN 'boolean' THEN format('(%I <> 0)', c.col)
+                    ELSE format('%I::%s', c.col, c.typ)
+                END);
+            IF c.dflt IS NOT NULL THEN
+                EXECUTE format('ALTER TABLE %I ALTER COLUMN %I SET DEFAULT %s', c.tbl, c.col, c.dflt);
+            END IF;
+        END IF;
+    END LOOP;
+END $$;
+-- Full-text search over a product's words; src/catalog.js queries the same expression (SEARCH_VECTOR).
+CREATE INDEX IF NOT EXISTS products_search ON products
+    USING GIN (to_tsvector('simple', title || ' ' || brand || ' ' || category || ' ' || description || ' ' || specs::text));
+-- Typo matching on titles, where the server offers the pg_trgm extension. Without it, search
+-- still works; it just doesn't forgive typos.
+DO $$
+BEGIN
+    BEGIN
+        CREATE EXTENSION IF NOT EXISTS pg_trgm;
+    EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'pg_trgm is not available, so search will not match typos.';
+    END;
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm') THEN
+        EXECUTE 'CREATE INDEX IF NOT EXISTS products_title_trgm ON products USING GIN ((title || '' '' || brand) gin_trgm_ops)';
+    END IF;
+END $$;
 `;
 
 const pad = (n) => String(n).padStart(2, '0');
 
-export function now(d = new Date()) {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
+// The moment, for TIMESTAMPTZ columns. Stored in UTC; pages show it in India time.
+export const now = (d = new Date()) => d.toISOString();
 
-export function isoDate(d) {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+// The calendar date in India (YYYY-MM-DD), whatever the server's own time zone. Return windows,
+// delivery promises and the assistant's daily limit count India days.
+const INDIA_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+export const indiaDate = (d = new Date()) => INDIA_DAY.format(d);
+export const isoDate = indiaDate;
+
+// A YYYY-MM-DD date plus a number of days.
+export function addDays(day, n) {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
 }
 
 export const TABLES = [...SCHEMA.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g)].map((m) => m[1]);
@@ -320,11 +405,14 @@ export function toPostgres(sql) {
   return out.replace(/\bLIKE\b/g, 'ILIKE');
 }
 
-// undefined can't be bound, and flag columns are integers. Normalise both.
-const bind = (params) => params.map((p) => (p === undefined ? null : typeof p === 'boolean' ? (p ? 1 : 0) : p));
+// undefined can't be bound.
+const bind = (params) => params.map((p) => (p === undefined ? null : p));
 
 // COUNT and SUM return int8/numeric, which drivers hand back as strings. Read them as JS numbers.
 const NUMBER_TYPES = [20, 1700];
+// DATE comes back as the plain YYYY-MM-DD text, not a JS Date at some server's midnight.
+const DATE_TYPE = 1082;
+const keep = (v) => v;
 
 // pool: anything with query(text, params) -> {rows} and connect() -> client {query, release}.
 class PostgresDb {
@@ -413,12 +501,15 @@ export const isServerUrl = (target) => /^postgres(ql)?:\/\//.test(String(target 
 export async function connect(target = 'memory', options = {}) {
   if (isServerUrl(target)) {
     const { default: pg } = await import('pg');
-    const getTypeParser = (oid, format) => (NUMBER_TYPES.includes(oid) ? Number : pg.types.getTypeParser(oid, format));
+    const getTypeParser = (oid, format) => (NUMBER_TYPES.includes(oid) ? Number : oid === DATE_TYPE ? keep : pg.types.getTypeParser(oid, format));
     return new PostgresDb(new pg.Pool({ connectionString: target, max: options.maxConnections || 5, types: { getTypeParser } }));
   }
   const { PGlite } = await import('@electric-sql/pglite');
-  const parsers = Object.fromEntries(NUMBER_TYPES.map((oid) => [oid, Number]));
-  return new PostgresDb(pglitePool(await PGlite.create(target === 'memory' ? undefined : target, { parsers })));
+  const { pg_trgm } = await import('@electric-sql/pglite/contrib/pg_trgm'); // typo matching in search
+  const parsers = { ...Object.fromEntries(NUMBER_TYPES.map((oid) => [oid, Number])), [DATE_TYPE]: keep };
+  // One options object: PGlite.create(undefined, options) silently ignores the options.
+  const dataDir = target === 'memory' ? undefined : target;
+  return new PostgresDb(pglitePool(await PGlite.create({ dataDir, parsers, extensions: { pg_trgm } })));
 }
 
 export function initSchema(db) {
@@ -458,7 +549,10 @@ export async function lockNamed(db, name) {
 // Run fn in a transaction, rolling back if it throws.
 export const transaction = (db, fn) => db.transaction(fn);
 
+// JSONB columns already arrive as objects; older text values are parsed.
 export function loads(value, fallback = null) {
+  if (value == null) return fallback;
+  if (typeof value !== 'string') return value;
   try {
     return JSON.parse(value);
   } catch {

@@ -1,5 +1,5 @@
 // Customer-facing catalogue: search ranking, product pages and seller offers.
-import { all, isoDate, loads, one } from './db.js';
+import { addDays, all, indiaDate, loads, one } from './db.js';
 import { notFound } from './errors.js';
 
 export const CITIES = ['Bengaluru', 'Chennai', 'Delhi', 'Hyderabad', 'Kolkata', 'Mumbai', 'Pune'];
@@ -56,9 +56,7 @@ export function deliveryDays(offer, stock, city) {
 }
 
 export function etaDate(days, today = new Date()) {
-  const d = new Date(today);
-  d.setDate(d.getDate() + days);
-  return isoDate(d);
+  return addDays(indiaDate(today), days);
 }
 
 // Offers for many products with their stock, in two queries: productId -> offers, each with .stock.
@@ -150,17 +148,58 @@ function relevance(product, queryTokens, queryText) {
 
 const round = (x, places) => Math.round(x * 10 ** places) / 10 ** places;
 
-export async function search(db, q = '', category = null, sort = 'relevance', city = null, limit = 60) {
-  const queryTokens = tokenize(q);
+// A product's words, exactly as the products_search index stores them, so queries can use it.
+export const SEARCH_VECTOR = "to_tsvector('simple', title || ' ' || brand || ' ' || category || ' ' || description || ' ' || specs::text)";
+const FUZZY_TEXT = "title || ' ' || brand";
+const FUZZY_MIN = 0.35; // word_similarity from pg_trgm: 'labtop' scores 0.4 against a title with 'Laptop'
+const FEW_RESULTS = 5; // fewer exact matches than this, and typo matching joins in
+
+// Each word, and its synonyms, as a prefix: "phones" -> 'phone:* | smartphone:* | mobile:*'.
+// Tokens are only letters and digits, so they are safe inside a tsquery.
+function tsQuery(tokens) {
+  const words = new Set();
+  for (const t of tokens) {
+    words.add(t);
+    for (const s of SYNONYMS[t] || []) words.add(s);
+  }
+  return [...words].map((w) => `${w}:*`).join(' | ');
+}
+
+const trigramCache = new WeakMap();
+async function hasTrigrams(db) {
+  if (!trigramCache.has(db)) trigramCache.set(db, Boolean(await one(db, "SELECT 1 AS x FROM pg_extension WHERE extname = 'pg_trgm'")));
+  return trigramCache.get(db);
+}
+
+// Candidate products. The database narrows them with the full-text index; relevance() below
+// still decides the ranking, as before. If few match exactly, near spellings are added.
+async function candidates(db, queryTokens, q, category) {
   let sql = "SELECT * FROM products WHERE status = 'live'";
   const params = [];
   if (category) {
     sql += ' AND category = ?';
     params.push(category);
   }
+  if (!queryTokens.length) return (await all(db, sql, ...params)).map((p) => [p, 0]);
+  const found = await all(db, `${sql} AND ${SEARCH_VECTOR} @@ to_tsquery('simple', ?)`, ...params, tsQuery(queryTokens));
+  const out = found.map((p) => [p, 0]);
+  const exact = found.filter((p) => relevance(p, queryTokens, q) >= 0.15).length;
+  if (exact < FEW_RESULTS && q && (await hasTrigrams(db))) {
+    const seen = new Set(found.map((p) => p.id));
+    const near = await all(db, `SELECT *, word_similarity(?, ${FUZZY_TEXT}) AS fuzzy FROM (${sql}) p
+                                WHERE word_similarity(?, ${FUZZY_TEXT}) >= ?`, q, ...params, q, FUZZY_MIN);
+    for (const p of near) if (!seen.has(p.id)) out.push([p, p.fuzzy]);
+  }
+  return out;
+}
+
+export async function search(db, q = '', category = null, sort = 'relevance', city = null, limit = 60) {
+  const queryTokens = tokenize(q);
+  const text = String(q || '').trim();
   const matches = [];
-  for (const p of await all(db, sql, ...params)) {
-    const rel = relevance(p, queryTokens, String(q || '').trim());
+  for (const [p, fuzzy] of await candidates(db, queryTokens, text, category)) {
+    // A near spelling counts as a weak match, below the exact ones.
+    const rel = Math.max(relevance(p, queryTokens, text), fuzzy ? 0.15 + 0.25 * fuzzy : 0);
     if (!queryTokens.length || rel >= 0.15) matches.push([p, rel]);
   }
   const offersByProduct = await loadOffers(db, matches.map(([p]) => p.id));
@@ -203,6 +242,18 @@ export async function search(db, q = '', category = null, sort = 'relevance', ci
   else if (sort === 'rating') results.sort((a, b) => stockFirst(a, b) || b.rating - a.rating || b.review_count - a.review_count);
   else results.sort((a, b) => b.score - a.score);
   return results.slice(0, limit);
+}
+
+export const PAGE_SIZE = 24;
+export const MAX_PAGE_SIZE = 60;
+
+// One page of search results, with the total, so every match can be reached.
+export async function searchPage(db, { q = '', category = null, sort = 'relevance', city = null, page = 1, pageSize = PAGE_SIZE } = {}) {
+  const size = Math.min(Math.max(Math.trunc(Number(pageSize)) || PAGE_SIZE, 1), MAX_PAGE_SIZE);
+  const all = await search(db, q, category, sort, city, Infinity);
+  const pages = Math.max(1, Math.ceil(all.length / size));
+  const n = Math.min(Math.max(Math.trunc(Number(page)) || 1, 1), pages);
+  return { results: all.slice((n - 1) * size, n * size), page: n, page_size: size, total: all.length, pages };
 }
 
 export async function productDetail(db, productId, city = null) {

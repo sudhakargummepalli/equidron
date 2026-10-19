@@ -15,7 +15,7 @@
 import crypto from 'node:crypto';
 import { promisify } from 'node:util';
 import { audit } from './audit.js';
-import { all, now, one, run, scalar } from './db.js';
+import { all, loads, now, one, run, scalar } from './db.js';
 import { AppError, badRequest, notFound } from './errors.js';
 import { mask } from './mask.js';
 import { sendEmail } from './outbox.js';
@@ -101,8 +101,8 @@ export async function createUser(db, email, name, password, role, isSample = fal
   const { salt, hash, algo } = await hashPassword(password);
   return await run(db, `INSERT INTO users (email, name, role, pw_salt, pw_hash, pw_algo, is_sample, permissions, email_verified, created_at)
                         VALUES (?,?,?,?,?,?,?,?,?,?)`,
-  email, name.trim(), role, salt, hash, algo, isSample ? 1 : 0,
-  JSON.stringify(role === 'ops' ? checkPermissions(permissions) : []), verified ? 1 : 0, now());
+  email, name.trim(), role, salt, hash, algo, Boolean(isSample),
+  JSON.stringify(role === 'ops' ? checkPermissions(permissions) : []), Boolean(verified), now());
 }
 
 // An agent's own account, e.g. createAgentUser(db, 'returns', 'Returns agent'). Its password
@@ -113,7 +113,7 @@ export async function createAgentUser(db, agentId, name) {
 
 export async function staffList(db) {
   const rows = await all(db, "SELECT id, email, name, permissions FROM users WHERE role = 'ops' ORDER BY id");
-  return rows.map((r) => ({ ...r, permissions: JSON.parse(r.permissions) }));
+  return rows.map((r) => ({ ...r, permissions: loads(r.permissions, []) }));
 }
 
 export async function setPermissions(db, userId, permissions, byUserId) {
@@ -121,7 +121,7 @@ export async function setPermissions(db, userId, permissions, byUserId) {
   if (!user) throw notFound('Staff member');
   const next = checkPermissions(permissions);
   if (userId === byUserId && !next.includes('admin')) throw badRequest("You can't remove your own admin permission.");
-  const before = JSON.parse(user.permissions);
+  const before = loads(user.permissions, []);
   await run(db, 'UPDATE users SET permissions = ? WHERE id = ?', JSON.stringify(next), userId);
   await audit(db, 'staff.permissions', 'user', userId, { permissions: before }, { permissions: next });
   return { id: userId, permissions: next };
@@ -138,14 +138,14 @@ const LOCK_SECONDS = 15 * 60;
 const nowSeconds = () => Date.now() / 1000;
 
 async function recordAttempt(db, email, ok) {
-  await run(db, 'INSERT INTO login_attempts (email, ok, at) VALUES (?,?,?)', email, ok ? 1 : 0, nowSeconds());
+  await run(db, 'INSERT INTO login_attempts (email, ok, at) VALUES (?,?,?)', email, Boolean(ok), nowSeconds());
 }
 
 // Seconds until this email may try again; 0 when it isn't locked.
 async function lockedFor(db, email) {
   const since = Math.max(nowSeconds() - LOCK_SECONDS,
-    await scalar(db, 'SELECT COALESCE(MAX(at), 0) FROM login_attempts WHERE email = ? AND ok = 1', email));
-  const failures = await all(db, 'SELECT at FROM login_attempts WHERE email = ? AND ok = 0 AND at > ? ORDER BY at DESC', email, since);
+    await scalar(db, 'SELECT COALESCE(MAX(at), 0) FROM login_attempts WHERE email = ? AND ok', email));
+  const failures = await all(db, 'SELECT at FROM login_attempts WHERE email = ? AND NOT ok AND at > ? ORDER BY at DESC', email, since);
   return failures.length >= MAX_FAILURES ? Math.max(1, failures[0].at + LOCK_SECONDS - nowSeconds()) : 0;
 }
 
@@ -210,7 +210,7 @@ export async function userForToken(db, token, role) {
   if (!s || s.role !== role || s.expires_at < Date.now() / 1000) return null;
   const user = await one(db, 'SELECT id, email, name, role, is_sample, permissions FROM users WHERE id = ?', s.user_id);
   if (!user || user.role !== role || user.role === 'agent') return null;
-  user.permissions = role === 'ops' ? JSON.parse(user.permissions) : undefined;
+  user.permissions = role === 'ops' ? loads(user.permissions, []) : undefined;
   if (role === 'seller') {
     const seller = await one(db, 'SELECT id, name FROM sellers WHERE user_id = ?', user.id);
     user.seller_id = seller.id;
@@ -264,15 +264,15 @@ export async function sendVerification(db, userId) {
 }
 
 export async function resendVerification(db, email) {
-  const user = await one(db, "SELECT id FROM users WHERE email = ? AND role = 'customer' AND email_verified = 0", normalEmail(email));
+  const user = await one(db, "SELECT id FROM users WHERE email = ? AND role = 'customer' AND NOT email_verified", normalEmail(email));
   if (user) await sendVerification(db, user.id);
 }
 
 // The user id once the email is confirmed, else null.
 export async function verifyEmail(db, email, code) {
-  const user = await one(db, "SELECT id FROM users WHERE email = ? AND role = 'customer' AND email_verified = 0", normalEmail(email));
+  const user = await one(db, "SELECT id FROM users WHERE email = ? AND role = 'customer' AND NOT email_verified", normalEmail(email));
   if (!user || !(await useCode(db, user.id, 'verify_email', code))) return null;
-  await run(db, 'UPDATE users SET email_verified = 1 WHERE id = ?', user.id);
+  await run(db, 'UPDATE users SET email_verified = true WHERE id = ?', user.id);
   await audit(db, 'auth.email_verified', 'user', user.id);
   return user.id;
 }
@@ -294,7 +294,7 @@ export async function resetPassword(db, email, role, code, password) {
   const user = await one(db, 'SELECT id, email FROM users WHERE email = ? AND role = ?', normalEmail(email), role);
   if (!user || !(await useCode(db, user.id, 'reset_password', code))) return false;
   await setPassword(db, user.id, password);
-  await run(db, 'UPDATE users SET email_verified = 1 WHERE id = ?', user.id); // the code proved the email
+  await run(db, 'UPDATE users SET email_verified = true WHERE id = ?', user.id); // the code proved the email
   await logoutEverywhere(db, user.id);
   await recordAttempt(db, user.email, true); // lifts a lockout
   await audit(db, 'auth.password_reset', 'user', user.id, null, { role });
@@ -344,7 +344,7 @@ function matchTotp(secret, code, lastStep) {
 // A new secret for the app. Two-step sign-in starts only once confirmTotp() sees a right code.
 export async function setupTotp(db, user) {
   const secret = toBase32(crypto.randomBytes(20));
-  await run(db, 'UPDATE users SET totp_secret = ?, totp_enabled = 0, totp_last_step = NULL WHERE id = ?', secret, user.id);
+  await run(db, 'UPDATE users SET totp_secret = ?, totp_enabled = false, totp_last_step = NULL WHERE id = ?', secret, user.id);
   const label = encodeURIComponent(`Equidron:${user.email}`);
   return { secret, otpauth_url: `otpauth://totp/${label}?secret=${secret}&issuer=Equidron&digits=6&period=30` };
 }
@@ -355,7 +355,7 @@ export async function confirmTotp(db, userId, code, enable) {
   const step = user?.totp_secret ? matchTotp(user.totp_secret, code, user.totp_last_step) : null;
   if (step === null) return false;
   await run(db, 'UPDATE users SET totp_enabled = ?, totp_last_step = ?, totp_secret = ? WHERE id = ?',
-    enable ? 1 : 0, step, enable ? user.totp_secret : null, userId);
+    Boolean(enable), step, enable ? user.totp_secret : null, userId);
   await audit(db, enable ? 'auth.2fa_enabled' : 'auth.2fa_disabled', 'user', userId);
   return true;
 }

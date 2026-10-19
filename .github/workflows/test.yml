@@ -37,7 +37,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node --test
-      - name: Concurrency tests on real PostgreSQL
-        run: node --test tests/concurrency.test.js
+      - name: Concurrency, types and search tests on real PostgreSQL
+        run: node --test --test-concurrency=1 tests/concurrency.test.js tests/types-search.test.js
         env:
           TEST_DATABASE_URL: postgres://equidron@localhost:5432/equidron_test

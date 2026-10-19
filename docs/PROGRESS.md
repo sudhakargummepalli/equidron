@@ -1,8 +1,9 @@
 # Progress
 
 ## Current phase
-Phase 2a · Concurrency, on branch `phase-2-concurrency` (built on `phase-1-accounts`). Built and tested locally on
-PGlite; the real-PostgreSQL concurrency run happens in CI once the branch is pushed.
+Phase 2b · Types, search and paging, on branch `phase-2b-types-search` (built on `phase-2-concurrency`). Built and
+tested locally; its tests also run on real PostgreSQL in CI once the branch is pushed.
+Phase 2a (`phase-2-concurrency`) is pushed, CI green including real PostgreSQL (run 39219849297).
 Phase 1 (`phase-1-accounts`) is pushed, CI green, waiting for the owner's review and merge.
 
 ## Done
@@ -21,6 +22,8 @@ Phase 1 (`phase-1-accounts`) is pushed, CI green, waiting for the owner's review
 - Phase 2a: the global write lock is gone; guarded stock reservation; row locks on decisions, cancels, shipments and
   refunds; named locks for settlement and the seed; idempotent checkout (`idempotency_keys`); PostgreSQL 16 in CI.
   `node --test`: 84 of 84 pass.
+- Phase 2b: TIMESTAMPTZ / DATE / JSONB / BOOLEAN columns (one re-runnable migration), India dates for calendar days,
+  full-text search with synonyms and pg_trgm typo matching, paged search with Previous/Next. `node --test`: 93 of 93 pass.
 
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
@@ -34,8 +37,10 @@ Phase 1 (`phase-1-accounts`) is pushed, CI green, waiting for the owner's review
   sample sign-ins stop working after the deploy. Then push `phase-1-accounts` and open its pull request.
 
 ## Next
-Push `phase-2-concurrency` so CI runs the concurrency tests on real PostgreSQL. Then Phase 2b: TIMESTAMPTZ, JSONB and
-BOOLEAN columns, full-text search with paging.
+Push `phase-2b-types-search` so CI runs the migration and search tests on real PostgreSQL. Then Phase 3: events,
+background jobs and monitoring (roadmap gap 2: nothing runs on its own).
+
+Before Phase 2b reaches production: export a backup of the Netlify database (the migration rewrites columns).
 
 ## Open questions
 - Should two-step sign-in become required for admin staff now, or at go-live (Phase 15)? Recommended: Phase 15.

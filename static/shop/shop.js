@@ -112,13 +112,15 @@ angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$locatio
       vm.category = s.category || '';
       vm.sort = s.sort || 'relevance';
       vm.loading = true;
-      return api.get('/search', { q: vm.q, category: vm.category, sort: vm.sort, city: vm.city }).then(function (r) {
+      return api.get('/search', { q: vm.q, category: vm.category, sort: vm.sort, city: vm.city, page: s.page || null }).then(function (r) {
         vm.results = r.results;
+        vm.paging = { page: r.page, pages: r.pages, total: r.total };
         vm.loading = false;
       }, fail);
     }
-    vm.search = function () {
-      $location.path('/search').search({ q: vm.q || null, category: vm.category || null, sort: vm.sort !== 'relevance' ? vm.sort : null });
+    vm.search = function (page) {
+      $location.path('/search').search({ q: vm.q || null, category: vm.category || null,
+        sort: vm.sort !== 'relevance' ? vm.sort : null, page: page > 1 ? page : null });
     };
     vm.pickCategory = function (c) { vm.category = c; vm.search(); };
 

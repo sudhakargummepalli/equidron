@@ -53,6 +53,9 @@ tests/                       node:test suites (order flow, PostgreSQL, assistant
 
 - SQL uses `?` placeholders; `db.js` numbers them (`$1`, `$2`, ...) before sending. Never build SQL by
   joining user input into a string.
+- Times: write `now()` (an ISO moment in UTC) into TIMESTAMPTZ columns; use `indiaDate()` and `addDays()` for
+  calendar days. JSONB columns come back as objects (`loads()` accepts both); flags are booleans (`WHERE is_sample`,
+  `SET is_read = true`), never 0/1.
 - Money is stored and passed as integer paise (`price_paise`, `amount_paise`); format with `orders.inr()`
   only for display.
 - No global lock: transactions run side by side. When code reads a row and then writes based on it, lock that

@@ -9,5 +9,5 @@ export function listFor(db, userId, limit = 50) {
 }
 
 export async function markRead(db, userId) {
-  await run(db, 'UPDATE notifications SET is_read = 1 WHERE user_id = ?', userId);
+  await run(db, 'UPDATE notifications SET is_read = true WHERE user_id = ?', userId);
 }

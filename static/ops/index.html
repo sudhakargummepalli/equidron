@@ -187,7 +187,7 @@
       <table class="small">
         <tr><th>When</th><th>Who</th><th>Action</th><th>On</th><th>Change</th></tr>
         <tr ng-repeat="a in vm.audit">
-          <td>{{a.at | date:'d MMM, HH:mm:ss'}}</td>
+          <td>{{a.at | date:'d MMM, HH:mm:ss':'+0530'}}</td>
           <td>{{a.actor_name || a.actor_id}}<div class="muted">{{a.actor_type}}</div></td>
           <td><code>{{a.action}}</code></td><td>{{a.entity}} {{a.entity_id}}</td>
           <td><span ng-if="a.before">{{a.before | json}} → </span>{{a.after | json}}</td>
