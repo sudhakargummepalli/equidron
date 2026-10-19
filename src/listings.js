@@ -8,6 +8,7 @@ import { CATEGORIES, CITIES, stockByWarehouse } from './catalog.js';
 import { all, dumps, loads, now, one, run } from './db.js';
 import { badRequest, conflict, forbidden, notFound } from './errors.js';
 import { actorUserId, audit } from './audit.js';
+import { emit } from './events.js';
 import { notify } from './notify.js';
 
 export const PRICE_REVIEW_THRESHOLD = 0.2;
@@ -182,6 +183,7 @@ export async function submit(db, sellerId, data) {
   const subId = await run(db, `INSERT INTO submissions (seller_id, product_id, offer_id, kind, payload, status, review_reasons, created_at)
                          VALUES (?,?,?,?,?,'pending',?,?)`,
   sellerId, product ? product.id : null, offer ? offer.id : null, kind, dumps(payload), dumps(reasons), now());
+  await emit(db, 'submission.created', 'submission', subId, { seller_id: sellerId, kind, held: reasons.length > 0 });
   if (!reasons.length) {
     await apply(db, subId);
     await run(db, "UPDATE submissions SET status = 'approved', auto_decided = true, decided_at = ?, reviewer_note = ? WHERE id = ?",
