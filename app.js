@@ -21,6 +21,9 @@ const { values: args } = parseArgs({
 const remote = isServerUrl(args.db);
 if (!remote && args.db !== 'memory') mkdirSync(path.resolve(args.db), { recursive: true });
 
+// A local run is a demo: the sample accounts and their shared password work. Set
+// EQUIDRON_SEED_DEMO=0 to try the app as it behaves anywhere else.
+process.env.EQUIDRON_SEED_DEMO ??= '1';
 const db = await openDatabase(args.db, { reset: args.reset });
 const server = createServer(db);
 server.listen(Number(args.port), args.host, () => {

@@ -1,26 +1,36 @@
 # Progress
 
 ## Current phase
-Phase 0 · Set up, understand, automate checks, on branch `phase-0-setup`.
+Phase 1 · Real accounts, roles and an audit trail, on branch `phase-1-accounts` (built on `phase-0-setup`).
+Built and tested; waiting for the owner's review and merge.
 
 ## Done
-- Setup checked: Node 24.21 (22+ needed), npm 11.19, git 2.55; repo is sudhakargummepalli/equidron.
-- `node --test`: 59 of 59 pass on PGlite with the scripted AI stand-in.
-- CLAUDE.md, docs/ROADMAP.md, docs/PROGRESS.md, docs/DECISIONS.md and the PDF in docs/.
-- `.github/workflows/test.yml` runs `npm ci` and `node --test` on Node 22 for every push and pull request.
+- Phase 0: CLAUDE.md, docs/ROADMAP.md, docs/PROGRESS.md, docs/DECISIONS.md, the PDF in docs/, and
+  `.github/workflows/test.yml`. The Actions run for 8c8edbd passed (run 39212946058).
+- Phase 1:
+  - Audit trail (`audit_log`, `src/audit.js`) for every write request; `decided_by` on submissions and returns, shown in Ops.
+  - `mask()` (`src/mask.js`) on every log line and in the Ops audit view.
+  - Staff permissions (support, catalog, logistics, finance, admin), Ops → Staff page, agent accounts that can't sign in.
+  - scrypt passwords with re-hash of old PBKDF2 ones; hashed session tokens; new token at sign-in; sign out of all devices.
+  - Sign-up confirmed by an emailed code; password reset by code; lockout after 5 failures in 15 minutes;
+    optional two-step sign-in with an authenticator app for sellers and staff (Security page).
+  - Outbox (Ops → Outbox) holds the emails until Phase 10.
+  - Demo switch `EQUIDRON_SEED_DEMO=1`; security headers in netlify.toml and the local server; SRI on AngularJS.
+- `node --test`: 79 of 79 pass (59 from before, 20 new).
 
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
-- `node app.js`, then open http://localhost:8000/shop/, /seller/ and /ops/.
-- GitHub → Actions: the "Tests" run for 8c8edbd passed (run 39212946058).
+- `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,
+  two-step sign-in, sign out everywhere).
+- `EQUIDRON_SEED_DEMO=0 node app.js --db memory`: the sample accounts can't sign in.
 
-## Still open in Phase 0 (needs the owner)
-- Open the pull request for `phase-0-setup` (pushed), so Netlify builds a deploy preview.
-- Netlify: confirm deploy previews for pull requests are on and production deploys come from main.
-- GitHub: protect `main` (pull requests only, the "Tests" check required).
+## Still open (needs the owner)
+- Phase 0: open the pull request for `phase-0-setup`, check the Netlify deploy preview, protect `main`.
+- Phase 1, before merging: set `EQUIDRON_SEED_DEMO=1` in Netlify environment variables for the demo site, or its
+  sample sign-ins stop working after the deploy. Then push `phase-1-accounts` and open its pull request.
 
 ## Next
-Phase 1 · Real accounts, roles and an audit trail (closes roadmap gaps 3 and 5).
+Phase 2 · Data built for real traffic (removes the global write lock, roadmap gap 1).
 
 ## Open questions
-- None yet.
+- Should two-step sign-in become required for admin staff now, or at go-live (Phase 15)? Recommended: Phase 15.

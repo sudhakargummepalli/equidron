@@ -12,7 +12,8 @@ import * as orders from '../src/orders.js';
 import { seed } from '../src/seed.js';
 import { createServer } from '../src/server.js';
 
-settings.pbkdf2Rounds = 1000; // keep the seeded accounts fast to create in tests
+settings.fastHashing = true; // cheap password hashing, so the sample accounts are quick to create
+process.env.EQUIDRON_SEED_DEMO = '1'; // the sample accounts sign in with the shared demo password
 
 let db;
 let asha;

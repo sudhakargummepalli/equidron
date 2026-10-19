@@ -14,6 +14,18 @@
   # pg-native is an optional add-on of the pg driver; PGlite is only used for local runs and tests.
   external_node_modules = ["pg-native", "@electric-sql/pglite"]
 
+# Security headers on every page. The same list is in src/security-headers.js (the local
+# server); tests/security.test.js checks they match. Microphone stays allowed for voice chat.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), geolocation=(), payment=(), microphone=(self)"
+
 [[redirects]]
   from = "/"
   to = "/shop/"

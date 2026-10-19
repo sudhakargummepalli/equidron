@@ -1,0 +1,48 @@
+<!-- The sign-in panel for all three pages. The page's controller sets vm.auth = AuthForm(...). -->
+<div class="card" ng-init="a = vm.auth">
+  <h1 ng-switch="a.mode">
+    <span ng-switch-when="register">Create your Equidron account</span>
+    <span ng-switch-when="verify">Confirm your email</span>
+    <span ng-switch-when="forgot">Forgot your password?</span>
+    <span ng-switch-when="reset">Choose a new password</span>
+    <span ng-switch-default>Sign in</span>
+  </h1>
+  <p class="small muted" ng-if="a.note">{{a.note}}</p>
+  <form ng-submit="a.submit()">
+    <div class="field" ng-if="a.mode === 'register'"><label>Your name</label><input type="text" ng-model="a.form.name" autocomplete="name"></div>
+    <div class="field"><label>Email</label><input type="email" ng-model="a.form.email" autocomplete="username"></div>
+    <div class="field" ng-if="a.mode === 'login' || a.mode === 'register' || a.mode === 'reset'">
+      <label>{{a.mode === 'reset' ? 'New password' : 'Password'}}</label>
+      <input type="password" ng-model="a.form.password" autocomplete="{{a.mode === 'login' ? 'current-password' : 'new-password'}}">
+      <div class="small muted" ng-if="a.mode !== 'login'">At least 8 characters.</div>
+    </div>
+    <div class="field" ng-if="a.mode === 'verify' || a.mode === 'reset'">
+      <label>6-digit code from the email</label><input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" ng-model="a.form.code">
+    </div>
+    <div class="field" ng-if="a.mode === 'login' && a.otp">
+      <label>Code from your authenticator app</label><input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" ng-model="a.form.otp">
+    </div>
+    <div class="alert good" ng-if="a.info">{{a.info}}</div>
+    <div class="alert bad" ng-if="a.error">{{a.error}}</div>
+    <button class="btn primary" type="submit" style="width:100%" ng-switch="a.mode">
+      <span ng-switch-when="register">Create account</span>
+      <span ng-switch-when="verify">Confirm</span>
+      <span ng-switch-when="forgot">Send me a code</span>
+      <span ng-switch-when="reset">Change password</span>
+      <span ng-switch-default>Sign in</span>
+    </button>
+  </form>
+  <p class="small" style="margin-top:12px">
+    <button class="linkbtn" ng-if="a.mode === 'login'" ng-click="a.go('forgot')">Forgot your password?</button>
+    <button class="linkbtn" ng-if="a.mode === 'verify'" ng-click="a.resend()">Send a new code</button>
+    <button class="linkbtn" ng-if="a.mode !== 'login'" ng-click="a.go('login')">Back to sign in</button>
+    <span ng-if="a.register && a.mode === 'login'"> · <button class="linkbtn" ng-click="a.go('register')">New to Equidron? Create an account</button></span>
+  </p>
+  <p class="small muted" ng-if="a.mode === 'verify' || a.mode === 'forgot' || a.mode === 'reset'">
+    Emails aren't sent yet: until email is connected, codes wait in the Ops Outbox.
+  </p>
+  <div class="demo-accounts" ng-if="a.demo && a.demoAccounts.length && a.mode === 'login'">
+    Sample accounts (password <code>equidron-demo</code>):
+    <span ng-repeat="d in a.demoAccounts"><button class="linkbtn" ng-click="a.useDemo(d.email)">{{d.label || d.email}}</button><span ng-if="!$last"> · </span></span>
+  </div>
+</div>

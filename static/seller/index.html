@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en" ng-app="seller">
+<html lang="en" ng-app="seller" ng-csp="no-unsafe-eval">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Equidron Seller Central</title>
   <link rel="stylesheet" href="/common/style.css">
   <style>.topbar, .chat-head, .chat-fab { background: #0f2b2a; } .subnav, .chat-fab:hover { background: #174240; }</style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js" integrity="sha512-KZmyTq3PLx9EZl0RHShHQuXtrvdJ+m35tuOiwlcZfs/rE7NZv29ygNA8SFCkMXTnYZQK2OX0Gm2qKGfvWEtRXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/common/common.js"></script>
   <script src="/seller/seller.js"></script>
 </head>
@@ -28,6 +28,7 @@
   <a href="#/submissions" ng-class="{on: vm.route.name === 'submissions'}">Submissions</a>
   <a href="#/orders" ng-class="{on: vm.route.name === 'orders'}">Orders</a>
   <a href="#/payments" ng-class="{on: vm.route.name === 'payments'}">Payments</a>
+  <a href="#/security" ng-class="{on: vm.route.name === 'security'}">Security</a>
 </div></div>
 <div class="sample">Sample data: every seller, product, customer and order here is fictional. Payments are simulated.</div>
 
@@ -35,23 +36,13 @@
   <div class="alert bad" ng-if="vm.err">{{vm.err}}</div>
 
   <!-- ============ LOGIN ============ -->
-  <section ng-if="vm.route.name === 'login'" class="auth">
-    <div class="card">
-      <h1>Seller Central sign in</h1>
-      <p class="small muted">For Equidron sellers. Shopping? Go to the <a href="/shop/">Equidron store</a>.</p>
-      <form ng-submit="vm.login()">
-        <div class="field"><label>Email</label><input type="email" ng-model="vm.auth.form.email" autocomplete="username"></div>
-        <div class="field"><label>Password</label><input type="password" ng-model="vm.auth.form.password" autocomplete="current-password"></div>
-        <div class="alert bad" ng-if="vm.auth.error">{{vm.auth.error}}</div>
-        <button class="btn primary" style="width:100%" type="submit">Sign in</button>
-      </form>
-      <div class="demo-accounts" style="margin-top:12px">Sample sellers (password <code>equidron-demo</code>):<br>
-        <button class="linkbtn" ng-click="vm.useDemo('lakshmi.seller@example.com')">Lakshmi Mobiles &amp; Electronics</button> ·
-        <button class="linkbtn" ng-click="vm.useDemo('techbazaar.seller@example.com')">TechBazaar Hub</button> ·
-        <button class="linkbtn" ng-click="vm.useDemo('urbancart.seller@example.com')">UrbanCart Retail</button> ·
-        <button class="linkbtn" ng-click="vm.useDemo('greenleaf.seller@example.com')">GreenLeaf Home Store</button> ·
-        <button class="linkbtn" ng-click="vm.useDemo('pageturner.seller@example.com')">PageTurner Books</button></div>
-    </div>
+  <section ng-if="vm.route.name === 'login' || vm.route.name === 'reset'" class="auth">
+    <div ng-include="'/common/auth.html'"></div>
+  </section>
+
+  <!-- ============ SECURITY ============ -->
+  <section ng-if="vm.user && vm.route.name === 'security'">
+    <div ng-include="'/common/security.html'"></div>
   </section>
 
   <!-- ============ DASHBOARD ============ -->

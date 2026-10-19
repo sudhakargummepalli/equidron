@@ -1,0 +1,37 @@
+<!-- The Security page for Seller Central and Ops. The controller sets vm.security = SecurityPanel(...). -->
+<h1>Security</h1>
+<div class="card" ng-init="p = vm.security">
+  <h2>Two-step sign-in</h2>
+  <p class="small muted">With two-step sign-in, signing in needs your password and a 6-digit code from an authenticator app
+    on your phone (for example Google Authenticator or Microsoft Authenticator), so a stolen password alone isn't enough.</p>
+  <div class="alert good" ng-if="p.info">{{p.info}}</div>
+  <div class="alert bad" ng-if="p.error">{{p.error}}</div>
+  <div ng-if="!p.enabled && !p.setup">
+    <p>Two-step sign-in is <strong>off</strong>.</p>
+    <button class="btn primary" ng-click="p.start()">Set up an authenticator app</button>
+  </div>
+  <div ng-if="p.setup">
+    <ol class="small">
+      <li>In your authenticator app, add an account and choose to enter a setup key.</li>
+      <li>Enter this key: <code>{{p.setup.secret}}</code> (time-based). On a phone you can open
+        <a ng-href="{{p.setup.otpauth_url}}">this link</a> instead.</li>
+      <li>Type the 6-digit code the app shows, to confirm.</li>
+    </ol>
+    <form ng-submit="p.confirm(true)" class="row">
+      <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" ng-model="p.form.code" placeholder="123456">
+      <button class="btn primary" type="submit">Turn on</button>
+    </form>
+  </div>
+  <div ng-if="p.enabled">
+    <p>Two-step sign-in is <strong>on</strong>. To turn it off, enter a current code from your app.</p>
+    <form ng-submit="p.confirm(false)" class="row">
+      <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" ng-model="p.form.code" placeholder="123456">
+      <button class="btn" type="submit">Turn off</button>
+    </form>
+  </div>
+</div>
+<div class="card">
+  <h2>Signed-in devices</h2>
+  <p class="small muted">Lost a phone or used a shared computer? This signs you out everywhere, including here.</p>
+  <button class="btn" ng-click="vm.security.logoutAll()">Sign out of all devices</button>
+</div>

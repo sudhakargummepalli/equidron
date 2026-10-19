@@ -45,9 +45,11 @@ On this machine Node is a portable install at `%LOCALAPPDATA%\Programs\node-v24.
 |---|---|
 | Customer | `asha@example.com` (Bengaluru), `rahul@example.com` (Delhi) |
 | Seller | `lakshmi.seller@example.com`, `techbazaar.seller@example.com`, `urbancart.seller@example.com`, `greenleaf.seller@example.com`, `pageturner.seller@example.com` |
-| Ops reviewer | `ops@example.com` |
+| Ops staff | `ops@example.com` (admin), `support@example.com` (support only), `finance@example.com` (finance only) |
 
-Each sign-in page has buttons that fill these in. Customers can also create their own accounts.
+The sample accounts and their shared password work only in **demo mode**, `EQUIDRON_SEED_DEMO=1`. `node app.js` turns it on; set `EQUIDRON_SEED_DEMO=0` to see the app as it behaves anywhere else, where sample accounts can't sign in. On Netlify, set `EQUIDRON_SEED_DEMO=1` under **Site configuration → Environment variables** for a demo site, and leave it unset for a real one.
+
+Each sign-in page has buttons that fill these in (in demo mode). Customers can also create their own accounts: the store emails a 6-digit code to confirm the address. Email isn't connected yet (Phase 10), so the message waits in **Ops → Outbox**, which only admins can open.
 
 ## Run the tests
 
@@ -115,10 +117,22 @@ tests/                    node:test suites
 ```
 
 ### Database access
-Queries are written with `?` placeholders, which `db.js` numbers as `$1, $2, ...` before sending. It also turns `LIKE` into `ILIKE`, so searches ignore case, and adds `RETURNING id` to inserts so the new row's id comes back. Each API request runs as one transaction. Write transactions take a lock first, so only one runs at a time. That way checkout can read stock and then reserve it without another order slipping in between. Reads don't take the lock.
+Queries are written with `?` placeholders, which `db.js` numbers as `$1, $2, ...` before sending. It also turns `LIKE` into `ILIKE`, so searches ignore case, and adds `RETURNING id` to inserts so the new row's id comes back. Each API request runs as one transaction (a failed sign-in answers with the error instead of throwing it, so the attempt is still recorded). Write transactions take a lock first, so only one runs at a time. That way checkout can read stock and then reserve it without another order slipping in between. Reads don't take the lock.
 
 ### Roles are kept separate
 Each interface has its own login endpoint, session role and cookie (`eq_shop`, `eq_seller`, `eq_ops`), scoped to its own API path. A seller's session is rejected by the store API and the other way round. Signing in to the wrong interface gives "This account can't sign in here". POST requests must be JSON, which blocks cross-site form posts.
+
+### Accounts, staff permissions and the audit log
+- **Passwords** are hashed with scrypt. Accounts from before used PBKDF2 and are re-hashed at their next sign-in.
+- **Sessions:** the database keeps only a SHA-256 hash of each token. Every sign-in issues a new token, and **Sign out of all devices** ends every session of the account. On Netlify the cookies are `Secure`.
+- **Lockout:** five failed sign-ins in 15 minutes lock that email for 15 minutes (`login_attempts`).
+- **Codes by email** confirm a new customer's address and reset a forgotten password (any interface: *Forgot your password?*). A code works once, expires after 30 minutes, and stops after five wrong tries. A reset signs the account out everywhere.
+- **Two-step sign-in:** sellers and staff can add an authenticator app under **Security** (TOTP, built on `node:crypto`). Each code works once.
+- **Staff permissions:** `support` (support and returns), `catalog` (listing review), `logistics` (shipments), `finance` (settlement) and `admin` (everything, plus Staff, Audit log and Outbox). An Ops route that isn't given a permission needs admin. Admins change permissions on **Ops → Staff**, but can't remove their own admin.
+- **Agent accounts** (role `agent`) let agents act as themselves in the audit log. No sign-in page accepts them, and no interface accepts a session for one.
+- **Audit log:** service functions record who did what (`audit_log`, with before and after), and any other write request gets one row for itself. Listing decisions and returns record `decided_by`, and Ops shows who decided. **Ops → Audit log** lists the latest 200, masked.
+- **Masking:** `mask()` (`src/mask.js`) hides emails, UPI ids, phone numbers, PAN, card and bank numbers. Every log line goes through it, and so will anything sent to an AI agent.
+- **Security headers** (Content-Security-Policy without eval, HSTS, nosniff, no framing) come from `netlify.toml` on Netlify and from `src/security-headers.js` locally; a test keeps them the same. AngularJS is pinned with Subresource Integrity.
 
 ### Seller listings and approval
 Sellers never edit live data. Every save becomes a **submission**:

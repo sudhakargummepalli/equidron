@@ -9,7 +9,8 @@ import { makePostgresHandler } from '../src/fetch-handler.js';
 import DATA from '../src/sample-data.json' with { type: 'json' };
 import { seed } from '../src/seed.js';
 
-settings.pbkdf2Rounds = 1000;
+settings.fastHashing = true; // cheap password hashing, so the sample accounts are quick to create
+process.env.EQUIDRON_SEED_DEMO = '1'; // the sample accounts sign in with the shared demo password
 
 test('? placeholders are numbered and LIKE ignores case', () => {
   assert.equal(toPostgres("SELECT * FROM t WHERE a = ? AND b LIKE ? AND c = '?'"),
@@ -37,7 +38,7 @@ test('the Netlify Database schema migrations add up to the schema', () => {
   const schemaMigrations = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()
     .map((f) => readFileSync(new URL(f, dir), 'utf8').replace(/\r\n/g, '\n').replace(/^(--.*\n)+/, '').trim())
     .filter((sql) => sql.startsWith('CREATE TABLE'));
-  assert.equal(schemaMigrations.length, 2);
+  assert.equal(schemaMigrations.length, 3);
   assert.equal(schemaMigrations.join('\n'), SCHEMA.trim().replace(/\r\n/g, '\n'));
 });
 
@@ -107,4 +108,23 @@ test('Netlify handler serves the API from Postgres', async () => {
   const search = await (await call('GET', '/api/shop/search?q=bassline')).json();
   assert.ok(search.results.some((r) => r.title.startsWith('Bassline Mini')));
   await handle.close();
+});
+
+test('the Phase 1 migration upgrades a database that already has data, and can run twice', async () => {
+  const migration = readFileSync(new URL('../netlify/database/migrations/20261019000000_accounts_and_audit.sql', import.meta.url), 'utf8');
+  const db = await connect('memory');
+  await db.exec(SCHEMA.slice(0, SCHEMA.indexOf('CREATE TABLE IF NOT EXISTS audit_log'))); // the schema before Phase 1
+  const add = (email, role) => run(db, "INSERT INTO users (email, name, role, pw_salt, pw_hash, created_at) VALUES (?, 'N', ?, 's', 'h', 't')", email, role);
+  await add('staff@example.com', 'ops');
+  await add('shopper@example.com', 'customer');
+  await db.exec(migration);
+  await db.exec(migration);
+  const staff = await one(db, "SELECT * FROM users WHERE email = 'staff@example.com'");
+  assert.equal(staff.permissions, '["admin"]'); // existing staff keep full access
+  assert.equal(staff.pw_algo, 'pbkdf2:120000');
+  assert.equal(staff.email_verified, 1);
+  assert.equal((await one(db, "SELECT permissions FROM users WHERE email = 'shopper@example.com'")).permissions, '[]');
+  await add('agent-returns@agents.equidron.invalid', 'agent'); // the new role is allowed
+  await assert.rejects(add('x@example.com', 'boss'));
+  await db.close();
 });

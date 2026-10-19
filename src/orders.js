@@ -11,6 +11,7 @@
 //
 // Every function here expects to run inside a transaction opened by the caller.
 import crypto from 'node:crypto';
+import { actorUserId, audit } from './audit.js';
 import { CITIES, deliveryDays, etaDate, isDeliverable, stockByWarehouse } from './catalog.js';
 import { all, dumps, isoDate, loads, now, one, run, scalar } from './db.js';
 import { badRequest, conflict, forbidden, notFound } from './errors.js';
@@ -404,6 +405,7 @@ export async function advanceShipment(db, shipmentId, actor, sellerId = null) {
     await run(db, 'UPDATE shipments SET status = ?, updated_at = ? WHERE id = ?', nxt, now(), shipmentId);
   }
   await shipmentEvent(db, shipmentId, nxt, STAGE_NOTES[nxt](s.warehouse_name));
+  await audit(db, 'shipment.advance', 'shipment', shipmentId, { status: s.status }, { status: nxt, by: actor });
   const method = (await one(db, 'SELECT method FROM payments WHERE order_id = ?', orderId)).method;
 
   if (nxt === 'shipped') {
@@ -511,7 +513,7 @@ export async function requestReturn(db, userId, orderId, orderItemId, qty, reaso
 }
 
 // Ops marks the returned item as received: refund the customer, restock, debit the seller.
-export async function receiveReturn(db, returnId, restock = true) {
+export async function receiveReturn(db, returnId, restock = true, decidedBy = actorUserId()) {
   const r = await one(db, 'SELECT * FROM returns WHERE id = ?', returnId);
   if (!r) throw notFound('Return');
   if (r.status !== 'pickup_scheduled') throw conflict(`This return is already ${r.status}.`);
@@ -522,25 +524,27 @@ export async function receiveReturn(db, returnId, restock = true) {
     await run(db, 'UPDATE inventory SET on_hand = on_hand + ? WHERE offer_id = ? AND warehouse_id = ?', r.qty, item.offer_id, item.warehouse_id);
   }
   await run(db, 'UPDATE order_items SET returned_qty = returned_qty + ? WHERE id = ?', r.qty, item.id);
-  await run(db, "UPDATE returns SET status = 'refunded', refund_paise = ?, updated_at = ? WHERE id = ?", refunded, now(), returnId);
+  await run(db, "UPDATE returns SET status = 'refunded', refund_paise = ?, updated_at = ?, decided_by = ? WHERE id = ?", refunded, now(), decidedBy, returnId);
+  await audit(db, 'return.refund', 'return', returnId, { status: r.status }, { status: 'refunded', refund_paise: refunded, restock, decided_by: decidedBy });
   await ledger(db, item.seller_id, item.id, 'refund', -amount, `Return #${returnId}: ${item.title} × ${r.qty}`);
   await ledger(db, item.seller_id, item.id, 'fee_reversal', Math.round(amount * REFERRAL_FEE_RATE), 'Referral fee returned');
   await notify(db, r.user_id, `Refund of ${inr(refunded)} for return #${returnId} issued to ${destination}.`, `#/orders/${r.order_id}`);
   return refunded;
 }
 
-export async function rejectReturn(db, returnId, note) {
+export async function rejectReturn(db, returnId, note, decidedBy = actorUserId()) {
   const r = await one(db, 'SELECT * FROM returns WHERE id = ?', returnId);
   if (!r) throw notFound('Return');
   if (r.status !== 'pickup_scheduled') throw conflict(`This return is already ${r.status}.`);
-  await run(db, "UPDATE returns SET status = 'rejected', updated_at = ? WHERE id = ?", now(), returnId);
+  await run(db, "UPDATE returns SET status = 'rejected', updated_at = ?, decided_by = ? WHERE id = ?", now(), decidedBy, returnId);
+  await audit(db, 'return.reject', 'return', returnId, { status: r.status }, { status: 'rejected', note: note || null, decided_by: decidedBy });
   await notify(db, r.user_id, `Return #${returnId} was rejected: ${note || 'item did not match the return reason.'}`, `#/orders/${r.order_id}`);
 }
 
 export async function listReturns(db, status = null) {
-  let sql = `SELECT r.*, oi.title, u.name AS customer_name, s.name AS seller_name
+  let sql = `SELECT r.*, oi.title, u.name AS customer_name, s.name AS seller_name, d.name AS decided_by_name
              FROM returns r JOIN order_items oi ON oi.id = r.order_item_id JOIN users u ON u.id = r.user_id
-             JOIN sellers s ON s.id = oi.seller_id`;
+             JOIN sellers s ON s.id = oi.seller_id LEFT JOIN users d ON d.id = r.decided_by`;
   const params = [];
   if (status) { sql += ' WHERE r.status = ?'; params.push(status); }
   return await all(db, sql + ' ORDER BY r.id DESC LIMIT 200', ...params);
@@ -571,6 +575,7 @@ export async function runSettlement(db) {
       payouts.push({ seller_id: s.id, seller_name: s.name, amount_paise: balance });
     }
   }
+  await audit(db, 'settlement.run', 'settlement', '-', null, { payouts });
   return payouts;
 }
 

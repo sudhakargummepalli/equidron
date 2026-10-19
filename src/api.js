@@ -6,11 +6,14 @@
 //   /api/seller/...  seller     (cookie eq_seller, Path=/api/seller)
 //   /api/ops/...     ops        (cookie eq_ops,    Path=/api/ops)
 import * as assistant from './assistant.js';
+import { ANONYMOUS, actingAs, audit, auditsWritten, listAudit, safeBody, setActor, userActor } from './audit.js';
 import * as auth from './auth.js';
 import * as catalog from './catalog.js';
 import { one, scalar, transaction } from './db.js';
 import { AppError } from './errors.js';
 import * as listings from './listings.js';
+import { mask } from './mask.js';
+import { listOutbox } from './outbox.js';
 import * as notify from './notify.js';
 import * as orders from './orders.js';
 import { answerSeller } from './seller-assistant.js';
@@ -21,11 +24,28 @@ export const AREAS = { shop: 'customer', seller: 'seller', ops: 'ops' };
 const SAMPLE_NOTICE = 'Sample data: every seller, product, customer and order here is fictional. Payments are simulated.';
 const ROUTES = [];
 
+// The staff permission each part of Ops needs (see auth.PERMISSIONS). An Ops route
+// that isn't listed needs admin, so a new route is closed until someone opens it.
+const OPS_PERMISSIONS = [
+  [/^\/(login|logout|logout-all|me|notifications|notifications\/read|overview|password\/forgot|password\/reset)$/, null],
+  [/^\/2fa/, null],
+  [/^\/submissions/, 'catalog'],
+  [/^\/shipments/, 'logistics'],
+  [/^\/(returns|support)/, 'support'],
+  [/^\/settlement/, 'finance'],
+];
+const opsPermission = (pattern) => (OPS_PERMISSIONS.find(([re]) => re.test(pattern)) ?? [null, 'admin'])[1];
+
 // readOnly: a non-GET route that writes nothing, so it runs outside a transaction
 // (the assistant waits seconds on the model and must not hold the write lock).
 // prepare(body): slow work done before the transaction; its result is ctx.prepared.
+// Each write route also has an audit name, used when its service functions record nothing:
+// POST /orders/(\d+)/cancel in shop is "shop.orders.cancel" on entity "orders".
 function route(method, area, pattern, fn, isPublic = false, { readOnly = false, prepare = null } = {}) {
-  ROUTES.push({ method, area, pattern: new RegExp(`^${pattern}$`), fn, isPublic, readOnly, prepare });
+  const words = pattern.split('/').filter((s) => s && !s.startsWith('('));
+  const action = [area, ...words].join('.') + (method === 'POST' ? '' : `.${method.toLowerCase()}`);
+  const permission = area === 'ops' ? opsPermission(pattern) : null;
+  ROUTES.push({ method, area, pattern: new RegExp(`^${pattern}$`), fn, isPublic, readOnly, prepare, action, entity: words[0] || area, permission });
 }
 
 class Reply {
@@ -45,19 +65,61 @@ const int = (v) => {
 for (const area of Object.keys(AREAS)) {
   const role = AREAS[area];
   route('POST', area, '/login', async (c) => {
-    const token = await auth.login(c.db, c.body.email, c.body.password, role);
-    return new Reply(200, { user: await auth.userForToken(c.db, token, role) }, [area, token]);
+    let token;
+    try {
+      token = await auth.login(c.db, c.body.email, c.body.password, role, { otp: c.body.otp });
+    } catch (e) {
+      // Answered, not thrown, so the record of the failed attempt (and any lockout) is kept.
+      if (!(e instanceof AppError)) throw e;
+      if (e.status === 401) await audit(c.db, 'auth.login_failed', 'user', mask(auth.normalEmail(c.body.email)), null, { area });
+      return new Reply(e.status, { error: e.message, ...(e.details ? { details: e.details } : {}) });
+    }
+    if (c.token) await auth.logout(c.db, c.token); // a fresh token at every sign-in
+    const user = await auth.userForToken(c.db, token, role);
+    setActor(userActor(user));
+    await audit(c.db, 'auth.login', 'user', user.id, null, { area });
+    return new Reply(200, { user }, [area, token]);
   }, true);
   route('POST', area, '/logout', async (c) => {
     if (c.token) await auth.logout(c.db, c.token);
     return new Reply(200, { ok: true }, [area, '']);
   }, true);
-  route('GET', area, '/me', async (c) => ({ user: c.user }), true);
+  route('POST', area, '/logout-all', async (c) => {
+    await auth.logoutEverywhere(c.db, c.user.id);
+    return new Reply(200, { ok: true }, [area, '']);
+  });
+  // Forgotten passwords: a one-time code by email (the outbox, until Phase 10).
+  route('POST', area, '/password/forgot', async (c) => {
+    await auth.requestPasswordReset(c.db, c.body.email, role, area);
+    return { ok: true, message: 'If that email has an account here, we sent a reset code to it.' };
+  }, true);
+  route('POST', area, '/password/reset', async (c) => {
+    const b = c.body;
+    if (!(await auth.resetPassword(c.db, b.email, role, b.code, b.password))) {
+      return new Reply(400, { error: "That code isn't right or has expired. Ask for a new one." });
+    }
+    return { ok: true };
+  }, true);
+  route('GET', area, '/me', async (c) => ({ user: c.user, demo: auth.demoMode() }), true);
   route('GET', area, '/notifications', async (c) => await notify.listFor(c.db, c.user.id));
   route('POST', area, '/notifications/read', async (c) => {
     await notify.markRead(c.db, c.user.id);
     return { ok: true };
   });
+}
+
+// Two-step sign-in with an authenticator app, for sellers and staff.
+for (const area of ['seller', 'ops']) {
+  route('GET', area, '/2fa', async (c) => await auth.twoStepStatus(c.db, c.user.id));
+  route('POST', area, '/2fa/setup', async (c) => await auth.setupTotp(c.db, c.user));
+  for (const [path, enable] of [['/2fa/enable', true], ['/2fa/disable', false]]) {
+    route('POST', area, path, async (c) => {
+      if (!(await auth.confirmTotp(c.db, c.user.id, c.body.code, enable))) {
+        return new Reply(400, { error: "That code isn't right. Check the time on your phone and try again." });
+      }
+      return await auth.twoStepStatus(c.db, c.user.id);
+    });
+  }
 }
 
 // ---------------------------------------------------------------- shop (customer)
@@ -67,11 +129,23 @@ route('GET', 'shop', '/meta', async () => ({
   sample_notice: SAMPLE_NOTICE, rank_weights: catalog.RANK_WEIGHTS,
 }), true);
 
+// Sign-up: the account works once the code emailed to it is entered.
 route('POST', 'shop', '/register', async (c) => {
   const b = c.body;
-  await auth.createUser(c.db, b.email, b.name, b.password, 'customer');
-  const token = await auth.login(c.db, b.email, b.password, 'customer');
-  return new Reply(201, { user: await auth.userForToken(c.db, token, 'customer') }, ['shop', token]);
+  await auth.startSignUp(c.db, b.email, b.name, b.password);
+  return new Reply(201, { needs_verification: true, email: auth.normalEmail(b.email) });
+}, true);
+route('POST', 'shop', '/verify-email', async (c) => {
+  const userId = await auth.verifyEmail(c.db, c.body.email, c.body.code);
+  if (!userId) return new Reply(400, { error: "That code isn't right or has expired. Ask for a new one." });
+  const token = await auth.issueSession(c.db, userId, 'customer');
+  const user = await auth.userForToken(c.db, token, 'customer');
+  setActor(userActor(user));
+  return new Reply(200, { user }, ['shop', token]);
+}, true);
+route('POST', 'shop', '/verify-email/resend', async (c) => {
+  await auth.resendVerification(c.db, c.body.email);
+  return { ok: true };
 }, true);
 
 route('GET', 'shop', '/search', async (c) => ({
@@ -193,7 +267,7 @@ route('GET', 'ops', '/overview', async (c) => {
 });
 route('GET', 'ops', '/submissions', async (c) => await listings.listSubmissions(c.db, null, c.q('status') || null));
 route('POST', 'ops', '/submissions/(\\d+)/decide', async (c, sid) =>
-  await listings.decide(c.db, int(sid), Boolean(c.body.approve), String(c.body.note || '').trim()));
+  await listings.decide(c.db, int(sid), Boolean(c.body.approve), String(c.body.note || '').trim(), c.user.id));
 route('GET', 'ops', '/shipments', async (c) => await orders.listShipments(c.db, c.q('all') !== '1'));
 route('POST', 'ops', '/shipments/(\\d+)/advance', async (c, sid) => await orders.advanceShipment(c.db, int(sid), 'ops'));
 route('POST', 'ops', '/shipments/advance-all', async (c) => {
@@ -203,9 +277,9 @@ route('POST', 'ops', '/shipments/advance-all', async (c) => {
 });
 route('GET', 'ops', '/returns', async (c) => await orders.listReturns(c.db));
 route('POST', 'ops', '/returns/(\\d+)/receive', async (c, rid) =>
-  ({ refunded_paise: await orders.receiveReturn(c.db, int(rid), c.body.restock !== false) }));
+  ({ refunded_paise: await orders.receiveReturn(c.db, int(rid), c.body.restock !== false, c.user.id) }));
 route('POST', 'ops', '/returns/(\\d+)/reject', async (c, rid) => {
-  await orders.rejectReturn(c.db, int(rid), String(c.body.note || '').trim());
+  await orders.rejectReturn(c.db, int(rid), String(c.body.note || '').trim(), c.user.id);
   return { ok: true };
 });
 route('GET', 'ops', '/support', async (c) => await orders.listTickets(c.db));
@@ -214,6 +288,10 @@ route('POST', 'ops', '/support/(\\d+)/reply', async (c, tid) => {
   return await orders.listTickets(c.db);
 });
 route('POST', 'ops', '/settlement/run', async (c) => ({ payouts: await orders.runSettlement(c.db) }));
+route('GET', 'ops', '/staff', async (c) => ({ staff: await auth.staffList(c.db), permissions: auth.PERMISSIONS }));
+route('POST', 'ops', '/staff/(\\d+)/permissions', async (c, uid) => await auth.setPermissions(c.db, int(uid), c.body.permissions, c.user.id));
+route('GET', 'ops', '/audit', async (c) => mask(await listAudit(c.db, { entity: c.q('entity') || null })));
+route('GET', 'ops', '/outbox', async (c) => await listOutbox(c.db)); // admin only: it holds sign-up and reset codes
 
 // ---------------------------------------------------------------- dispatch
 
@@ -230,11 +308,16 @@ export async function handleApi(db, { method, path, query, body, cookies }) {
       if (!pm) continue;
       // Reads run directly; anything else runs as one transaction.
       const prepared = r.prepare ? await r.prepare(body || {}) : null;
-      const scope = method === 'GET' || r.readOnly ? (fn) => fn() : (fn) => transaction(db, fn);
-      const result = await scope(async () => {
+      const writes = method !== 'GET' && !r.readOnly;
+      const scope = writes ? (fn) => transaction(db, fn) : (fn) => fn();
+      const result = await actingAs(ANONYMOUS, () => scope(async () => {
         const token = cookies[`eq_${area}`] || null;
         const user = await auth.userForToken(db, token, AREAS[area]);
         if (!user && !r.isPublic) throw new AppError(401, 'Please sign in.');
+        if (user) setActor(userActor(user));
+        if (r.permission && !auth.hasPermission(user, r.permission)) {
+          throw new AppError(403, `You need the "${r.permission}" permission for this. Ask an Equidron admin.`);
+        }
         const ctx = {
           db, user, body: body || {}, token, prepared,
           q: (name, fallback = null) => (query.has(name) ? query.get(name) : fallback),
@@ -248,8 +331,10 @@ export async function handleApi(db, { method, path, query, body, cookies }) {
             return null;
           },
         };
-        return r.fn(ctx, ...pm.slice(1));
-      });
+        const out = await r.fn(ctx, ...pm.slice(1));
+        if (writes && !auditsWritten()) await audit(db, r.action, r.entity, pm[1] ?? '-', null, { request: safeBody(body) });
+        return out;
+      }));
       const reply = result instanceof Reply ? result : new Reply(200, result);
       let setCookie = null;
       if (reply.cookie) {
@@ -265,7 +350,7 @@ export async function handleApi(db, { method, path, query, body, cookies }) {
       if (e.details != null) payload.details = e.details;
       return { status: e.status, payload, setCookie: null };
     }
-    console.error(e);
+    console.error(mask(e?.stack || String(e)));
     return { status: 500, payload: { error: 'Something went wrong on our side. Please try again.' }, setCookie: null };
   }
 }

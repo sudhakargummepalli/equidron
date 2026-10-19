@@ -22,19 +22,23 @@ Done when:
 
 ## Phase 1 · Real accounts, roles and an audit trail (A · M)
 Goal: accounts safe for real people, staff roles with only the rights they need, agent accounts, a record of every change.
-- [ ] Sign-up with email verification by one-time code; password reset; login rate limit and lockout (`login_attempts`)
-- [ ] Two-step sign-in (authenticator app) for sellers and staff
-- [ ] scrypt, or PBKDF2 at 600,000 rounds; re-hash old passwords at next sign-in
-- [ ] Sessions: store SHA-256 of the token; `Secure` cookies; new token at sign-in; "sign out of all devices"
-- [ ] Staff permissions (support, catalog, logistics, finance, admin); an agent role that can't sign in through any page
-- [ ] `audit_log` table (Appendix A) and `audit()` helper in service functions; `decided_by` on submissions and returns
-- [ ] Demo accounts and shared password only when `EQUIDRON_SEED_DEMO=1`
-- [ ] Security headers in netlify.toml (CSP, HSTS, X-Content-Type-Options, frame-ancestors); SRI on the AngularJS tag
-- [ ] `mask()` for phones, emails, PAN, bank and card numbers, used by logs (and later by agents)
+- [x] Sign-up with email verification by one-time code; password reset; login rate limit and lockout (`login_attempts`)
+- [x] Two-step sign-in (authenticator app) for sellers and staff
+- [x] scrypt, or PBKDF2 at 600,000 rounds; re-hash old passwords at next sign-in
+- [x] Sessions: store SHA-256 of the token; `Secure` cookies; new token at sign-in; "sign out of all devices"
+- [x] Staff permissions (support, catalog, logistics, finance, admin); an agent role that can't sign in through any page
+- [x] `audit_log` table (Appendix A) and `audit()` helper in service functions; `decided_by` on submissions and returns
+- [x] Demo accounts and shared password only when `EQUIDRON_SEED_DEMO=1`
+- [x] Security headers in netlify.toml (CSP, HSTS, X-Content-Type-Options, frame-ancestors); SRI on the AngularJS tag
+- [x] `mask()` for phones, emails, PAN, bank and card numbers, used by logs (and later by agents)
 
 Tests: lockout after repeated failures; reset links work once and expire; staff without finance can't run settlement;
 every interface refuses an agent session; every write route creates an audit row; mask() covers each pattern.
-Done when: all new and original tests pass; no shared password in production; Ops shows who decided each listing and return.
+Done when:
+- [x] All new and original tests pass (79 on branch phase-1-accounts: the 59 from before plus 20 new)
+- [x] No shared password outside demo mode (production leaves EQUIDRON_SEED_DEMO unset)
+- [x] Ops shows who decided each listing and return
+Notes: two-step sign-in is opt-in for now (see DECISIONS); codes go to the Ops Outbox until Phase 10.
 
 ## Phase 2 · Data built for real traffic (A · M)
 Goal: many writers at once, correct times, searchable data.

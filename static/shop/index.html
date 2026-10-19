@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en" ng-app="shop">
+<html lang="en" ng-app="shop" ng-csp="no-unsafe-eval">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Equidron Store</title>
   <link rel="stylesheet" href="/common/style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js" integrity="sha512-KZmyTq3PLx9EZl0RHShHQuXtrvdJ+m35tuOiwlcZfs/rE7NZv29ygNA8SFCkMXTnYZQK2OX0Gm2qKGfvWEtRXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/common/common.js"></script>
   <script src="/shop/shop.js"></script>
 </head>
@@ -25,7 +25,7 @@
       <a href="#/orders">Orders</a>
       <a href="#/notifications" ng-if="vm.user">Alerts<span ng-if="vm.unread"> ({{vm.unread}})</span></a>
       <a href="#/cart"><strong>Cart ({{vm.cart.count || 0}})</strong></a>
-      <span ng-if="vm.user">Hi, {{vm.user.name.split(' ')[0]}} · <button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logout()">Sign out</button></span>
+      <span ng-if="vm.user">Hi, {{vm.user.name.split(' ')[0]}} · <button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logout()">Sign out</button> · <button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logoutAll()" title="Ends your sessions on every device">Sign out everywhere</button></span>
       <a ng-if="!vm.user" href="#/login">Sign in</a>
     </nav>
   </div>
@@ -350,25 +350,8 @@
   </section>
 
   <!-- ============ LOGIN ============ -->
-  <section ng-if="vm.route.name === 'login'" class="auth">
-    <div class="card">
-      <h1>{{vm.auth.mode === 'login' ? 'Sign in' : 'Create your Equidron account'}}</h1>
-      <p class="small muted">Customer accounts only. Sellers sign in at <a href="/seller/">Seller Central</a>.</p>
-      <form ng-submit="vm.submitAuth()">
-        <div class="field" ng-if="vm.auth.mode === 'register'"><label>Your name</label><input type="text" ng-model="vm.auth.form.name" autocomplete="name"></div>
-        <div class="field"><label>Email</label><input type="email" ng-model="vm.auth.form.email" autocomplete="username"></div>
-        <div class="field"><label>Password</label><input type="password" ng-model="vm.auth.form.password" autocomplete="{{vm.auth.mode === 'login' ? 'current-password' : 'new-password'}}"></div>
-        <div class="alert bad" ng-if="vm.auth.error">{{vm.auth.error}}</div>
-        <button class="btn primary" type="submit" style="width:100%">{{vm.auth.mode === 'login' ? 'Sign in' : 'Create account'}}</button>
-      </form>
-      <p class="small" style="margin-top:12px">
-        <button class="linkbtn" ng-click="vm.auth.mode = vm.auth.mode === 'login' ? 'register' : 'login'; vm.auth.error = null">
-          {{vm.auth.mode === 'login' ? 'New to Equidron? Create an account' : 'Already have an account? Sign in'}}</button>
-      </p>
-      <div class="demo-accounts">Sample customers (password <code>equidron-demo</code>):
-        <button class="linkbtn" ng-click="vm.useDemo('asha@example.com')">asha@example.com</button> ·
-        <button class="linkbtn" ng-click="vm.useDemo('rahul@example.com')">rahul@example.com</button></div>
-    </div>
+  <section ng-if="vm.route.name === 'login' || vm.route.name === 'reset'" class="auth">
+    <div ng-include="'/common/auth.html'"></div>
   </section>
 </main>
 

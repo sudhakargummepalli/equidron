@@ -1,11 +1,28 @@
 /* Equidron Seller Central. */
-angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$window', 'Api', 'Router', 'Toast', 'AssistantChat',
-  function ($location, $window, Api, Router, Toast, AssistantChat) {
+angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$window', 'Api', 'Router', 'Toast', 'AssistantChat', 'AuthForm', 'SecurityPanel',
+  function ($location, $window, Api, Router, Toast, AssistantChat, AuthForm, SecurityPanel) {
     var api = Api('seller');
     var vm = this;
     vm.user = null;
     vm.meta = {};
-    vm.auth = { form: {} };
+    vm.auth = AuthForm(api, {
+      demoAccounts: [
+        { email: 'lakshmi.seller@example.com', label: 'Lakshmi Mobiles & Electronics' },
+        { email: 'techbazaar.seller@example.com', label: 'TechBazaar Hub' },
+        { email: 'urbancart.seller@example.com', label: 'UrbanCart Retail' },
+        { email: 'greenleaf.seller@example.com', label: 'GreenLeaf Home Store' },
+        { email: 'pageturner.seller@example.com', label: 'PageTurner Books' },
+      ],
+      signedIn: function (user) {
+        vm.user = user;
+        api.get('/meta').then(function (m) { vm.meta = m; });
+        loadNotes();
+        loadChat();
+        $location.path('/');
+      },
+    });
+    vm.auth.note = 'For Equidron sellers. Shopping? Go to the Equidron store (/shop/).';
+    vm.security = SecurityPanel(api, signedOut);
     vm.unread = 0;
 
     function fail(e) { vm.err = e.message; }
@@ -13,6 +30,7 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
     function loadMe() {
       return api.get('/me').then(function (r) {
         vm.user = r.user;
+        vm.auth.demo = r.demo;
         if (vm.user) {
           api.get('/meta').then(function (m) { vm.meta = m; });
           loadNotes();
@@ -31,7 +49,7 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
       vm.route = r;
       vm.err = null;
       $window.scrollTo(0, 0);
-      if (!vm.user && r.name !== 'login') { $location.path('/login'); return; }
+      if (!vm.user && r.name !== 'login' && r.name !== 'reset') { $location.path('/login'); return; }
       switch (r.name) {
         case '': return api.get('/dashboard').then(function (d) { vm.dash = d; }, fail);
         case 'inventory': return loadListings();
@@ -42,26 +60,15 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
         case 'notifications':
           return loadNotes().then(function () { return api.post('/notifications/read'); }).then(function () { vm.unread = 0; });
         case 'login': if (vm.user) $location.path('/'); return;
+        case 'reset': vm.auth.startReset(r.search.code); return;
+        case 'security': return vm.security.load();
       }
     }
 
     loadMe().finally(function () { Router(route); });
 
-    vm.login = function () {
-      vm.auth.error = null;
-      api.post('/login', vm.auth.form).then(function (r) {
-        vm.user = r.user;
-        vm.auth.form = {};
-        api.get('/meta').then(function (m) { vm.meta = m; });
-        loadNotes();
-        loadChat();
-        $location.path('/');
-      }, function (e) { vm.auth.error = e.message; });
-    };
-    vm.useDemo = function (email) { vm.auth.form = { email: email, password: 'equidron-demo' }; };
-    vm.logout = function () {
-      api.post('/logout').then(function () { vm.chat.reset(); vm.user = null; $location.path('/login'); });
-    };
+    function signedOut() { vm.chat.reset(); vm.user = null; $location.path('/login'); }
+    vm.logout = function () { api.post('/logout').then(signedOut); };
 
     // ---------------------------------------------------------------- inventory
     function loadListings() {

@@ -7,6 +7,7 @@
 import { CATEGORIES, CITIES, stockByWarehouse } from './catalog.js';
 import { all, dumps, loads, now, one, run } from './db.js';
 import { badRequest, conflict, forbidden, notFound } from './errors.js';
+import { actorUserId, audit } from './audit.js';
 import { notify } from './notify.js';
 
 export const PRICE_REVIEW_THRESHOLD = 0.2;
@@ -230,13 +231,17 @@ async function apply(db, subId) {
   else await run(db, 'UPDATE inventory SET on_hand = ? WHERE offer_id = ? AND warehouse_id = ?', inv.reserved + p.quantity, offerId, home);
 }
 
-export async function decide(db, subId, approve, note = '') {
+// decidedBy: the reviewer's user id, kept on the submission and in the audit log.
+export async function decide(db, subId, approve, note = '', decidedBy = actorUserId()) {
   const sub = await one(db, 'SELECT * FROM submissions WHERE id = ?', subId);
   if (!sub) throw notFound('Submission');
   if (sub.status !== 'pending') throw conflict(`This submission was already ${sub.status}.`);
   if (approve) await apply(db, subId);
-  await run(db, 'UPDATE submissions SET status = ?, reviewer_note = ?, decided_at = ? WHERE id = ?',
-    approve ? 'approved' : 'rejected', note || null, now(), subId);
+  const status = approve ? 'approved' : 'rejected';
+  await run(db, 'UPDATE submissions SET status = ?, reviewer_note = ?, decided_at = ?, decided_by = ? WHERE id = ?',
+    status, note || null, now(), decidedBy, subId);
+  await audit(db, approve ? 'submission.approve' : 'submission.reject', 'submission', subId,
+    { status: sub.status }, { status, note: note || null, decided_by: decidedBy });
   const sellerUser = (await one(db, 'SELECT user_id FROM sellers WHERE id = ?', sub.seller_id)).user_id;
   const title = loads(sub.payload).title || await productTitle(db, sub.product_id);
   await notify(db, sellerUser, `Listing ${approve ? 'approved and live' : 'rejected'}: ${title}${note ? ' — ' + note : ''}`, '#/submissions');
@@ -249,7 +254,8 @@ async function productTitle(db, productId) {
 }
 
 export async function getSubmission(db, subId) {
-  const s = await one(db, 'SELECT sub.*, s.name AS seller_name FROM submissions sub JOIN sellers s ON s.id = sub.seller_id WHERE sub.id = ?', subId);
+  const s = await one(db, `SELECT sub.*, s.name AS seller_name, d.name AS decided_by_name FROM submissions sub
+                         JOIN sellers s ON s.id = sub.seller_id LEFT JOIN users d ON d.id = sub.decided_by WHERE sub.id = ?`, subId);
   s.payload = loads(s.payload, {});
   s.review_reasons = loads(s.review_reasons, []);
   s.title = s.payload.title || await productTitle(db, s.product_id);

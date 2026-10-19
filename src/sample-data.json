@@ -30,6 +30,10 @@
    "Equidron Ops Reviewer (sample)"
   ]
  ],
+ "staff": [
+  ["support@example.com", "Priya Support Desk (sample)", ["support"]],
+  ["finance@example.com", "Arun Finance Desk (sample)", ["finance"]]
+ ],
  "sellers": [
   [
    "lakshmi",

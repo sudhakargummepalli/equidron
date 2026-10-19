@@ -1,5 +1,6 @@
 // The API and placeholder images for Fetch-style runtimes (Netlify Functions):
 // takes a Request, returns a Response.
+import { mask } from './mask.js';
 import { handleApi, parseCookies, placeholderSvg } from './api.js';
 import { openDatabase, parseJsonBody } from './server.js';
 
@@ -37,7 +38,7 @@ export function makePostgresHandler(databaseUrl, { maxConnections = 2, createSch
       db = await opening;
     } catch (e) {
       opening = null;
-      console.error(e);
+      console.error(mask(e?.stack || String(e)));
       return Response.json({ error: 'The database is unavailable. Please try again.' }, { status: 503 });
     }
     return handleRequest(db, request);
