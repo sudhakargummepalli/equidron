@@ -16,9 +16,9 @@ Goal: a working copy everyone understands; every push tested and deployed automa
 
 Done when:
 - [x] The app runs locally and all tests pass locally
-- [ ] All tests pass in GitHub Actions
+- [x] All tests pass in GitHub Actions (run 39212946058)
 - [ ] A pull request shows a Netlify deploy preview
-- [ ] The four documentation files are committed
+- [x] The four documentation files are committed
 
 ## Phase 1 · Real accounts, roles and an audit trail (A · M)
 Goal: accounts safe for real people, staff roles with only the rights they need, agent accounts, a record of every change.
