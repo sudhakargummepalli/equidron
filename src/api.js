@@ -26,7 +26,7 @@ const ROUTES = [];
 // The staff permission each part of Ops needs (see auth.PERMISSIONS). An Ops route
 // that isn't listed needs admin, so a new route is closed until someone opens it.
 const OPS_PERMISSIONS = [
-  [/^\/(login|logout|me|notifications|notifications\/read|overview)$/, null],
+  [/^\/(login|logout|logout-all|me|notifications|notifications\/read|overview)$/, null],
   [/^\/submissions/, 'catalog'],
   [/^\/shipments/, 'logistics'],
   [/^\/(returns|support)/, 'support'],
@@ -72,6 +72,7 @@ for (const area of Object.keys(AREAS)) {
       await audit(c.db, 'auth.login_failed', 'user', mask(String(c.body.email || '').trim().toLowerCase()), null, { area });
       return new Reply(401, { error: e.message });
     }
+    if (c.token) await auth.logout(c.db, c.token); // a fresh token at every sign-in
     const user = await auth.userForToken(c.db, token, role);
     setActor(userActor(user));
     await audit(c.db, 'auth.login', 'user', user.id, null, { area });
@@ -81,6 +82,10 @@ for (const area of Object.keys(AREAS)) {
     if (c.token) await auth.logout(c.db, c.token);
     return new Reply(200, { ok: true }, [area, '']);
   }, true);
+  route('POST', area, '/logout-all', async (c) => {
+    await auth.logoutEverywhere(c.db, c.user.id);
+    return new Reply(200, { ok: true }, [area, '']);
+  });
   route('GET', area, '/me', async (c) => ({ user: c.user }), true);
   route('GET', area, '/notifications', async (c) => await notify.listFor(c.db, c.user.id));
   route('POST', area, '/notifications/read', async (c) => {

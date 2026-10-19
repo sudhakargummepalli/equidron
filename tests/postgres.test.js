@@ -9,7 +9,7 @@ import { makePostgresHandler } from '../src/fetch-handler.js';
 import DATA from '../src/sample-data.json' with { type: 'json' };
 import { seed } from '../src/seed.js';
 
-settings.pbkdf2Rounds = 1000;
+settings.fastHashing = true; // cheap password hashing, so the sample accounts are quick to create
 
 test('? placeholders are numbered and LIKE ignores case', () => {
   assert.equal(toPostgres("SELECT * FROM t WHERE a = ? AND b LIKE ? AND c = '?'"),

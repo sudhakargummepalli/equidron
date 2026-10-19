@@ -96,3 +96,47 @@ test('every interface refuses an agent account and an agent session', async () =
   }
 });
 
+
+test('new passwords use scrypt; an old PBKDF2 hash is upgraded at the next sign-in', async () => {
+  const id = await transaction(db, () => auth.createUser(db, 'new.user@example.com', 'New', 'a-long-password', 'customer'));
+  assert.match((await one(db, 'SELECT pw_algo FROM users WHERE id = ?', id)).pw_algo, /^scrypt:/);
+
+  // An account from before Phase 1: PBKDF2-SHA256 with 1,000 rounds.
+  const [salt, hash] = auth.legacyPbkdf2('old-password-123', 1000);
+  const old = await transaction(db, () => scalar(db, `INSERT INTO users (email, name, role, pw_salt, pw_hash, pw_algo, created_at)
+    VALUES ('old.user@example.com', 'Old', 'customer', ?, ?, 'pbkdf2:1000', 't') RETURNING id`, salt, hash));
+  const c = client();
+  assert.equal((await c('POST', '/api/shop/login', { email: 'old.user@example.com', password: 'wrong-password' })).status, 401);
+  assert.equal((await one(db, 'SELECT pw_algo FROM users WHERE id = ?', old)).pw_algo, 'pbkdf2:1000');
+  assert.equal((await c('POST', '/api/shop/login', { email: 'old.user@example.com', password: 'old-password-123' })).status, 200);
+  assert.match((await one(db, 'SELECT pw_algo FROM users WHERE id = ?', old)).pw_algo, /^scrypt:/);
+  const again = client();
+  assert.equal((await again('POST', '/api/shop/login', { email: 'old.user@example.com', password: 'old-password-123' })).status, 200);
+});
+
+test('sessions store only a hash of the token; signing in again replaces the old token', async () => {
+  const c = client();
+  await c('POST', '/api/shop/login', { email: 'rahul@example.com', password: DEMO });
+  const first = c.cookies.eq_shop;
+  const rahul = (await one(db, "SELECT id FROM users WHERE email = 'rahul@example.com'")).id;
+  assert.equal(await scalar(db, 'SELECT COUNT(*) FROM sessions WHERE token = ?', first), 0);
+  assert.equal(await scalar(db, 'SELECT COUNT(*) FROM sessions WHERE token = ?', auth.tokenHash(first)), 1);
+
+  await c('POST', '/api/shop/login', { email: 'rahul@example.com', password: DEMO });
+  assert.notEqual(c.cookies.eq_shop, first);
+  assert.equal(await scalar(db, 'SELECT COUNT(*) FROM sessions WHERE token = ?', auth.tokenHash(first)), 0);
+  const stale = client();
+  stale.cookies.eq_shop = first;
+  assert.equal((await stale('GET', '/api/shop/me')).payload.user, null);
+  assert.ok(await scalar(db, 'SELECT COUNT(*) FROM sessions WHERE user_id = ?', rahul) >= 1);
+});
+
+test('"sign out of all devices" ends every session of that account', async () => {
+  const phone = client();
+  const laptop = client();
+  for (const c of [phone, laptop]) await c('POST', '/api/seller/login', { email: 'lakshmi.seller@example.com', password: DEMO });
+  assert.equal((await laptop('GET', '/api/seller/dashboard')).status, 200);
+  assert.equal((await phone('POST', '/api/seller/logout-all', {})).status, 200);
+  assert.equal((await laptop('GET', '/api/seller/dashboard')).status, 401);
+  assert.equal((await phone('GET', '/api/seller/dashboard')).status, 401);
+});

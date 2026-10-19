@@ -6,7 +6,7 @@ import { one } from '../src/db.js';
 import { answerSeller } from '../src/seller-assistant.js';
 import { createServer, openDatabase } from '../src/server.js';
 
-settings.pbkdf2Rounds = 1000;
+settings.fastHashing = true; // cheap password hashing, so the sample accounts are quick to create
 
 let db;
 const sellerUser = async (email) => userForToken(db, await login(db, email, 'equidron-demo', 'seller'), 'seller');

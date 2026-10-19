@@ -8,7 +8,7 @@ import { one } from '../src/db.js';
 import { AppError } from '../src/errors.js';
 import { createServer, openDatabase } from '../src/server.js';
 
-settings.pbkdf2Rounds = 1000;
+settings.fastHashing = true; // cheap password hashing, so the sample accounts are quick to create
 
 let db;
 let asha;

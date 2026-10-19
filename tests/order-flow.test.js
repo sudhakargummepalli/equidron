@@ -12,7 +12,7 @@ import * as orders from '../src/orders.js';
 import { seed } from '../src/seed.js';
 import { createServer } from '../src/server.js';
 
-settings.pbkdf2Rounds = 1000; // keep the seeded accounts fast to create in tests
+settings.fastHashing = true; // cheap password hashing, so the sample accounts are quick to create
 
 let db;
 let asha;
