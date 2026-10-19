@@ -10,6 +10,7 @@ import DATA from '../src/sample-data.json' with { type: 'json' };
 import { seed } from '../src/seed.js';
 
 settings.fastHashing = true; // cheap password hashing, so the sample accounts are quick to create
+process.env.EQUIDRON_SEED_DEMO = '1'; // the sample accounts sign in with the shared demo password
 
 test('? placeholders are numbered and LIKE ignores case', () => {
   assert.equal(toPostgres("SELECT * FROM t WHERE a = ? AND b LIKE ? AND c = '?'"),

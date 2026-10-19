@@ -6,6 +6,7 @@
 // CSV), whose link goes in PAYMENT_STATEMENT_CSV_URL. Without it, the bundled
 // FICTIONAL sample statement (src/sample-statement.js) is used.
 // Columns are found by name: "Reference", "Credit", "Status" and "Narration".
+import { mask } from './mask.js';
 import { AppError } from './errors.js';
 import { SAMPLE_STATEMENT_CSV } from './sample-statement.js';
 
@@ -73,7 +74,7 @@ export async function loadStatement({ url = process.env.PAYMENT_STATEMENT_CSV_UR
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     rows = readStatement(await res.text());
   } catch (e) {
-    console.error('payment statement unavailable', e.message);
+    console.error('payment statement unavailable', mask(e.message));
     throw new AppError(503, "We couldn't reach the bank statement to confirm your payment. Please try again in a minute.");
   }
   cache = { url, at: Date.now(), rows };

@@ -7,6 +7,7 @@ import { answerSeller } from '../src/seller-assistant.js';
 import { createServer, openDatabase } from '../src/server.js';
 
 settings.fastHashing = true; // cheap password hashing, so the sample accounts are quick to create
+process.env.EQUIDRON_SEED_DEMO = '1'; // the sample accounts sign in with the shared demo password
 
 let db;
 const sellerUser = async (email) => userForToken(db, await login(db, email, 'equidron-demo', 'seller'), 'seller');

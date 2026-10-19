@@ -1,13 +1,16 @@
 // SAMPLE DATA. Every seller, brand, product, customer and order in sample-data.json is fictional.
 // Rows created here are flagged is_sample = 1 and the UI shows a "Sample data" banner.
-// Demo accounts all use the password in DEMO_PASSWORD.
-import { createUser } from './auth.js';
+// Demo accounts all use the password in DEMO_PASSWORD, but only in demo mode (EQUIDRON_SEED_DEMO=1).
+// Otherwise each gets a random password nobody knows, and auth.login() refuses sample accounts anyway.
+import crypto from 'node:crypto';
+import { createUser, demoMode } from './auth.js';
 import { dumps, now, one, run, scalar, transaction } from './db.js';
 import * as listings from './listings.js';
 import * as orders from './orders.js';
 import DATA from './sample-data.json' with { type: 'json' };
 
 export const DEMO_PASSWORD = DATA.demo_password;
+const samplePassword = () => (demoMode() ? DEMO_PASSWORD : crypto.randomBytes(24).toString('base64url'));
 
 async function offerId(db, titlePrefix, sellerName) {
   return (await one(db, `SELECT o.id FROM offers o JOIN products p ON p.id = o.product_id JOIN sellers s ON s.id = o.seller_id
@@ -27,9 +30,9 @@ async function seedEmpty(db) {
   const sellers = {};
   const customerIds = {};
   await transaction(db, async () => {
-    for (const [email, name] of DATA.ops) await createUser(db, email, name, DEMO_PASSWORD, 'ops', true, { permissions: ['admin'] });
+    for (const [email, name] of DATA.ops) await createUser(db, email, name, samplePassword(), 'ops', true, { permissions: ['admin'] });
     for (const [email, name, addr] of DATA.customers) {
-      const uid = await createUser(db, email, name, DEMO_PASSWORD, 'customer', true);
+      const uid = await createUser(db, email, name, samplePassword(), 'customer', true);
       const [aName, line1, city, pincode, phone] = addr;
       await orders.addAddress(db, uid, { name: aName, line1, city, pincode, phone });
       customerIds[email] = uid;
@@ -39,7 +42,7 @@ async function seedEmpty(db) {
       warehouses[code] = await run(db, "INSERT INTO warehouses (code, name, city, kind) VALUES (?,?,?, 'equidron_fc')", code, name, city);
     }
     for (const [key, email, store, city, rating, count] of DATA.sellers) {
-      const uid = await createUser(db, email, store + ' (sample)', DEMO_PASSWORD, 'seller', true);
+      const uid = await createUser(db, email, store + ' (sample)', samplePassword(), 'seller', true);
       const sid = await run(db, 'INSERT INTO sellers (user_id, name, rating, rating_count, city, is_sample) VALUES (?,?,?,?,?,1)',
         uid, store, rating, count, city);
       sellers[key] = sid;
@@ -83,7 +86,7 @@ async function seedEmpty(db) {
     const onWay = (await orders.placeOrder(db, asha, addressId, 'upi', 'upi_sim_ok@equidron')).order;
     for (const sh of onWay.shipments) for (let i = 0; i < 4; i++) await orders.advanceShipment(db, sh.id, 'ops');
     // Staff with only some permissions, to show what each part of Ops needs.
-    for (const [email, name, permissions] of DATA.staff) await createUser(db, email, name, DEMO_PASSWORD, 'ops', true, { permissions });
+    for (const [email, name, permissions] of DATA.staff) await createUser(db, email, name, samplePassword(), 'ops', true, { permissions });
   });
   return true;
 }

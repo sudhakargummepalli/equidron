@@ -6,6 +6,7 @@
 // Credentials: on Netlify the AI Gateway injects ANTHROPIC_API_KEY and
 // ANTHROPIC_BASE_URL, so the SDK needs no configuration. Locally, set
 // ANTHROPIC_API_KEY to try it; without credentials the assistant reports it is unavailable.
+import { mask } from './mask.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { CATEGORIES, CITIES, productDetail, search } from './catalog.js';
 import { isoDate, one, transaction } from './db.js';
@@ -242,7 +243,7 @@ export async function converse(db, ctx, rawMessages, profile, { client = null, t
     } catch (e) {
       if (e instanceof Anthropic.RateLimitError) throw new AppError(429, 'The assistant is busy. Please try again in a minute.');
       if (e instanceof Anthropic.APIError) {
-        console.error('assistant API error', e.status, e.message);
+        console.error('assistant API error', e.status, mask(e.message));
         throw new AppError(503, 'The assistant is not available right now. Please try again later.');
       }
       throw e;

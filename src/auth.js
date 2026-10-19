@@ -23,6 +23,10 @@ import { sendEmail } from './outbox.js';
 const SESSION_TTL_SECONDS = 7 * 24 * 3600;
 // fastHashing: tests only, so the sample accounts are quick to create.
 export const settings = { fastHashing: false };
+
+// Demo mode: the sample accounts and their shared password work only when
+// EQUIDRON_SEED_DEMO=1 (local runs and the demo site). Anywhere else they can't sign in.
+export const demoMode = () => process.env.EQUIDRON_SEED_DEMO === '1';
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 // ---------------------------------------------------------------- passwords
@@ -162,6 +166,7 @@ export async function login(db, email, password, role, { otp = null } = {}) {
     throw new AppError(401, 'Incorrect email or password.');
   }
   if (user.role === 'agent') throw new AppError(403, "Agent accounts can't sign in.");
+  if (user.is_sample && !demoMode()) throw new AppError(403, 'Sample accounts are turned off on this site.');
   if (user.role !== role) throw new AppError(403, `This account can't sign in here. Please use ${WHERE[user.role]}.`);
   if (!user.email_verified) {
     throw new AppError(403, 'Please confirm your email first, with the code we sent you.', { needs_verification: true });

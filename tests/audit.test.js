@@ -10,6 +10,7 @@ import * as orders from '../src/orders.js';
 import { openDatabase } from '../src/server.js';
 
 settings.fastHashing = true;
+process.env.EQUIDRON_SEED_DEMO = '1'; // the sample accounts sign in with the shared demo password
 
 test('mask() hides emails, phones, PAN, card, bank account and UPI ids', () => {
   assert.equal(mask('asha@example.com'), 'a***@example.com');

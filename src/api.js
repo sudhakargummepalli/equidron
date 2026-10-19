@@ -100,7 +100,7 @@ for (const area of Object.keys(AREAS)) {
     }
     return { ok: true };
   }, true);
-  route('GET', area, '/me', async (c) => ({ user: c.user }), true);
+  route('GET', area, '/me', async (c) => ({ user: c.user, demo: auth.demoMode() }), true);
   route('GET', area, '/notifications', async (c) => await notify.listFor(c.db, c.user.id));
   route('POST', area, '/notifications/read', async (c) => {
     await notify.markRead(c.db, c.user.id);

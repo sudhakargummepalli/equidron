@@ -11,6 +11,7 @@ import { createServer, openDatabase } from '../src/server.js';
 import { checkReference, loadStatement, parseCsv, readStatement } from '../src/statement.js';
 
 settings.fastHashing = true; // cheap password hashing, so the sample accounts are quick to create
+process.env.EQUIDRON_SEED_DEMO = '1'; // the sample accounts sign in with the shared demo password
 
 let db;
 let asha;

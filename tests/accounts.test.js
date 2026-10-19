@@ -8,6 +8,7 @@ import { one, scalar, transaction } from '../src/db.js';
 import { openDatabase } from '../src/server.js';
 
 auth.settings.fastHashing = true;
+process.env.EQUIDRON_SEED_DEMO = '1'; // the sample accounts sign in with the shared demo password
 
 let db;
 before(async () => { db = await openDatabase('memory'); });

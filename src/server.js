@@ -1,10 +1,12 @@
 // Local HTTP server: JSON API plus the static front ends and placeholder images.
+import { mask } from './mask.js';
 import { readFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleApi, parseCookies, placeholderSvg } from './api.js';
 import { connect, dropSchema, initSchema, transaction } from './db.js';
+import { SECURITY_HEADERS } from './security-headers.js';
 import { seed } from './seed.js';
 
 const STATIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'static');
@@ -28,8 +30,7 @@ export async function openDatabase(target, { reset = false, createSchema = true,
 function send(res, status, body, type, headers = {}) {
   const buf = Buffer.isBuffer(body) ? body : Buffer.from(body);
   res.writeHead(status, {
-    'Content-Type': type, 'Content-Length': buf.length, 'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'same-origin', 'Cache-Control': 'no-store', ...headers,
+    ...SECURITY_HEADERS, 'Content-Type': type, 'Content-Length': buf.length, 'Cache-Control': 'no-store', ...headers,
   });
   res.end(buf);
 }
@@ -73,7 +74,7 @@ export function createServer(db, { quiet = false } = {}) {
   return http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const p = url.pathname;
-    if (!quiet) console.log(`${req.method} ${req.url}`);
+    if (!quiet) console.log(mask(`${req.method} ${req.url}`));
     try {
       if (p.startsWith('/api/')) {
         let raw;
@@ -104,7 +105,7 @@ export function createServer(db, { quiet = false } = {}) {
       }
       return send(res, 200, data, TYPES[path.extname(full)] || 'application/octet-stream');
     } catch (e) {
-      console.error(e);
+      console.error(mask(e?.stack || String(e)));
       return sendJson(res, 500, { error: 'Something went wrong on our side. Please try again.' });
     }
   });
