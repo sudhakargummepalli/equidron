@@ -3,7 +3,7 @@
 // (EQUIDRON_BACKUP_DIR to change it). Sessions are left out: a restore signs everyone out.
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { all, TABLES, transaction } from './db.js';
+import { all, scalar, TABLES, transaction } from './db.js';
 import { log } from './log.js';
 
 const SKIP = new Set(['sessions']);
@@ -27,8 +27,15 @@ export async function restoreInto(db, dump) {
         const values = cols.map((c) => (json.has(c) && row[c] !== null ? JSON.stringify(row[c]) : row[c]));
         await db.query(`INSERT INTO ${t} (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`, values);
       }
+      // Carry on after the restored ids. Tables with no id column (sessions, settings) have
+      // nothing to set, and a text id (agents) has no sequence. agents_steps/eval_results are
+      // the same. pg_get_serial_sequence is only asked once the column exists, because it
+      // throws for a column that isn't there.
       const hasId = await all(db, "SELECT 1 AS x FROM information_schema.columns WHERE table_name = ? AND column_name = 'id'", t);
-      if (hasId.length) await db.query(`SELECT setval(pg_get_serial_sequence('${t}', 'id'), (SELECT COALESCE(MAX(id), 0) + 1 FROM ${t}), false)`);
+      if (hasId.length) {
+        const seq = await scalar(db, "SELECT pg_get_serial_sequence(?, 'id') AS seq", t);
+        if (seq) await db.query(`SELECT setval('${seq}', (SELECT COALESCE(MAX(id), 0) + 1 FROM ${t}), false)`);
+      }
     }
   });
 }

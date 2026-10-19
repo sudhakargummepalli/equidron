@@ -6,6 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleApi, parseCookies, placeholderSvg } from './api.js';
 import { connect, dropSchema, initSchema, transaction } from './db.js';
+import { ensureAgents } from './agents/agents.js';
+import { PROFILES } from './agents/profiles.js';
 import { SECURITY_HEADERS } from './security-headers.js';
 import { seed } from './seed.js';
 
@@ -24,6 +26,9 @@ export async function openDatabase(target, { reset = false, createSchema = true,
   // In a transaction so concurrent first starts against one database don't race to create tables.
   if (createSchema) await transaction(db, () => initSchema(db));
   await seed(db);
+  // Agents that code knows about but the database has not got yet (a database built before
+  // Phase 4, or a new agent added to profiles.js). Existing rows are never touched.
+  await ensureAgents(db, PROFILES);
   return db;
 }
 

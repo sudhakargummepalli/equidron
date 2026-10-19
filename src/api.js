@@ -7,6 +7,9 @@
 //   /api/ops/...     ops        (cookie eq_ops,    Path=/api/ops)
 import * as assistant from './assistant.js';
 import { ANONYMOUS, actingAs, audit, auditsWritten, listAudit, safeBody, setActor, userActor } from './audit.js';
+import * as agents from './agents/agents.js';
+import * as approvals from './agents/approvals.js';
+import { runAgent } from './agents/runtime.js';
 import * as auth from './auth.js';
 import * as catalog from './catalog.js';
 import { all, changes, one, run, scalar, transaction } from './db.js';
@@ -292,6 +295,8 @@ route('GET', 'ops', '/overview', async (c) => {
     open_returns: await n("SELECT COUNT(*) FROM returns WHERE status = 'pickup_scheduled'"),
     open_tickets: await n("SELECT COUNT(*) FROM support_tickets WHERE status = 'open'"),
     unsettled_paise: await n('SELECT COALESCE(SUM(amount_paise), 0) FROM seller_ledger'),
+    pending_approvals: await n("SELECT COUNT(*) FROM approvals WHERE status = 'pending'"),
+    agents_paused: await agents.allPaused(c.db),
     sample_notice: SAMPLE_NOTICE,
   };
 });
@@ -350,6 +355,79 @@ route('POST', 'ops', '/settings', async (c) => {
 // A deliberate error, to check that errors reach the error log (and Sentry, when it is set up).
 route('POST', 'ops', '/system/test-error', async () => {
   throw new Error('Test error from Ops → System (on purpose).');
+});
+
+// ---------------------------------------------------------------- agents
+
+// The Agents page: the switches, levels, models and budgets, today's spending, and the big
+// red button. Every route here is unlisted in OPS_PERMISSIONS, so it needs the admin permission.
+route('GET', 'ops', '/agents', async (c) => ({
+  agents: await agents.listAgents(c.db),
+  paused: await agents.allPaused(c.db),
+  levels: agents.LEVELS,
+  spent_today_usd: await agents.spendToday(c.db),
+}));
+route('POST', 'ops', '/agents/pause-all', async (c) => {
+  const paused = Boolean(c.body.paused);
+  const before = await agents.allPaused(c.db);
+  await agents.pauseAll(c.db, paused);
+  await audit(c.db, 'agents.pause_all', 'setting', 'agents.paused', { paused: before }, { paused });
+  return { paused };
+});
+route('POST', 'ops', '/agents/([a-z][a-z0-9_]*)', async (c, id) => {
+  const before = await agents.getAgent(c.db, id);
+  if (!before) throw new AppError(404, 'There is no such agent.');
+  const after = await agents.updateAgent(c.db, id, {
+    enabled: c.body.enabled === undefined ? undefined : c.body.enabled,
+    autonomy_level: c.body.autonomy_level === undefined ? undefined : int(c.body.autonomy_level),
+    model: c.body.model,
+    max_steps: c.body.max_steps === undefined ? undefined : int(c.body.max_steps),
+    daily_budget_usd: c.body.daily_budget_usd,
+  });
+  await audit(c.db, 'agent.update', 'agent', id,
+    { enabled: before.enabled, autonomy_level: before.autonomy_level, model: before.model, daily_budget_usd: before.daily_budget_usd },
+    { enabled: after.enabled, autonomy_level: after.autonomy_level, model: after.model, daily_budget_usd: after.daily_budget_usd });
+  return after;
+});
+// Run the agent once, by hand, on a task typed in Ops. The runtime writes its own rows, so
+// this route runs outside the request transaction (readOnly: it must not hold one for minutes).
+route('POST', 'ops', '/agents/([a-z][a-z0-9_]*)/run', async (c, id) => {
+  // A task typed by a person, so it is short: a long prompt costs money and is usually a paste.
+  const task = String(c.body.task || '').trim().slice(0, 2000) || 'Look at the most recent open case and do what is right.';
+  const run = await runAgent(c.db, {
+    agentId: id,
+    task,
+    trigger: 'ops',
+    subject: c.body.subject ? String(c.body.subject).slice(0, 100) : null,
+  });
+  return new Reply(201, run);
+}, false, { readOnly: true });
+
+// The Approvals inbox: what is waiting, and the one place a person says yes or no.
+route('GET', 'ops', '/approvals', async (c) => ({
+  approvals: await approvals.listApprovals(c.db, c.q('status', 'pending')),
+  pending: await approvals.countPending(c.db),
+}));
+route('POST', 'ops', '/approvals/(\\d+)/decide', async (c, id) =>
+  await approvals.decideApproval(c.db, int(id), {
+    approve: c.body.approve === true,
+    byUserId: c.user.id,
+    note: c.body.note ? String(c.body.note).trim().slice(0, 500) : null,
+  }));
+
+// The Agent runs page: the list, and one run step by step.
+route('GET', 'ops', '/agent-runs', async (c) => {
+  const id = c.q('agent');
+  return {
+    runs: await all(c.db, `SELECT r.*, (SELECT COUNT(*) FROM agent_steps s WHERE s.run_id = r.id) AS steps
+                            FROM agent_runs r WHERE (?::text IS NULL OR r.agent_id = ?::text)
+                            ORDER BY r.id DESC LIMIT 50`, id, id),
+  };
+});
+route('GET', 'ops', '/agent-runs/(\\d+)', async (c, id) => {
+  const run = await one(c.db, 'SELECT * FROM agent_runs WHERE id = ?', int(id));
+  if (!run) throw new AppError(404, 'There is no such run.');
+  return { run, steps: await all(c.db, 'SELECT * FROM agent_steps WHERE run_id = ? ORDER BY step', run.id) };
 });
 
 // ---------------------------------------------------------------- dispatch

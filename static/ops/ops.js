@@ -36,6 +36,9 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
         case 'audit': return api.get('/audit').then(function (x) { vm.audit = x; }, fail);
         case 'outbox': return api.get('/outbox').then(function (x) { vm.outbox = x; }, fail);
         case 'system': return vm.loadSystem();
+        case 'approvals': return loadApprovals();
+        case 'agents': return loadAgents();
+        case 'runs': return loadRuns();
       }
     }
 
@@ -142,5 +145,70 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
     // ---------------------------------------------------------------- settlement
     vm.settle = function () {
       api.post('/settlement/run').then(function (r) { vm.payouts = r.payouts; refreshOverview(); });
+    };
+
+    // ---------------------------------------------------------------- approvals
+    function loadApprovals() {
+      return api.get('/approvals', { status: 'pending' }).then(function (x) {
+        vm.approvals = x.approvals;
+        vm.pendingApprovals = x.pending;
+      }, fail);
+    }
+    vm.loadApprovals = loadApprovals;
+    vm.decideApproval = function (a, approve) {
+      api.post('/approvals/' + a.id + '/decide', { approve: approve, note: a.decision_note }).then(function (r) {
+        Toast.show('Approval #' + a.id + (approve ? ' approved; the action ran.' : ' rejected.'));
+        vm.approvalResult = r;
+        loadApprovals(); refreshOverview();
+      }, function (e) { Toast.show(e.message); loadApprovals(); });
+    };
+
+    // ---------------------------------------------------------------- agents
+    function loadAgents() {
+      return api.get('/agents').then(function (x) {
+        vm.agents = x.agents;
+        vm.agentsPaused = x.paused;
+        vm.levelList = Object.keys(x.levels).map(function (k) { return { value: Number(k), label: 'L' + k + ' · ' + x.levels[k] }; });
+        vm.spentTodayUsd = x.spent_today_usd;
+      }, fail);
+    }
+    vm.loadAgents = loadAgents;
+    vm.saveAgent = function (a) {
+      api.post('/agents/' + a.id, {
+        enabled: a.enabled, autonomy_level: a.autonomy_level, model: a.model,
+        daily_budget_usd: a.daily_budget_usd, max_steps: a.max_steps,
+      }).then(function (saved) {
+        a.enabled = saved.enabled; a.autonomy_level = saved.autonomy_level; a.model = saved.model;
+        a.daily_budget_usd = saved.daily_budget_usd; a.max_steps = saved.max_steps;
+        Toast.show(a.name + ' saved.');
+        refreshOverview();
+      }, function (e) { Toast.show(e.message); loadAgents(); });
+    };
+    vm.pauseAll = function (paused) {
+      api.post('/agents/pause-all', { paused: paused }).then(function (r) {
+        vm.agentsPaused = r.paused;
+        Toast.show(r.paused ? 'All agents paused.' : 'Agents unpaused.');
+        refreshOverview();
+      }, function (e) { Toast.show(e.message); });
+    };
+    vm.runAgent = function (a) {
+      a.run_message = 'Running...';
+      api.post('/agents/' + a.id + '/run', { task: a.task }).then(function (run) {
+        a.run_message = 'Run #' + run.id + ': ' + run.status + (run.summary ? ' — ' + run.summary : '');
+        Toast.show('Run #' + run.id + ' ' + run.status + '.');
+        loadAgents(); refreshOverview();
+      }, function (e) {
+        a.run_message = e.message;
+        Toast.show(e.message);
+      });
+    };
+
+    // ---------------------------------------------------------------- agent runs
+    function loadRuns() {
+      return api.get('/agent-runs').then(function (x) { vm.runs = x.runs; }, fail);
+    }
+    vm.loadRuns = loadRuns;
+    vm.openRun = function (r) {
+      api.get('/agent-runs/' + r.id).then(function (x) { vm.runDetail = x; }, fail);
     };
   }]);
