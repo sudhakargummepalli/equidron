@@ -27,3 +27,9 @@ One line per decision: date, decision, reason. Newest at the bottom.
 - 2026-10-20 · Typo matching runs only when fewer than 5 products match exactly, with word_similarity >= 0.35 · it keeps exact results first and avoids noise; it is off where pg_trgm is unavailable.
 - 2026-10-20 · The 2026-10-17 laptops data migration is left as it is · applied migrations are never edited. After Phase 2b it is either already applied or a no-op (it runs before the first seed), so its fill test now runs on the old column types.
 - 2026-10-20 · Search pages default to 24 results, at most 60 · 60 was the old fixed cap; smaller pages load faster and paging reaches every match.
+- 2026-10-21 · The first listener is the order confirmation email (into the outbox) · there are no agents until Phase 4, and it proves the whole path: event, job, handler, outbox.
+- 2026-10-21 · Errors go to an error_log table always, and to Sentry only when SENTRY_DSN is set, through its HTTP envelope API · no SDK dependency, and the System page works without any outside account.
+- 2026-10-21 · The weekly backup is a JSON export of every table except sessions, kept in Netlify Blobs · the app has no pg_dump on Netlify; a restore test in the test suite proves it can be read back. A full database snapshot from the provider is still the owner's safety net.
+- 2026-10-21 · The worker copy limit uses slot rows in settings that expire after 15 minutes · advisory locks are per connection, and a pooled function can't hold one for a whole run.
+- 2026-10-21 · @netlify/blobs is pinned to 11.1.2 (30 Sep 2026), not the newest 11.1.4 · newly published versions carry more supply-chain risk; a few weeks old is the house rule.
+- 2026-10-21 · The shipment simulator moves every active shipment one stage every five minutes, like the Ops button · it is a demo stand-in until real couriers in Phase 9, and can be switched off.

@@ -36,6 +36,15 @@ src/audit.js                 audit_log: actingAs(), audit(), who did what
 src/mask.js                  mask(): hides emails, phones, PAN, card and bank numbers
 src/outbox.js                emails waiting to be sent (Ops admins read them until Phase 10)
 src/security-headers.js      CSP and other headers for the local server (same as netlify.toml)
+src/events.js                emit(): the events outbox, written inside service functions
+src/jobs.js                  the job queue: dispatch, claim (SKIP LOCKED + lease), retries, tick, settings
+src/job-kinds.js             what each job kind does (order email, shipment simulator, weekly backup)
+src/backup.js                export every table as JSON, restore into an empty database
+src/worker.js                the background worker's secret check and copy limit
+src/log.js                   JSON log lines with request ids; reportError() to error_log and Sentry
+src/netlify-db.js            which database the Netlify functions use
+netlify/functions/tick.mjs   scheduled every minute (production only); wakes the worker
+netlify/functions/worker-background.mjs  background function that runs jobs
 src/catalog.js               search, ranking, offers, delivery promise, stock by warehouse
 src/listings.js              seller listings, validation, submissions, automatic approval and Ops review
 src/orders.js                cart, checkout, payments, shipments, returns, tickets, settlement
@@ -80,6 +89,10 @@ tests/                       node:test suites (order flow, PostgreSQL, assistant
   `Reply`, not thrown, so attempt records survive the transaction.
 - Demo mode: the sample accounts and shared password work only with `EQUIDRON_SEED_DEMO=1` (`node app.js` and the
   tests set it). Security headers live in `src/security-headers.js` and `netlify.toml`, kept equal by a test.
+- Events and jobs: when something other parts may react to happens, call `emit()` inside the same transaction, with
+  ids and amounts only. New work is a job kind in `src/job-kinds.js` plus a line in `LISTENERS` (or an `enqueue()`
+  with a dedupe key). A handler runs in one transaction with marking its job done, and must be safe to run again if it
+  fails part-way. Log with `log()`/`reportError()` from `src/log.js`, not console.
 - Comments explain why, not what. Keep the existing plain style: ES modules, no build step, no framework on
   the server.
 

@@ -209,6 +209,17 @@ Sellers move their own self-ship orders through picking, packing and shipping. E
 - **Telugu (both chats):** an EN / తెలుగు switch in each chat (remembered per browser) changes the panel text, the assistant's replies (Telugu script; product titles and page names stay as shown on screen), voice input (`te-IN`) and read-aloud. A Telugu question gets a Telugu answer even in English mode. Reading replies aloud in Telugu needs a Telugu voice on the device. Edge has one built in, but Chrome on Windows may not, and then the chat says so and shows replies as text. The rest of the store, Seller Central and the server's error messages are still in English. Both chats share one panel (`static/common/chat.html`) and one controller helper (`AssistantChat` in `static/common/common.js`).
 - **Seller settlement:** delivered sales credit the seller (minus a 10% referral fee) and refunds debit it. "Run settlement" in Ops pays out positive balances (simulated).
 
+### Events, background jobs and monitoring
+Things now happen without anyone clicking.
+- **Events:** service functions write an event (`order.placed`, `shipment.status_changed`, `return.requested`, ...) in the same transaction as their change (`src/events.js`).
+- **Jobs:** every minute the tick turns new events into jobs, one per listener, never twice, and queues the shipment simulator (every five minutes) and the weekly backup. The worker runs ready jobs; a failing job waits 1, 2, 4 ... minutes and after its last try is **dead** until someone retries it in **Ops → System** (`src/jobs.js`, `src/job-kinds.js`).
+- **Today's jobs:** the order confirmation email (to the outbox), the shipment simulator, and a weekly backup of every table as JSON (Netlify Blobs, or `data/backups/` locally), which restores into an empty database (`src/backup.js`).
+- **Where it runs:** on Netlify, `netlify/functions/tick.mjs` is a scheduled function (production deploys only) and `netlify/functions/worker-background.mjs` a background function, started by the tick with `WORKER_SECRET` (at most two copies). Locally, `node app.js` runs the same tick in its own process (`--no-jobs` turns it off).
+- **Monitoring:** every API answer has an `X-Request-Id`; log lines are masked JSON with that id; errors go to `error_log` (Ops → System) and to Sentry when `SENTRY_DSN` is set. `GET /api/health` reports the database, the queue and the last tick, for an uptime check.
+- **Switches** in Ops → System: pause all jobs, and the shipment simulator.
+
+Environment variables for this, set in Netlify (never in code): `WORKER_SECRET` (any long random text; without it, jobs are queued but not run), `SENTRY_DSN` (optional), `EQUIDRON_BACKUP_DIR` (local only, optional).
+
 ## Limits and next steps
 - Search ranks every match in Node after the index narrows them, which is fine for thousands of products; a much larger catalogue would rank in SQL too.
 - AngularJS 1.x is end-of-life and is used here because it needs no build step. A production build would move to modern Angular.
