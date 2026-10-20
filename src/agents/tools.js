@@ -12,9 +12,12 @@
 //   irreversible  can't be undone: deletions, bans, bulk messages
 //
 // ctx holds facts the model must not be able to forge, such as the customer in the case.
-import { changes, one, run, transaction } from '../db.js';
+import { addDays, all, changes, indiaDate, one, run, scalar, transaction } from '../db.js';
 import { badRequest } from '../errors.js';
+import { emit } from '../events.js';
 import { CATEGORIES, productDetail, search } from '../catalog.js';
+import * as listings from '../listings.js';
+import * as notify from '../notify.js';
 import * as orders from '../orders.js';
 
 export const RISKS = ['read', 'write', 'money', 'irreversible'];
@@ -284,6 +287,193 @@ registerTool({
         items: s.items.map((i) => ({ title: i.title, qty: i.qty, price: rupees(i.unit_price_paise), returnable: i.returnable, return_note: i.return_note })),
       })),
       returns: o.returns.map((r) => ({ item: r.title, qty: r.qty, status: r.status, refund: rupees(r.refund_paise) })),
+    };
+  },
+});
+
+// ---------------------------------------------------------------- Listing Review (Phase 5)
+//
+// The agent reads one held submission and either recommends a decision (L1: recorded, a person
+// still decides) or, at L3 on clean cases, makes it. `listings.decide()` is the same function
+// the Ops button calls: it applies the change, writes the audit row and tells the seller.
+
+registerTool({
+  name: 'get_submission',
+  description: 'One submission held for review: what the seller proposes, the live listing, other sellers\' offers for the same product, any restricted words, and the price against MRP.',
+  risk: 'read',
+  agents: ['listing_review'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: { submission_id: { type: 'integer', description: 'The submission number from the event.' } },
+    required: ['submission_id'],
+  },
+  async run(db, ctx, input) {
+    const s = await listings.getSubmission(db, input.submission_id);
+    const p = s.payload || {};
+    const siblings = s.product_id
+      ? await all(db, `SELECT o.price_paise, o.condition, o.status, se.name AS seller FROM offers o
+                       JOIN sellers se ON se.id = o.seller_id WHERE o.product_id = ? AND o.status = 'active'
+                       ORDER BY o.price_paise`, s.product_id)
+      : [];
+    const text = `${p.title || ''} ${p.description || ''}`.toLowerCase();
+    return {
+      submission_id: s.id, seller: s.seller_name, kind: s.kind, status: s.status,
+      proposed: {
+        title: p.title, brand: p.brand, category: p.category, description: p.description, specs: p.specs,
+        price: rupees(p.price_paise), mrp: rupees(p.mrp_paise), quantity: p.quantity, images: p.images,
+        handling_days: p.handling_days, fulfilment: p.fulfilment, condition: p.condition,
+      },
+      live: s.live_product ? { title: s.live_product.title, category: s.live_product.category, description: s.live_product.description, specs: s.live_product.specs } : null,
+      live_offer: s.live_offer,
+      review_reasons: s.review_reasons,
+      restricted_terms: listings.RESTRICTED_TERMS.filter((t) => text.includes(t)),
+      price_vs_mrp_percent: p.price_paise && p.mrp_paise ? Math.round((p.price_paise / p.mrp_paise) * 1000) / 10 : null,
+      other_offers: siblings.slice(0, 10).map((o) => ({ seller: o.seller, price: rupees(o.price_paise), condition: o.condition })),
+    };
+  },
+});
+
+registerTool({
+  name: 'decide_submission',
+  description: 'Approve or reject one held submission. Approving makes the change live immediately and tells the seller.',
+  risk: 'write',
+  agents: ['listing_review'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      submission_id: { type: 'integer' },
+      approve: { type: 'boolean' },
+      note: { type: 'string', maxLength: 300, description: 'The note the seller will read.' },
+      reason: { type: 'string', maxLength: 200, description: 'Why, for the audit trail and any approver.' },
+    },
+    required: ['submission_id', 'approve', 'reason'],
+  },
+  async run(db, ctx, input) {
+    const note = String(input.note || input.reason).slice(0, 300);
+    const out = await listings.decide(db, input.submission_id, input.approve, note, ctx.decidedBy ?? ctx.agent.user_id);
+    return { submission_id: input.submission_id, status: out.status, seller_notified: true };
+  },
+});
+
+// ---------------------------------------------------------------- Fulfilment Watch (Phase 5)
+//
+// The job calls the agent once an hour with the count; the agent reads the facts with
+// late_shipments and asks to message the seller, warn the customer, or nothing. At L1 those
+// messages are recorded and not sent.
+
+const DAY_MS = 86_400_000;
+const daysBetween = (from, to) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS);
+
+registerTool({
+  name: 'late_shipments',
+  description: 'Shipments past their delivery estimate that are not delivered or cancelled, oldest first, with how many days late they are and who to contact.',
+  risk: 'read',
+  agents: ['fulfilment_watch'],
+  input_schema: { type: 'object', additionalProperties: false, properties: {} },
+  async run(db, ctx) {
+    const today = indiaDate(ctx.today ?? new Date());
+    const rows = await all(db, `SELECT sh.id AS shipment_id, sh.status, sh.eta, o.id AS order_id,
+                                       o.user_id AS customer_id, w.seller_id, se.user_id AS seller_user_id, se.name AS seller
+                                FROM shipments sh JOIN orders o ON o.id = sh.order_id
+                                JOIN warehouses w ON w.id = sh.warehouse_id
+                                LEFT JOIN sellers se ON se.id = w.seller_id
+                                WHERE sh.eta IS NOT NULL AND sh.status NOT IN ('delivered', 'cancelled')
+                                  AND sh.eta < ? AND o.status NOT IN ('payment_failed')
+                                ORDER BY sh.eta, sh.id`, today);
+    return rows.slice(0, 25).map((r) => ({ ...r, days_late: daysBetween(r.eta, today) }));
+  },
+});
+
+// Both messages are rate-limited to one per shipment per day, recorded as an event. The check
+// runs inside the tool, so it holds even if a person approves the same message twice.
+async function messagedToday(db, shipmentId, type) {
+  return Boolean(await one(db, `SELECT 1 AS x FROM events WHERE type = ? AND payload->>'shipment_id' = ?
+                                AND created_at > now() - interval '24 hours' LIMIT 1`, type, String(shipmentId)));
+}
+
+registerTool({
+  name: 'nudge_seller',
+  description: 'Send the seller an in-app nudge about one late shipment. One per shipment per day.',
+  risk: 'write',
+  agents: ['fulfilment_watch'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      shipment_id: { type: 'integer' },
+      message: { type: 'string', maxLength: 300, description: 'What the seller should do, in one or two sentences.' },
+      reason: { type: 'string', maxLength: 200 },
+    },
+    required: ['shipment_id', 'message', 'reason'],
+  },
+  async run(db, ctx, input) {
+    const row = await one(db, `SELECT se.user_id AS seller_user, o.id AS order_id, sh.status FROM shipments sh
+                               JOIN warehouses w ON w.id = sh.warehouse_id LEFT JOIN sellers se ON se.id = w.seller_id
+                               JOIN orders o ON o.id = sh.order_id WHERE sh.id = ?`, input.shipment_id);
+    if (!row) return { error: 'No such shipment.' };
+    if (!row.seller_user) return { skipped: true, reason: 'This shipment is dispatched by Equidron, not a seller.' };
+    if (await messagedToday(db, input.shipment_id, 'shipment.nudged')) {
+      return { skipped: true, reason: 'The seller was already nudged in the last 24 hours.' };
+    }
+    await notify.notify(db, row.seller_user, input.message, `#/orders/${row.order_id}`);
+    await emit(db, 'shipment.nudged', 'shipment', input.shipment_id, { shipment_id: input.shipment_id, to: 'seller' });
+    return { sent: true, to: 'seller' };
+  },
+});
+
+registerTool({
+  name: 'warn_customer',
+  description: 'Send the customer an early "running late" note about one late shipment. One per shipment per day.',
+  risk: 'write',
+  agents: ['fulfilment_watch'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      shipment_id: { type: 'integer' },
+      message: { type: 'string', maxLength: 300, description: 'A short, honest note in plain words.' },
+      reason: { type: 'string', maxLength: 200 },
+    },
+    required: ['shipment_id', 'message', 'reason'],
+  },
+  async run(db, ctx, input) {
+    const row = await one(db, `SELECT o.user_id AS customer, o.id AS order_id FROM shipments sh
+                               JOIN orders o ON o.id = sh.order_id WHERE sh.id = ?`, input.shipment_id);
+    if (!row) return { error: 'No such shipment.' };
+    if (await messagedToday(db, input.shipment_id, 'shipment.warned')) {
+      return { skipped: true, reason: 'The customer was already told in the last 24 hours.' };
+    }
+    await notify.notify(db, row.customer, input.message, `#/orders/${row.order_id}`);
+    await emit(db, 'shipment.warned', 'shipment', input.shipment_id, { shipment_id: input.shipment_id, to: 'customer' });
+    return { sent: true, to: 'customer' };
+  },
+});
+
+// ---------------------------------------------------------------- Daily Brief (Phase 5)
+//
+// One read tool, so the brief can only quote numbers that came out of SQL today.
+
+registerTool({
+  name: 'get_daily_numbers',
+  description: 'Today\'s numbers for the morning brief: orders, cancellations, late shipments, open tickets, submissions waiting, approvals waiting, agent spend and failed runs.',
+  risk: 'read',
+  agents: ['daily_brief'],
+  input_schema: { type: 'object', additionalProperties: false, properties: {} },
+  async run(db, ctx) {
+    const today = indiaDate(ctx.today ?? new Date());
+    const from = `${today}T00:00:00+05:30`;
+    const to = `${addDays(today, 1)}T00:00:00+05:30`;
+    const n = (sql, ...params) => scalar(db, sql, ...params);
+    return {
+      day: today,
+      orders_today: await n('SELECT COUNT(*) FROM orders WHERE created_at >= ? AND created_at < ?', from, to),
+      cancelled_today: await n("SELECT COUNT(*) FROM orders WHERE status = 'cancelled' AND updated_at >= ? AND updated_at < ?", from, to),
+      late_shipments: await n(`SELECT COUNT(*) FROM shipments WHERE eta IS NOT NULL AND eta < ?
+                               AND status NOT IN ('delivered', 'cancelled')`, today),
+      open_tickets: await n("SELECT COUNT(*) FROM support_tickets WHERE status = 'open'"),
+      submissions_waiting: await n("SELECT COUNT(*) FROM submissions WHERE status = 'pending'"),
+      approvals_waiting: await n("SELECT COUNT(*) FROM approvals WHERE status = 'pending'"),
+      agent_spend_usd_today: Math.round((await n('SELECT COALESCE(SUM(cost_usd), 0) AS usd FROM agent_runs WHERE started_at >= ?', from)) * 1e5) / 1e5,
+      failed_runs_today: await n("SELECT COUNT(*) FROM agent_runs WHERE status = 'failed' AND started_at >= ?", from),
+      open_ops_tasks: await n("SELECT COUNT(*) FROM ops_tasks WHERE status = 'open'"),
     };
   },
 });

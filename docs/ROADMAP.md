@@ -82,19 +82,25 @@ Goal: one safe, visible way to run any agent.
 
 Tests: policy table; budget stop; pause all stops new and running runs; approved action runs once; denied tool never reaches the service.
 Done when: a demo agent runs a read and a write tool; the write is recorded at L1, needs approval at L2, runs at L3; runs, steps and costs visible; all green.
-Status (branch phase-4-agent-runtime): all four are proved by `tests/agents-runtime.test.js` (a read and a write in one run;
-the same write recorded at L1, waiting at L2, running at L3; the run's steps, tokens and cost in the tables the Ops pages read).
-A hands-on demo needs model credentials (`ANTHROPIC_API_KEY` in a local `.env`, or the Netlify AI Gateway): the runtime refuses
-to start without them, so the pages can be checked without, but no run can happen. No eval cases exist yet; the runner is
-built and its dry run is free.
+Status: merged into `main` by pull request #6 (merge commit `48ee1d4`), CI green on `main` (run 39291800349).
+All four "done when" points are proved by `tests/agents-runtime.test.js` (a read and a write in one run; the same write
+recorded at L1, waiting at L2, running at L3; the run's steps, tokens and cost in the tables the Ops pages read).
+A hands-on demo needs model credentials (`ANTHROPIC_API_KEY` in a local `.env`, or the Netlify AI Gateway): the runtime
+refuses to start without them, so the pages can be checked without, but no run can happen. No eval cases exist yet; the
+runner is built and its dry run is free.
 
 ## Phase 5 · First Ops agents (B · M)
-- [ ] Listing Review (Sonnet) on submission.created: {decision, reasons, confidence, policy_refs}; L1 agreement score; L3 only clean high-confidence cases
-- [ ] Fulfilment Watch (Haiku), hourly: late shipments, nudges, Ops task when twice as late
-- [ ] Daily Brief (Sonnet, read-only), 08:00 IST (cron `30 2 * * *`)
+- [x] Listing Review (Sonnet) on submission.created: {decision, reasons, confidence, policy_refs}; L1 agreement score; L3 only clean high-confidence cases
+- [x] Fulfilment Watch (Haiku), hourly: late shipments, nudges, Ops task when twice as late
+- [x] Daily Brief (Sonnet, read-only), 08:00 IST (cron `30 2 * * *`)
 
 Tests: 30 listing cases incl. injection; late-shipment query; brief numbers match SQL.
 Done when: two weeks or 100 cases of shadow data with agreement score; every injection flagged; brief arrives daily in production.
+Status (branch phase-5-first-ops-agents): built and covered by `tests/ops-agents.test.js` — the 30 cases (including five
+injections) ship in `src/agents/evals/listing-review.json` and are graded by the real model with `node scripts/eval.js
+listing_review`; the late-shipment query, the task rule (two days, once a day), the brief's numbers and the agreement
+score all have tests. The "done when" is time-dependent and needs the owner: two weeks (or 100 cases) of shadow data on
+Netlify, with the three agents switched on, before any of them is promoted to L2 or L3.
 
 ## Phase 6 · Customer agents (B · L)
 - [ ] Shopping Concierge (voice, Telugu): add_to_cart, update_cart, propose_cancel, propose_return (customer confirms); vague requests to filters

@@ -38,7 +38,7 @@ src/outbox.js                emails waiting to be sent (Ops admins read them unt
 src/security-headers.js      CSP and other headers for the local server (same as netlify.toml)
 src/events.js                emit(): the events outbox, written inside service functions
 src/jobs.js                  the job queue: dispatch, claim (SKIP LOCKED + lease), retries, tick, settings
-src/job-kinds.js             what each job kind does (order email, shipment simulator, weekly backup)
+src/job-kinds.js             what each job kind does (order email, simulator, backup, the three Ops agents)
 src/backup.js                export every table as JSON, restore into an empty database
 src/worker.js                the background worker's secret check and copy limit
 src/log.js                   JSON log lines with request ids; reportError() to error_log and Sentry
@@ -59,6 +59,7 @@ src/agents/approvals.js      the approval inbox: an approved action runs from it
 src/agents/agents.js         agent rows, their own accounts, levels, budgets, pause all
 src/agents/models.js         model routing and the price table that turns usage into cost
 src/agents/profiles.js       each agent's prompt, its context and its defaults
+src/agents/evals.js, evals/  the eval sets that ship with the agents, and how they are loaded
 scripts/eval.js              an agent's eval set against the real model (dry run free; --yes costs credits)
 src/notify.js                in-app notifications
 src/seed.js, sample-data.json  sample sellers, products, offers, users and orders
@@ -106,7 +107,9 @@ tests/                       node:test suites (order flow, PostgreSQL, assistant
   function (never raw SQL) so `executeTool()` can run it in one transaction under an idempotency key. The policy
   check in `src/agents/policy.js` decides execute, shadow, needs approval or deny, in code and never only in the
   prompt. `runAgent()` writes `agent_runs`/`agent_steps` with `mask()`ed text, and keeps its own short writes, so
-  call it outside a request transaction (a `readOnly` route).
+  call it outside a request transaction (a `readOnly` route). An agent job kind is registered in
+  `src/job-kinds.js` under `AGENT_KINDS` and runs outside the job's transaction; a retried job must not start a
+  second run, so guard on the exercise's subject before calling `runAgent()`.
 - Comments explain why, not what. Keep the existing plain style: ES modules, no build step, no framework on
   the server.
 

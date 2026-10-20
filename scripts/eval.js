@@ -12,6 +12,7 @@ import path from 'node:path';
 import { all, isServerUrl, run } from '../src/db.js';
 import { getAgent, budgetLeft } from '../src/agents/agents.js';
 import { costOf, knownModel } from '../src/agents/models.js';
+import { seedEvalCases, taskFor } from '../src/agents/evals.js';
 import { PROFILES } from '../src/agents/profiles.js';
 import { runAgent } from '../src/agents/runtime.js';
 import { openDatabase } from '../src/server.js';
@@ -52,9 +53,11 @@ try {
   const profile = PROFILES[agentId];
   if (!profile) usage(`Agent ${agentId} has no profile in src/agents/profiles.js, so it cannot run.`);
 
+  // The set that ships with the code is loaded on first use, so this works on a fresh database.
+  await seedEvalCases(db, agentId);
   const cases = await all(db, 'SELECT * FROM eval_cases WHERE agent_id = ? ORDER BY id', agentId);
   if (!cases.length) {
-    console.log(`No eval cases for ${agentId}. Add rows to eval_cases first (fixture + expected).`);
+    console.log(`No eval cases for ${agentId}: none ship with the code and none are in the database.`);
     process.exit(0);
   }
   const chosen = limit ? cases.slice(0, limit) : cases;
@@ -81,14 +84,16 @@ try {
   let passed = 0;
   let spent = 0;
   for (const c of chosen) {
-    const task = c.fixture?.task || JSON.stringify(c.fixture);
+    const task = taskFor(agentId, c.fixture);
+    // "must_not" is a rule about the answer, not a field of it.
+    const { must_not: mustNot = [], ...want } = c.expected || {};
     let actual = null;
     let ok = false;
     let caseCost = 0;
     try {
       const out = await runAgent(db, { agentId, task, trigger: 'eval', subject: `eval:${c.id}` }, {});
       actual = out.decision ?? out.reply ?? null;
-      ok = matches(actual, c.expected);
+      ok = matches(actual, want) && !mustNot.includes(actual?.decision);
       caseCost = Number(out.cost_usd) || 0;
       spent += caseCost;
     } catch (e) {

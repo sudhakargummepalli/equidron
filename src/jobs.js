@@ -11,21 +11,31 @@
 // it is dead: it stays in Ops → System until a person retries it.
 // A handler runs in one transaction with marking its job done, so a finished job never runs again.
 import { actingAs } from './audit.js';
-import { all, now, one, run, transaction } from './db.js';
-import { BUILT_IN } from './job-kinds.js';
+import { all, indiaDate, now, one, run, transaction } from './db.js';
+import { AGENT_KINDS, BUILT_IN } from './job-kinds.js';
 import { log, reportError, withRequestId } from './log.js';
 import { mask } from './mask.js';
 
-const HANDLERS = new Map(Object.entries(BUILT_IN));
+// One entry per kind: { fn, outsideTransaction }. A handler normally runs inside the job's
+// transaction, together with marking the job done. An agent handler cannot: a run waits
+// minutes on a model, and holding a transaction that long is wrong. Those run outside, keep
+// their own short writes, and the job is marked done afterwards.
+const HANDLERS = new Map([
+  ...Object.entries(BUILT_IN).map(([kind, fn]) => [kind, { fn, outsideTransaction: false }]),
+  ...Object.entries(AGENT_KINDS).map(([kind, fn]) => [kind, { fn, outsideTransaction: true }]),
+]);
 
-// handler(db, payload, job) runs inside the job's transaction.
-export function registerHandler(kind, handler) {
-  HANDLERS.set(kind, handler);
+// handler(db, payload, job) runs inside the job's transaction unless outsideTransaction is set.
+export function registerHandler(kind, handler, { outsideTransaction = false } = {}) {
+  HANDLERS.set(kind, { fn: handler, outsideTransaction });
 }
+
+export const runsOutsideTransaction = (kind) => HANDLERS.get(kind)?.outsideTransaction === true;
 
 // Who reacts to which event. Each listener gets its own job for each event.
 export const LISTENERS = {
   'order.placed': ['email:order_confirmation'],
+  'submission.created': ['agent:listing_review'],
 };
 
 // ---------------------------------------------------------------- settings (switches)
@@ -90,13 +100,20 @@ export async function finish(db, job) {
 
 // 'done', 'failed' (will retry) or 'dead'.
 export async function runClaimed(db, job) {
-  const handler = HANDLERS.get(job.kind);
+  const entry = HANDLERS.get(job.kind);
   try {
-    if (!handler) throw new Error(`No handler for job kind "${job.kind}".`);
-    await transaction(db, () => actingAs({ type: 'system', id: `job:${job.kind}` }, async () => {
-      await handler(db, job.payload, job);
-      await finish(db, job);
-    }));
+    if (!entry) throw new Error(`No handler for job kind "${job.kind}".`);
+    if (entry.outsideTransaction) {
+      // An agent run: no transaction around the model calls. The run keeps its own short
+      // writes, and the job is marked done or failed afterwards.
+      await actingAs({ type: 'system', id: `job:${job.kind}` }, () => entry.fn(db, job.payload, job));
+      await transaction(db, () => finish(db, job));
+    } else {
+      await transaction(db, () => actingAs({ type: 'system', id: `job:${job.kind}` }, async () => {
+        await entry.fn(db, job.payload, job);
+        await finish(db, job);
+      }));
+    }
     return 'done';
   } catch (e) {
     const dead = job.attempts >= job.max_attempts;
@@ -125,6 +142,8 @@ export async function work(db, { seconds = 20, maxJobs = 500 } = {}) {
 // ---------------------------------------------------------------- the minute tick
 
 const SIMULATOR_EVERY_MS = 5 * 60_000;
+const HOUR_MS = 3_600_000;
+const BRIEF_FROM_IST_MINUTES = 8 * 60; // 08:00 IST, when the owner reads it
 
 function isoWeek(d) {
   const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -145,6 +164,17 @@ export async function tick(db, { at = new Date() } = {}) {
       }
     }
     if (await enqueue(db, 'backup:weekly', {}, { dedupeKey: `backup:${isoWeek(at)}`, maxAttempts: 3 })) enqueued.push('backup:weekly');
+    // Fulfilment Watch: once an hour. A dedupe key per hour means a tick every minute still
+    // produces exactly one run.
+    const hour = Math.floor(at.getTime() / HOUR_MS);
+    if (await enqueue(db, 'agent:fulfilment_watch', {}, { dedupeKey: `fulfilment:${hour}` })) enqueued.push('agent:fulfilment_watch');
+    // The morning brief: once per India day, from 08:00. Enqueued by the tick rather than a
+    // 30 2 * * * cron so it also happens locally, and catches up if the app was down at 08:00.
+    const ist = new Date(at.getTime() + 5.5 * HOUR_MS);
+    if (ist.getUTCHours() * 60 + ist.getUTCMinutes() >= BRIEF_FROM_IST_MINUTES) {
+      const day = indiaDate(at);
+      if (await enqueue(db, 'agent:daily_brief', {}, { dedupeKey: `brief:${day}`, maxAttempts: 2 })) enqueued.push('agent:daily_brief');
+    }
     await setSetting(db, 'tick.last', at.toISOString());
   });
   if (dispatched || enqueued.length) log('info', 'tick', { dispatched, enqueued });

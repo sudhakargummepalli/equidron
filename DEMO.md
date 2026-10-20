@@ -76,3 +76,25 @@ AI Gateway supplies one. Without credentials everything below still opens and ex
    and a new run appears in **Agent runs** with a `get_my_order` step marked `execute`. Reads never need approval.
 36. **Evals.** `node scripts/eval.js ops_helper` is free: it lists the cases and the likely cost. `--yes` calls the real
    model and spends credit; ask before running it.
+
+## Part 8: The first three Ops agents
+They ship switched off and at L1 (shadow); a person turns each one on in **Ops → Agents**. Without a model, steps 38
+and 40 still fill their lists; with a model, every step below works in full.
+
+37. **Listing Review, in shadow.** In Seller Central, submit a change that will be held (a new product, or a description
+   with the word "replica"). In Ops → **Submissions** it waits. Within a minute the agent reviews it: open **Agent runs**
+   and find the run with subject `submission:<id>` — a model step, a `get_submission` step, and the JSON verdict. The
+   submission is still pending, and **Agents** now shows *Listing Review — no decided cases to compare yet* until a
+   person decides it. Decide it, then look again: the agreement score has one case.
+38. **Tasks fill themselves.** Make a shipment two days late (or wait): the hourly Fulfilment Watch job opens one item
+   under **Ops → Tasks**, saying which shipment and which order. It is opened by SQL, not by the model, so it happens
+   whether or not the agent is on. Close it with **Done**; the second click is refused.
+39. **Fulfilment Watch's messages, in shadow.** Turn *Fulfilment Watch* on and leave it at L1. On its next hourly run,
+   open its run under **Agent runs**: any `nudge_seller` or `warn_customer` step says `shadow`, and no seller or customer
+   received anything. At L2 the same messages would appear in **Approvals**; at L3 they would be sent, at most once per
+   shipment per day.
+40. **The morning brief.** Turn *Daily Brief* on. After 08:00 IST (the tick queues it once a day) open **Agents**: the
+   card at the top is that morning's brief, written only from `get_daily_numbers`. Press **Refresh** to see it after the
+   run; the same text is the run's summary under **Agent runs**.
+41. **The eval set.** `node scripts/eval.js listing_review` is free and lists all 30 cases (good, restricted words,
+   price traps, wrong category, five injections). About $0.31 of credit runs them for real with `--yes`.
