@@ -1,8 +1,8 @@
 # Progress
 
 ## Current phase
-Phase 4 · The agent runtime, on branch `phase-4-agent-runtime` (cut from `phase-3-jobs`, whose content equals `main`).
-Built, tested and pushed; CI runs on the branch.
+Phase 4 · The agent runtime. Merged into `main` by pull request #6 (merge commit `48ee1d4`); CI green on `main`
+(run 39291800349). Phase 5 · First Ops agents is next, on branch `phase-5-first-ops-agents`.
 Phases 0–3 are merged into `main` (pull requests #1–#5). Phase 3's job tests are green on real PostgreSQL in CI.
 
 ## Done

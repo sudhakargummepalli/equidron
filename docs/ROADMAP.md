@@ -82,11 +82,12 @@ Goal: one safe, visible way to run any agent.
 
 Tests: policy table; budget stop; pause all stops new and running runs; approved action runs once; denied tool never reaches the service.
 Done when: a demo agent runs a read and a write tool; the write is recorded at L1, needs approval at L2, runs at L3; runs, steps and costs visible; all green.
-Status (branch phase-4-agent-runtime): all four are proved by `tests/agents-runtime.test.js` (a read and a write in one run;
-the same write recorded at L1, waiting at L2, running at L3; the run's steps, tokens and cost in the tables the Ops pages read).
-A hands-on demo needs model credentials (`ANTHROPIC_API_KEY` in a local `.env`, or the Netlify AI Gateway): the runtime refuses
-to start without them, so the pages can be checked without, but no run can happen. No eval cases exist yet; the runner is
-built and its dry run is free.
+Status: merged into `main` by pull request #6 (merge commit `48ee1d4`), CI green on `main` (run 39291800349).
+All four "done when" points are proved by `tests/agents-runtime.test.js` (a read and a write in one run; the same write
+recorded at L1, waiting at L2, running at L3; the run's steps, tokens and cost in the tables the Ops pages read).
+A hands-on demo needs model credentials (`ANTHROPIC_API_KEY` in a local `.env`, or the Netlify AI Gateway): the runtime
+refuses to start without them, so the pages can be checked without, but no run can happen. No eval cases exist yet; the
+runner is built and its dry run is free.
 
 ## Phase 5 · First Ops agents (B · M)
 - [ ] Listing Review (Sonnet) on submission.created: {decision, reasons, confidence, policy_refs}; L1 agreement score; L3 only clean high-confidence cases
