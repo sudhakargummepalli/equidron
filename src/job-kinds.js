@@ -59,10 +59,14 @@ export async function reviewListing(db, submissionId, options = {}) {
   if (!(await ready(db, 'listing_review'))) return;
   const sub = await one(db, 'SELECT id, status FROM submissions WHERE id = ?', submissionId);
   if (!sub || sub.status !== 'pending') return; // already decided by a person, or auto-approved
-  // A retried job must not review the same submission twice.
+  // A retried job must not review the same submission twice: skip when a run already finished
+  // or is waiting for a person, or is still going. A run left "running" by a worker that died
+  // is stale after 20 minutes, and then a retry may take it over.
   const earlier = await one(db, `SELECT 1 AS x FROM agent_runs WHERE agent_id = 'listing_review'
                                  AND trigger = 'event:submission.created' AND subject = ?
-                                 AND status IN ('running', 'done', 'waiting') LIMIT 1`, String(submissionId));
+                                 AND (status IN ('done', 'waiting')
+                                      OR (status = 'running' AND started_at > now() - interval '20 minutes'))
+                                 LIMIT 1`, String(submissionId));
   if (earlier) return;
 
   const out = await runAgent(db, {

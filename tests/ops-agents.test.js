@@ -444,3 +444,22 @@ test('the listing eval set has 30 sound cases, and loading it twice adds nothing
   await seedEvalCases(shop, 'listing_review');
   assert.equal(await scalar(shop, "SELECT COUNT(*) FROM eval_cases WHERE agent_id = 'listing_review'"), 30);
 });
+
+test('a run left “running” by a dead worker is taken over after twenty minutes, not immediately', async () => {
+  await updateAgent(shop, 'listing_review', { enabled: true, autonomy_level: 1 });
+  const sub = await aHeldSubmission('(stale run)');
+  const insertRun = (minutesAgo) => run(shop, `INSERT INTO agent_runs (agent_id, trigger, subject, status, started_at)
+      VALUES ('listing_review', 'event:submission.created', ?, 'running', now() - make_interval(mins => ?))`, String(sub.id), minutesAgo);
+  const count = () => scalar(shop, "SELECT COUNT(*) FROM agent_runs WHERE agent_id = 'listing_review'");
+  const fresh = await insertRun(1);
+
+  const before = await count();
+  await reviewListing(shop, sub.id, { client: scripted(() => say('{}')), ...quiet });
+  assert.equal(await count(), before, 'a live run in progress is left alone');
+
+  await run(shop, "UPDATE agent_runs SET started_at = now() - interval '30 minutes' WHERE id = ?", fresh);
+  const client = scripted(() => say(JSON.stringify({ decision: 'reject', reasons: ['Replica'], confidence: 0.8, policy_refs: [] })));
+  const out = await reviewListing(shop, sub.id, { client, ...quiet });
+  assert.equal(out.status, 'done', 'the stale run is taken over');
+  assert.equal((await one(shop, 'SELECT agent_decision FROM submissions WHERE id = ?', sub.id)).agent_decision.decision, 'reject');
+});
