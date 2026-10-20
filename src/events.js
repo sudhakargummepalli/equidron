@@ -9,6 +9,9 @@ import { run } from './db.js';
 export const EVENT_TYPES = [
   'order.placed', 'order.cancelled', 'payment.captured', 'shipment.status_changed',
   'return.requested', 'return.received', 'submission.created', 'ticket.created', 'ticket.message',
+  // Fulfilment Watch's messages. Recorded as events even when nothing listens: the row is how
+  // the agent knows it already nudged this seller today.
+  'shipment.nudged', 'shipment.warned',
 ];
 
 export async function emit(db, type, entity, entityId, payload = {}) {

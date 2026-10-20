@@ -1,7 +1,11 @@
-// The kinds of job Equidron runs today. Each handler runs inside its job's transaction and
-// reads fresh data from the ids in the payload. Agents (Phase 4) will be more kinds of job.
+// The kinds of job Equidron runs today. BUILT_IN handlers run inside the job's transaction and
+// read fresh data from the ids in the payload. AGENT_KINDS start an agent run: those run
+// outside the job's transaction (a run waits minutes on a model), and are marked done after.
 import { saveBackup } from './backup.js';
-import { one } from './db.js';
+import { getAgent, allPaused } from './agents/agents.js';
+import { runAgent } from './agents/runtime.js';
+import { tool } from './agents/tools.js';
+import { changes, indiaDate, one, run } from './db.js';
 import * as orders from './orders.js';
 import { sendEmail } from './outbox.js';
 
@@ -26,3 +30,82 @@ export const BUILT_IN = {
     await saveBackup(db);
   },
 };
+
+// An agent that is off, paused, or out of budget is not a failure: the job is simply done and
+// the next tick will try again. Returns the agent row when a run may start.
+async function ready(db, agentId) {
+  const agent = await getAgent(db, agentId);
+  if (!agent || !agent.enabled || agent.autonomy_level === 0) return null;
+  if (await allPaused(db)) return null;
+  return agent;
+}
+
+export const AGENT_KINDS = {
+  // A submission was held for review: let Listing Review look at it. At L1 its verdict is
+  // stored beside the person's (that is the agreement score); at L3 it may decide itself.
+  'agent:listing_review': (db, payload) => reviewListing(db, payload.entity_id),
+
+  // Every hour: find late shipments, raise one Ops task for each that is twice as late, and let
+  // the agent message the seller or the customer. The task is deliberate SQL, not the model's:
+  // that rule must hold whether or not the model notices.
+  'agent:fulfilment_watch': (db) => watchFulfilment(db),
+
+  // Once a morning: the brief. Its text is the run's summary, which Ops shows.
+  'agent:daily_brief': (db) => writeDailyBrief(db),
+};
+
+// The work behind each kind, separately, so tests can hand it a scripted model.
+export async function reviewListing(db, submissionId, options = {}) {
+  if (!(await ready(db, 'listing_review'))) return;
+  const sub = await one(db, 'SELECT id, status FROM submissions WHERE id = ?', submissionId);
+  if (!sub || sub.status !== 'pending') return; // already decided by a person, or auto-approved
+  // A retried job must not review the same submission twice.
+  const earlier = await one(db, `SELECT 1 AS x FROM agent_runs WHERE agent_id = 'listing_review'
+                                 AND trigger = 'event:submission.created' AND subject = ?
+                                 AND status IN ('running', 'done', 'waiting') LIMIT 1`, String(submissionId));
+  if (earlier) return;
+
+  const out = await runAgent(db, {
+    agentId: 'listing_review',
+    trigger: 'event:submission.created',
+    subject: String(submissionId),
+    task: `Submission #${submissionId} is held for review. Read it with get_submission and decide whether it should go live.`,
+  }, options);
+  const decision = out.decision;
+  if (decision) {
+    await run(db, `UPDATE submissions SET agent_run_id = ?, agent_decision = ?, agent_confidence = ?, agent_decided_at = now()
+                   WHERE id = ?`, out.id, JSON.stringify(decision), Number(decision.confidence), submissionId);
+  }
+  return out;
+}
+
+export async function watchFulfilment(db, options = {}) {
+  const today = indiaDate();
+  const late = await tool('late_shipments').run(db, { today: new Date() }, {});
+  for (const s of late.filter((r) => r.days_late >= 2)) {
+    // One task per shipment per day: the dedupe key is the rule. changes(), not run(): an
+    // insert that hits the key returns no row, and run() would look for one.
+    await changes(db, `INSERT INTO ops_tasks (kind, subject, body, dedupe_key) VALUES ('late_shipment', ?, ?, ?)
+                       ON CONFLICT (dedupe_key) DO NOTHING`,
+    `shipment:${s.shipment_id}`,
+    `Shipment ${s.shipment_id} (order ${s.order_id}) is ${s.days_late} days past its delivery estimate.`,
+    `late:${s.shipment_id}:${today}`);
+  }
+  if (!late.length || !(await ready(db, 'fulfilment_watch'))) return;
+  return await runAgent(db, {
+    agentId: 'fulfilment_watch',
+    trigger: 'schedule',
+    subject: `late:${today}`,
+    task: `There are ${late.length} shipments past their delivery estimate today. Look at them and do what is right.`,
+  }, options);
+}
+
+export async function writeDailyBrief(db, options = {}) {
+  if (!(await ready(db, 'daily_brief'))) return;
+  return await runAgent(db, {
+    agentId: 'daily_brief',
+    trigger: 'schedule',
+    subject: `brief:${indiaDate()}`,
+    task: 'Write the morning brief for the owner and the Ops team.',
+  }, options);
+}

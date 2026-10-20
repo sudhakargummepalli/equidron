@@ -39,6 +39,7 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
         case 'approvals': return loadApprovals();
         case 'agents': return loadAgents();
         case 'runs': return loadRuns();
+        case 'tasks': return loadTasks();
       }
     }
 
@@ -170,6 +171,8 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
         vm.agentsPaused = x.paused;
         vm.levelList = Object.keys(x.levels).map(function (k) { return { value: Number(k), label: 'L' + k + ' · ' + x.levels[k] }; });
         vm.spentTodayUsd = x.spent_today_usd;
+        vm.brief = x.brief;
+        vm.openTasks = x.open_tasks;
       }, fail);
     }
     vm.loadAgents = loadAgents;
@@ -210,5 +213,17 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
     vm.loadRuns = loadRuns;
     vm.openRun = function (r) {
       api.get('/agent-runs/' + r.id).then(function (x) { vm.runDetail = x; }, fail);
+    };
+
+    // ---------------------------------------------------------------- tasks
+    function loadTasks() {
+      return api.get('/tasks').then(function (x) { vm.tasks = x.tasks; vm.doneTasks = x.done; }, fail);
+    }
+    vm.loadTasks = loadTasks;
+    vm.closeTask = function (t) {
+      api.post('/tasks/' + t.id + '/done').then(function () {
+        Toast.show('Task closed.');
+        loadTasks(); refreshOverview();
+      }, function (e) { Toast.show(e.message); loadTasks(); });
     };
   }]);

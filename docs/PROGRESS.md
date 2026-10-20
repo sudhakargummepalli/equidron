@@ -1,9 +1,9 @@
 # Progress
 
 ## Current phase
-Phase 4 · The agent runtime. Merged into `main` by pull request #6 (merge commit `48ee1d4`); CI green on `main`
-(run 39291800349). Phase 5 · First Ops agents is next, on branch `phase-5-first-ops-agents`.
-Phases 0–3 are merged into `main` (pull requests #1–#5). Phase 3's job tests are green on real PostgreSQL in CI.
+Phase 5 · First Ops agents, on branch `phase-5-first-ops-agents`. Built and tested; the phase's own "done when" is
+two weeks (or 100 cases) of shadow data in production, which needs the owner to switch the agents on after a deploy.
+Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 39291800349).
 
 ## Done
 - Phase 0: CLAUDE.md, docs/ROADMAP.md, docs/PROGRESS.md, docs/DECISIONS.md, the PDF in docs/, and
@@ -40,6 +40,23 @@ Phases 0–3 are merged into `main` (pull requests #1–#5). Phase 3's job tests
   - The store assistant now runs on `runAgent()` with four read tools, so a chat leaves a run, its steps and its cost.
   - `scripts/eval.js <agent>`: a dry run prints the cases and the likely cost; `--yes` calls the real model.
   - `node --test`: 144 of 144 pass (104 from before, 40 new).
+- Phase 5:
+  - A migration that keeps the agent's verdict on the submission (`agent_decision`, `agent_confidence`, `agent_run_id`,
+    `agent_decided_at`) and adds `ops_tasks`.
+  - Listing Review (Sonnet): runs on `submission.created`, reads the case with `get_submission`, answers in a fixed
+    JSON shape, and at L3 may call `decide_submission` (the same function the Ops button uses). At L1 its verdict is
+    stored beside the person's, and the Agents page shows the agreement score.
+  - Fulfilment Watch (Haiku): every hour it reads `late_shipments`, raises one `ops_tasks` row for every shipment two
+    days late (deliberate SQL, not the model), and may nudge the seller or warn the customer — at most once per
+    shipment per day, recorded as an event.
+  - Daily Brief (Sonnet, read-only): once a day from 08:00 IST, from `get_daily_numbers` only; the text is the run's
+    summary and the Agents page shows the latest one.
+  - The minute tick now queues Fulfilment Watch once an hour and the Brief once a day; agent job kinds run outside the
+    job transaction, because a run waits on a model.
+  - Ops grows Tasks (open, close), the agreement score and the brief.
+  - 30 listing eval cases ship in `src/agents/evals/listing-review.json` (good, restricted, price, category, injection,
+    thin), loaded on first use by `scripts/eval.js`.
+  - `node --test`: 161 of 161 pass (144 from before, 17 new).
 
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
@@ -53,16 +70,23 @@ Phases 0–3 are merged into `main` (pull requests #1–#5). Phase 3's job tests
   then "Run once" with "Move shipment …". Then set L1 and run again (nothing changes, the step says shadow), and L2
   (the run waits and the action appears in Approvals; approving runs it once). Agent runs shows each step, tokens and cost.
 - `node scripts/eval.js ops_helper`: free dry run. Nothing calls the model without `--yes`.
+- Phase 5: DEMO.md Part 8. Without credentials, switch the three agents on in Ops → Agents and watch **Tasks** fill
+  with any shipment two days past its estimate; with a model, submit a listing held for review, then read the
+  agreement score on Agents after a person decides it.
+- `node scripts/eval.js listing_review`: free dry run of the 30 cases (about $0.31 to run for real with `--yes`).
 
 ## Still open (needs the owner)
-- Phase 4: review the branch and, when ready, open the pull request into `main`. A hands-on demo needs model credentials.
-- Decide each agent's daily budget before Phase 4 reaches production (the defaults are $1/day for `ops_helper`,
-  $2/day for `store_assistant`).
+- Phase 5: deploy, switch Listing Review, Fulfilment Watch and the Daily Brief on (they ship switched off and at L1),
+  and let two weeks or 100 cases collect before promoting any of them.
+- Review the branch and open the pull request into `main` when ready.
+- Decide each agent's daily budget (defaults: $2/day for `listing_review`, $1/day for `fulfilment_watch`, $0.50/day
+  for `daily_brief`, $1/day for `ops_helper`, $2/day for `store_assistant`).
 - Owner settings from earlier phases still stand: `EQUIDRON_SEED_DEMO=1` and `WORKER_SECRET` in Netlify, a database
   backup before the Phase 2b migration reaches production, optionally `SENTRY_DSN` and an uptime check on `/api/health`.
 
 ## Next
-Phase 5: the first Ops agents (Listing Review in shadow mode, Fulfilment Watch, the Daily Brief), on this runtime.
+Phase 6: the customer agents (the Shopping Concierge on chat, Support on tickets, Returns), with a versioned
+`policies` table. Phase 5's shadow data should be collecting in production by then.
 
 ## Open questions
 - Should two-step sign-in become required for admin staff now, or at go-live (Phase 15)? Recommended: Phase 15.

@@ -99,6 +99,23 @@ export async function budgetLeft(db, agent, today = new Date()) {
   return Math.max(0, Number(agent.daily_budget_usd) - await spendToday(db, agent.id, today));
 }
 
+// ---------------------------------------------------------------- agreement with people
+
+// How often an agent's verdict matched the person who decided the case, over submissions the
+// agent judged and a person later decided. "escalate" is never a match: asking for a person is
+// not the same as agreeing with one. Auto-approved submissions are not counted, because nobody
+// decided them.
+export async function agreement(db, agentId) {
+  const row = await one(db, `SELECT COUNT(*) AS judged,
+      COUNT(*) FILTER (WHERE (s.agent_decision->>'decision' = 'approve' AND s.status = 'approved')
+                          OR (s.agent_decision->>'decision' = 'reject' AND s.status = 'rejected')) AS agreed
+    FROM submissions s JOIN agent_runs r ON r.id = s.agent_run_id
+    WHERE r.agent_id = ? AND s.agent_decision IS NOT NULL AND s.status IN ('approved', 'rejected')`, agentId);
+  const judged = Number(row.judged);
+  const agreed = Number(row.agreed);
+  return { judged, agreed, rate: judged ? Math.round((agreed / judged) * 1000) / 1000 : null };
+}
+
 // ---------------------------------------------------------------- the built-in agents
 
 // Create any agent from profiles.js that is not in the database yet. Existing rows are left

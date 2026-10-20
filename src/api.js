@@ -296,6 +296,7 @@ route('GET', 'ops', '/overview', async (c) => {
     open_tickets: await n("SELECT COUNT(*) FROM support_tickets WHERE status = 'open'"),
     unsettled_paise: await n('SELECT COALESCE(SUM(amount_paise), 0) FROM seller_ledger'),
     pending_approvals: await n("SELECT COUNT(*) FROM approvals WHERE status = 'pending'"),
+    open_tasks: await n("SELECT COUNT(*) FROM ops_tasks WHERE status = 'open'"),
     agents_paused: await agents.allPaused(c.db),
     sample_notice: SAMPLE_NOTICE,
   };
@@ -361,12 +362,20 @@ route('POST', 'ops', '/system/test-error', async () => {
 
 // The Agents page: the switches, levels, models and budgets, today's spending, and the big
 // red button. Every route here is unlisted in OPS_PERMISSIONS, so it needs the admin permission.
-route('GET', 'ops', '/agents', async (c) => ({
-  agents: await agents.listAgents(c.db),
-  paused: await agents.allPaused(c.db),
-  levels: agents.LEVELS,
-  spent_today_usd: await agents.spendToday(c.db),
-}));
+route('GET', 'ops', '/agents', async (c) => {
+  const list = await agents.listAgents(c.db);
+  return {
+    // Agreement is what earns an agent more freedom, so it sits next to the switches.
+    agents: await Promise.all(list.map(async (a) => ({ ...a, agreement: await agents.agreement(c.db, a.id) }))),
+    paused: await agents.allPaused(c.db),
+    levels: agents.LEVELS,
+    spent_today_usd: await agents.spendToday(c.db),
+    brief: await one(c.db, `SELECT summary, started_at FROM agent_runs
+                            WHERE agent_id = 'daily_brief' AND status = 'done' AND summary IS NOT NULL
+                            ORDER BY id DESC LIMIT 1`),
+    open_tasks: await scalar(c.db, "SELECT COUNT(*) FROM ops_tasks WHERE status = 'open'"),
+  };
+});
 route('POST', 'ops', '/agents/pause-all', async (c) => {
   const paused = Boolean(c.body.paused);
   const before = await agents.allPaused(c.db);
@@ -414,6 +423,20 @@ route('POST', 'ops', '/approvals/(\\d+)/decide', async (c, id) =>
     byUserId: c.user.id,
     note: c.body.note ? String(c.body.note).trim().slice(0, 500) : null,
   }));
+
+// Work items the agents raised (Fulfilment Watch opens one per shipment twice as late). A
+// person closes them; the agent's job only ever opens them.
+route('GET', 'ops', '/tasks', async (c) => ({
+  tasks: await all(c.db, "SELECT * FROM ops_tasks WHERE status = 'open' ORDER BY created_at, id LIMIT 100"),
+  done: await all(c.db, "SELECT * FROM ops_tasks WHERE status = 'done' ORDER BY closed_at DESC, id DESC LIMIT 20"),
+}));
+route('POST', 'ops', '/tasks/(\\d+)/done', async (c, id) => {
+  const task = await one(c.db, "SELECT id FROM ops_tasks WHERE id = ? AND status = 'open'", int(id));
+  if (!task) throw new AppError(409, 'That task is already done.');
+  await run(c.db, "UPDATE ops_tasks SET status = 'done', closed_at = now(), closed_by = ? WHERE id = ? AND status = 'open'", c.user.id, task.id);
+  await audit(c.db, 'task.done', 'ops_task', task.id, { status: 'open' }, { status: 'done' });
+  return { ok: true };
+});
 
 // The Agent runs page: the list, and one run step by step.
 route('GET', 'ops', '/agent-runs', async (c) => {
