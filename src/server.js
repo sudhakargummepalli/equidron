@@ -91,7 +91,7 @@ export function createServer(db, { quiet = false } = {}) {
         const parsed = parseJsonBody(req.method, req.headers['content-type'], raw);
         if (parsed.error) return sendJson(res, parsed.error[0], { error: parsed.error[1] });
         const out = await handleApi(db, { method: req.method, path: p, query: url.searchParams, body: parsed.body,
-          cookies: parseCookies(req.headers.cookie) });
+          cookies: parseCookies(req.headers.cookie), headers: req.headers });
         return sendJson(res, out.status, out.payload, { 'X-Request-Id': out.requestId, ...(out.setCookie ? { 'Set-Cookie': out.setCookie } : {}) });
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method not allowed', 'text/plain');

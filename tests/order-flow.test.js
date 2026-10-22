@@ -48,7 +48,7 @@ const throwsApp = (fn, status) => assert.rejects(fn, (e) => e instanceof AppErro
 // Tables with a numeric id sequence. agents has a text id, and agent_steps/eval_results have
 // no id at all, so setval() has nothing to point at.
 const ID_TABLES = TABLES.filter((t) => !['sessions', 'inventory', 'cart_items', 'assistant_usage', 'idempotency_keys', 'settings',
-  'agents', 'agent_steps', 'eval_results'].includes(t));
+  'agents', 'agent_steps', 'eval_results', 'telegram_links', 'telegram_link_codes'].includes(t));
 
 before(async () => {
   db = await connect('memory');

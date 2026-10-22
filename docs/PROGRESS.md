@@ -65,6 +65,22 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     changes an hour.
   - Every refusal and flag is written to `guardrail_events`, masked, and shown on **Ops → Guardrails**.
   - `node --test`: 170 of 170 pass (161 from before, 9 new).
+- Analytics and incidents (also asked for outside the roadmap):
+  - **Ops → Analytics**: orders and revenue per seller, revenue per seller per quarter, and customers who spent
+    ₹50,000 or more in the window (to promote). Counted live from orders; a sale is an order that was not
+    cancelled and whose money was captured.
+  - **Ops → Incidents**: one status (ok / attention / critical) from dead jobs, failed agent runs, errors,
+    guardrail refusals, late shipments, open tasks and approvals waiting, each linking to the page that fixes it.
+- Telegram bot:
+  - `POST /api/telegram` (signed with `X-Telegram-Bot-Api-Secret-Token`) answers `/orders`, `/order 12`,
+    `/products laptop` and `/product 75`, and treats other text as a product search.
+  - A chat links to an account with a six-digit one-time code from the Shop orders page or Seller Central
+    dashboard (`/start 123456`). Orders are read with that account's id, so one customer cannot see another's;
+    sellers see only their own order lines.
+  - Product questions work without linking (public data). The same guardrails screen the text.
+  - `scripts/telegram-setup.js <site>` sets the webhook; `scripts/telegram-poll.js` is for local development,
+    where Telegram cannot reach localhost.
+  - `node --test`: 199 of 199 pass (10 new).
 
 ## How to check
 - `npm ci` then `node --test`: all tests pass.

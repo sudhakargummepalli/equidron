@@ -220,6 +220,26 @@ Things now happen without anyone clicking.
 
 Environment variables for this, set in Netlify (never in code): `WORKER_SECRET` (any long random text; without it, jobs are queued but not run), `SENTRY_DSN` (optional), `EQUIDRON_BACKUP_DIR` (local only, optional).
 
+## Telegram bot
+
+Customers and sellers can ask about their orders and about products in Telegram, and get an answer
+from the same service functions the website uses. An order question is always answered for the
+account the chat is linked to, so one customer can never see another's order.
+
+1. Talk to **@BotFather** in Telegram, create a bot, and keep the token it gives you.
+2. Set, in Netlify (or a local `.env`): `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` (any long
+   random text) and optionally `TELEGRAM_BOT_USERNAME` (the bot's @name, shown on the link card).
+3. Point Telegram at the deployment once: `node scripts/telegram-setup.js https://your-site.netlify.app`.
+   For local development, Telegram cannot reach `localhost`; run `node scripts/telegram-poll.js`
+   instead (it long-polls and uses the same handler).
+4. In the Store (**Orders**) or Seller Central (**Dashboard**), press **Get my code** and send
+   `/start 123456` to the bot. The code lasts ten minutes and works once.
+
+The bot answers `/orders`, `/order 12`, `/products laptop` and `/product 75`; other text is treated
+as a product search. Product questions work without linking (the catalogue is public); order
+questions need the link. The webhook is refused unless the secret header matches, and every message
+passes the same guardrails as the website chat.
+
 ## Limits and next steps
 - Search ranks every match in Node after the index narrows them, which is fine for thousands of products; a much larger catalogue would rank in SQL too.
 - AngularJS 1.x is end-of-life and is used here because it needs no build step. A production build would move to modern Angular.

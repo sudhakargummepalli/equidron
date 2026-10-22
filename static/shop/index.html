@@ -236,6 +236,20 @@
         <strong style="margin-left:auto">{{o.total_paise | inr}}</strong>
       </div>
     </a>
+    <div class="card">
+      <h2>Order updates on Telegram</h2>
+      <p class="small muted">Connect this account to the Equidron bot and ask about your orders and products from a chat.
+        The bot never asks for your password.</p>
+      <div ng-if="!vm.tgCode">
+        <button class="btn small" ng-click="vm.telegramCode()" ng-disabled="vm.tgBusy">Get my code</button>
+      </div>
+      <div ng-if="vm.tgCode">
+        <p>Send this to the bot{{vm.tgBot ? ' @' + vm.tgBot : ''}} within 10 minutes:</p>
+        <p><code class="small">/start {{vm.tgCode}}</code></p>
+        <p class="small muted">Then try <code>/orders</code> or <code>/products laptop</code>.</p>
+        <button class="btn small ghost" ng-click="vm.tgCode = null">Done</button>
+      </div>
+    </div>
   </section>
 
   <section ng-if="vm.route.name === 'orders' && vm.route.id && vm.order">

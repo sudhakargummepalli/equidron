@@ -17,6 +17,7 @@ import { AppError } from './errors.js';
 import { capBulk, counts as guardrailCounts, recent as recentGuardrails } from './guardrails.js';
 import * as incidents from './incidents.js';
 import * as analytics from './analytics.js';
+import * as telegram from './telegram.js';
 import * as listings from './listings.js';
 import * as jobs from './jobs.js';
 import { newRequestId, reportError, requestId, withRequestId } from './log.js';
@@ -113,6 +114,16 @@ for (const area of Object.keys(AREAS)) {
   route('POST', area, '/notifications/read', async (c) => {
     await notify.markRead(c.db, c.user.id);
     return { ok: true };
+  });
+}
+
+// Connect a Telegram chat: a signed-in person asks for a one-time code here, then sends
+// "/start <code>" to the bot. The bot never asks for a password.
+for (const area of ['shop', 'seller']) {
+  route('POST', area, '/telegram/link-code', async (c) => {
+    const out = await telegram.issueLinkCode(c.db, c.user);
+    await audit(c.db, 'telegram.link_code', 'user', c.user.id, null, { expires_in_seconds: out.expires_in_seconds });
+    return { ...out, bot: telegram.botUsername(), command: `/start ${out.code}` };
   });
 }
 
@@ -497,8 +508,10 @@ async function health(db) {
   }
 }
 
-async function answer(db, { method, path, query, body, cookies }) {
+async function answer(db, { method, path, query, body, cookies, headers = {} }) {
   if (path === '/api/health' && method === 'GET') return await health(db);
+  // Telegram's webhook: not an area route, and it authenticates with its own secret header.
+  if (path === '/api/telegram' && method === 'POST') return await telegram.webhookReply(db, { headers, body });
   try {
     const m = /^\/api\/(shop|seller|ops)(\/.*)$/.exec(path);
     if (!m) throw new AppError(404, 'Unknown API endpoint.');

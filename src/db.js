@@ -507,6 +507,21 @@ CREATE TABLE IF NOT EXISTS guardrail_events (
     at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS guardrail_events_recent ON guardrail_events (at DESC);
+CREATE TABLE IF NOT EXISTS telegram_links (
+    chat_id BIGINT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    role TEXT NOT NULL CHECK (role IN ('customer', 'seller')),
+    linked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_seen_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS telegram_links_user ON telegram_links (user_id);
+CREATE TABLE IF NOT EXISTS telegram_link_codes (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id),
+    code_hash TEXT NOT NULL,
+    expires_at DOUBLE PRECISION NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -531,7 +546,7 @@ export const TABLES = [...SCHEMA.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g)].
 // Tables whose first column is not an identity id, so an INSERT has no new number to return.
 // agents has a text id ('returns', 'support'); agent_steps and eval_results have no id at all.
 const TABLES_WITHOUT_ID = new Set(['sessions', 'inventory', 'cart_items', 'assistant_usage', 'idempotency_keys', 'settings',
-  'agents', 'agent_steps', 'eval_results']);
+  'agents', 'agent_steps', 'eval_results', 'telegram_links', 'telegram_link_codes']);
 
 // ? placeholders become $1, $2, ... and LIKE becomes ILIKE, so searches ignore case.
 export function toPostgres(sql) {

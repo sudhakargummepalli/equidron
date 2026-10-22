@@ -59,6 +59,20 @@
       <h2>Low stock</h2>
       <table><tr ng-repeat="o in vm.dash.low_stock"><td>{{o.title}}</td><td>{{o.available}} left</td><td class="right"><a href="#/edit/{{o.id}}">Restock</a></td></tr></table>
     </div>
+    <div class="card">
+      <h2>Orders on Telegram</h2>
+      <p class="small muted">Connect this account to the Equidron bot and ask about the orders waiting for you, from a
+        chat. The bot never asks for your password.</p>
+      <div ng-if="!vm.tgCode">
+        <button class="btn small" ng-click="vm.telegramCode()" ng-disabled="vm.tgBusy">Get my code</button>
+      </div>
+      <div ng-if="vm.tgCode">
+        <p>Send this to the bot{{vm.tgBot ? ' @' + vm.tgBot : ''}} within 10 minutes:</p>
+        <p><code class="small">/start {{vm.tgCode}}</code></p>
+        <p class="small muted">Then try <code>/orders</code> or <code>/order 12</code>.</p>
+        <button class="btn small ghost" ng-click="vm.tgCode = null">Done</button>
+      </div>
+    </div>
   </section>
 
   <!-- ============ INVENTORY ============ -->

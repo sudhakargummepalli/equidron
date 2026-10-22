@@ -18,7 +18,8 @@ where we are is in `docs/PROGRESS.md`; why we chose what we chose is in `docs/DE
 - Environment variables (set in Netlify, or in a local `.env` that git ignores, never in code):
   `DATABASE_URL`, `NETLIFY_DB_URL` (set by Netlify Database), `ANTHROPIC_API_KEY` (local only; Netlify's AI
   Gateway supplies it there), `EQUIDRON_ASSISTANT_MODEL`, `EQUIDRON_ASSISTANT_DAILY_LIMIT`,
-  `PAYMENT_STATEMENT_CSV_URL`, `EQUIDRON_SEED_DEMO` (1 = sample accounts work).
+  `PAYMENT_STATEMENT_CSV_URL`, `EQUIDRON_SEED_DEMO` (1 = sample accounts work),
+  `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_BOT_USERNAME` (the bot's @name, for the link card).
 
 ## Map of the code
 
@@ -44,6 +45,7 @@ src/backup.js                export every table as JSON, restore into an empty d
 src/worker.js                the background worker's secret check and copy limit
 src/log.js                   JSON log lines with request ids; reportError() to error_log and Sentry
 src/netlify-db.js            which database the Netlify functions use
+src/telegram.js              the Telegram bot: linking, commands, order and product answers
 netlify/functions/tick.mjs   scheduled every minute (production only); wakes the worker
 netlify/functions/worker-background.mjs  background function that runs jobs
 src/catalog.js               search, ranking, offers, delivery promise, stock by warehouse

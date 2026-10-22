@@ -163,6 +163,14 @@ angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$
 
     // ---------------------------------------------------------------- orders
     function loadOrders() { return api.get('/orders').then(function (o) { vm.orders = o; }, fail); }
+    // A one-time code for the Telegram bot. The bot never asks for a password.
+    vm.telegramCode = function () {
+      vm.tgBusy = true;
+      api.post('/telegram/link-code').then(function (r) {
+        vm.tgCode = r.code;
+        vm.tgBot = r.bot;
+      }, function (e) { Toast.show(e.message); }).finally(function () { vm.tgBusy = false; });
+    };
     vm.advance = function (item) {
       api.post('/shipments/' + item.shipment_id + '/advance').then(function () {
         Toast.show('Shipment #' + item.shipment_id + ' marked ' + item.next_stage.replace(/_/g, ' ') + '.');

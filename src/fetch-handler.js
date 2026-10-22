@@ -19,6 +19,8 @@ export async function handleRequest(db, request) {
   const out = await handleApi(db, {
     method: request.method, path: url.pathname, query: url.searchParams, body: parsed.body,
     cookies: parseCookies(request.headers.get('cookie')),
+    // Lower-cased, like Node's own headers, so a handler can look them up the same way.
+    headers: Object.fromEntries(request.headers),
   });
 
   const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
