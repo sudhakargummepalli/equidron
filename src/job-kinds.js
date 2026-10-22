@@ -7,6 +7,7 @@ import { runAgent } from './agents/runtime.js';
 import { tool } from './agents/tools.js';
 import { all, changes, indiaDate, loads, one, run } from './db.js';
 import * as emails from './emails.js';
+import { deliverOutbox } from './mailer.js';
 import * as orders from './orders.js';
 import { sendEmail } from './outbox.js';
 
@@ -108,6 +109,14 @@ export const BUILT_IN = {
   async 'backup:weekly'(db) {
     await saveBackup(db);
   },
+};
+
+// Kinds that call something outside the database. They run outside the job's transaction: an
+// SMTP conversation can take seconds, and holding a transaction open for it is wrong.
+export const EXTERNAL_KINDS = {
+  // Deliver what is waiting in the outbox. Enqueued by the tick once a minute, and only when
+  // there is something pending, so Ops does not fill with jobs that have nothing to do.
+  'email:deliver': (db) => deliverOutbox(db),
 };
 
 // An agent that is off, paused, or out of budget is not a failure: the job is simply done and

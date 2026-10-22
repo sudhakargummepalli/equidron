@@ -12,7 +12,7 @@
 // A handler runs in one transaction with marking its job done, so a finished job never runs again.
 import { actingAs } from './audit.js';
 import { all, indiaDate, now, one, run, transaction } from './db.js';
-import { AGENT_KINDS, BUILT_IN } from './job-kinds.js';
+import { AGENT_KINDS, BUILT_IN, EXTERNAL_KINDS } from './job-kinds.js';
 import { log, reportError, withRequestId } from './log.js';
 import { mask } from './mask.js';
 
@@ -22,6 +22,8 @@ import { mask } from './mask.js';
 // their own short writes, and the job is marked done afterwards.
 const HANDLERS = new Map([
   ...Object.entries(BUILT_IN).map(([kind, fn]) => [kind, { fn, outsideTransaction: false }]),
+  // Kind to a service outside the database (SMTP): the same reason agents run outside.
+  ...Object.entries(EXTERNAL_KINDS).map(([kind, fn]) => [kind, { fn, outsideTransaction: true }]),
   ...Object.entries(AGENT_KINDS).map(([kind, fn]) => [kind, { fn, outsideTransaction: true }]),
 ]);
 
@@ -186,6 +188,12 @@ export async function tick(db, { at = new Date() } = {}) {
     if (ist.getUTCHours() * 60 + ist.getUTCMinutes() >= BRIEF_FROM_IST_MINUTES) {
       const day = indiaDate(at);
       if (await enqueue(db, 'agent:daily_brief', {}, { dedupeKey: `brief:${day}`, maxAttempts: 2 })) enqueued.push('agent:daily_brief');
+    }
+    // Deliver the outbox: once a minute, and only when something is waiting. The dedupe key is
+    // the minute itself, so a tick that runs twice does not queue two deliveries.
+    const minute = Math.floor(at.getTime() / 60_000);
+    if (await one(db, "SELECT 1 AS x FROM outbox WHERE status = 'pending' LIMIT 1")) {
+      if (await enqueue(db, 'email:deliver', {}, { dedupeKey: `email:${minute}`, maxAttempts: 1 })) enqueued.push('email:deliver');
     }
     await setSetting(db, 'tick.last', at.toISOString());
   });
