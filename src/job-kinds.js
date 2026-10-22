@@ -35,10 +35,14 @@ export const BUILT_IN = {
                                       (SELECT city FROM addresses WHERE user_id = o.user_id ORDER BY id LIMIT 1) AS city
                                FROM shipments s JOIN orders o ON o.id = s.order_id JOIN users u ON u.id = o.user_id
                                WHERE s.id = ?`, payload.entity_id);
-      if (!s || !emails.STAGE_WORDS[s.status]) return;
+      if (!s) return;
+      // The stage the event reported, not the row's stage now: two changes can be dispatched in
+      // one tick, and a second email about the same stage would be a duplicate.
+      const stage = emails.STAGE_WORDS[payload.data?.to] ? payload.data.to : s.status;
+      if (!emails.STAGE_WORDS[stage]) return;
       const items = await all(db, 'SELECT title, qty FROM order_items WHERE shipment_id = ? ORDER BY id', s.id);
       const msg = emails.shipmentUpdate({
-        firstName: s.name, orderId: Number(s.order_id), stage: s.status,
+        firstName: s.name, orderId: Number(s.order_id), stage,
         items: items.map((i) => `${i.title} × ${i.qty}`), tracking: s.tracking_no, eta: s.eta, city: s.city,
       });
       await sendEmail(db, s.user_id, s.email, msg.subject, msg.body);

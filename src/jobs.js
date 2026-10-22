@@ -84,7 +84,9 @@ export async function dispatch(db, limit = 200) {
     const events = await all(db, 'SELECT * FROM events WHERE dispatched_at IS NULL ORDER BY id LIMIT ? FOR UPDATE SKIP LOCKED', limit);
     for (const e of events) {
       for (const kind of LISTENERS[e.type] || []) {
-        await enqueue(db, kind, { event_id: Number(e.id), type: e.type, entity: e.entity, entity_id: e.entity_id },
+        // The event's own payload travels with the job: a message about a change must describe
+        // that change, not whatever the row says later (two stage changes can arrive together).
+        await enqueue(db, kind, { event_id: Number(e.id), type: e.type, entity: e.entity, entity_id: e.entity_id, data: e.payload },
           { dedupeKey: `${kind}:event:${e.id}` });
       }
       await run(db, 'UPDATE events SET dispatched_at = now() WHERE id = ?', e.id);

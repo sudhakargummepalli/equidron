@@ -67,6 +67,20 @@ test('each shipment stage emails the customer with its tracking and expected dat
   if (shipment.tracking_no) assert.match(match.body, new RegExp(String(shipment.tracking_no)));
 });
 
+test('two stage changes sent in one tick produce two different emails, not the same one twice', async () => {
+  // The row is already delivered; the events still say packed and shipped, and the emails must
+  // follow the events. Reading the row's status twice produced a duplicate in the live run.
+  const before = (await subjectsFor(asha.email)).length;
+  await emit(db, 'shipment.status_changed', 'shipment', shipment.id, { order_id: shipment.order_id, from: 'picking', to: 'packed' });
+  await emit(db, 'shipment.status_changed', 'shipment', shipment.id, { order_id: shipment.order_id, from: 'packed', to: 'shipped' });
+  await drain();
+
+  const added = (await subjectsFor(asha.email)).slice(before);
+  assert.equal(added.length, 2, 'exactly two emails');
+  assert.deepEqual(added.map((s) => s.replace(` — order #${order.id}`, '')).sort(),
+    [emails.STAGE_WORDS.packed, emails.STAGE_WORDS.shipped].sort());
+});
+
 test('a cancelled order emails the customer', async () => {
   await emit(db, 'order.cancelled', 'order', order.id, { by: 'customer' });
   await drain();
