@@ -158,3 +158,15 @@ test('replyFor works without a chat link for public product data only', async ()
   assert.match(await replyFor(db, { chatId: 5005, text: '/help' }), /\/products/);
   assert.match(await replyFor(db, { chatId: 5005, text: '/order 1' }), /not linked/i);
 });
+
+test('an update with no sender supplied does not throw (the poller once forgot it)', async () => {
+  // No token in this test, so the default sender reports "no token" without any network call.
+  const saved = process.env.TELEGRAM_BOT_TOKEN;
+  process.env.TELEGRAM_BOT_TOKEN = '';
+  try {
+    const out = await handleUpdate(db, update(6006, '/help'));
+    assert.equal(out.replied, true);
+  } finally {
+    process.env.TELEGRAM_BOT_TOKEN = saved;
+  }
+});

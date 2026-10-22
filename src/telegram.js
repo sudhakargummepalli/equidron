@@ -210,8 +210,9 @@ export async function replyFor(db, { chatId, text }) {
 // ---------------------------------------------------------------- transport
 
 // Send one plain-text message. No parse_mode: text from the database must never be interpreted
-// as Telegram markup.
-export async function createSender() {
+// as Telegram markup. Not async: it returns the sender function itself, so `send(...)` works
+// (an async function here would hand back a Promise and every call would fail).
+export function createSender() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   return async (chatId, text) => {
     if (!token) return { ok: false, reason: 'no token' };
@@ -230,8 +231,10 @@ export async function createSender() {
   };
 }
 
-// One Telegram update: screen the text, answer it, send the answer.
-export async function handleUpdate(db, update, { send }) {
+// One Telegram update: screen the text, answer it, send the answer. The sender defaults to the
+// real one, so a caller that forgets to pass it still replies instead of throwing "send is not a
+// function" (which is exactly what happened once, silently, in a log line).
+export async function handleUpdate(db, update, { send = createSender() } = {}) {
   const message = update?.message;
   const text = String(message?.text ?? '').trim();
   if (!message || !text) return { replied: false };
