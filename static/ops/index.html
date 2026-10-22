@@ -32,6 +32,7 @@
   <a ng-if="vm.can('admin')" href="#/agents" ng-class="{on: vm.route.name === 'agents'}">Agents<span ng-if="vm.overview.agents_paused"> (paused)</span></a>
   <a ng-if="vm.can('admin')" href="#/runs" ng-class="{on: vm.route.name === 'runs'}">Agent runs</a>
   <a ng-if="vm.can('admin')" href="#/tasks" ng-class="{on: vm.route.name === 'tasks'}">Tasks<span ng-if="vm.overview.open_tasks"> ({{vm.overview.open_tasks}})</span></a>
+  <a ng-if="vm.can('admin')" href="#/guardrails" ng-class="{on: vm.route.name === 'guardrails'}">Guardrails</a>
 </div></div>
 <div class="sample">Sample data: every seller, product, customer and order here is fictional. Payments are simulated.</div>
 
@@ -388,6 +389,33 @@
         <tr ng-repeat="t in vm.doneTasks"><td>{{t.closed_at | when}}</td><td><code>{{t.kind}}</code> {{t.subject}}</td><td>{{t.body}}</td></tr>
       </table>
     </div>
+  </section>
+
+  <!-- ============ GUARDRAILS (admin) ============ -->
+  <section ng-if="vm.user && vm.route.name === 'guardrails'">
+    <div class="row between"><h1>Guardrails</h1><button class="btn small" ng-click="vm.loadGuardrails()">Refresh</button></div>
+    <p class="small muted">What the rules stopped or flagged, for customers, sellers and staff alike. A <strong>refuse</strong>
+      means the request never went through; a <strong>flag</strong> means it did, and is worth a look. Text is masked.</p>
+    <div class="card" ng-if="vm.guardCounts">
+      <p class="small"><strong>{{vm.guardCounts.last_24_hours}}</strong> event(s) in the last 24 hours.</p>
+      <p class="small muted">
+        <span ng-repeat="r in vm.guardCounts.by_rule">{{r.rule}} ({{r.severity}}): {{r.n}}{{$last ? '' : ' · '}}</span>
+        <span ng-if="!vm.guardCounts.by_rule.length">Nothing recorded yet.</span>
+      </p>
+    </div>
+    <div class="card table-wrap" ng-if="vm.guardEvents.length">
+      <table class="small">
+        <tr><th>When</th><th>Role</th><th>Rule</th><th>What happened</th></tr>
+        <tr ng-repeat="e in vm.guardEvents">
+          <td>{{e.at | when}}</td>
+          <td>{{e.role}}<div class="muted">{{e.area}} · #{{e.actor_id}}</div></td>
+          <td><code>{{e.rule}}</code></td>
+          <td><span class="badge {{e.severity === 'refuse' ? 'bad' : 'warn'}}">{{e.severity}}</span>
+            <span class="small">{{e.detail | json}}</span></td>
+        </tr>
+      </table>
+    </div>
+    <p class="muted small" ng-if="!vm.guardEvents.length">Nothing has been stopped or flagged yet.</p>
   </section>
 
   <!-- ============ OUTBOX (admin) ============ -->

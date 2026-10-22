@@ -15,6 +15,7 @@ import { PROFILES, VOICE_REPLY, telugu } from './agents/profiles.js';
 import { runAgent } from './agents/runtime.js';
 import { indiaDate, one, transaction } from './db.js';
 import { AppError, badRequest } from './errors.js';
+import { guardChat } from './guardrails.js';
 
 export { VOICE_REPLY, telugu };
 
@@ -69,6 +70,9 @@ async function countQuestion(db, userId, day, help) {
 export async function answer(db, ctx, rawMessages, options = {}) {
   const messages = cleanHistory(rawMessages);
   const today = options.today ?? new Date();
+  // The guardrail runs before the daily count and before the model: a message that is abuse, an
+  // attempt to rewrite the instructions, or a card number is refused here, and never sent.
+  await guardChat(db, { role: 'customer', area: 'shop', user: ctx.user, text: messages.at(-1).content });
   if (ctx.user) await countQuestion(db, ctx.user.id, indiaDate(today), 'use Customer service'); // the limit resets at midnight in India
   const seen = new Map(); // the products the tools looked at, so the reply can link the ones it names
 

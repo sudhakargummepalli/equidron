@@ -14,6 +14,7 @@ import * as auth from './auth.js';
 import * as catalog from './catalog.js';
 import { all, changes, one, run, scalar, transaction } from './db.js';
 import { AppError } from './errors.js';
+import { capBulk, counts as guardrailCounts, recent as recentGuardrails } from './guardrails.js';
 import * as listings from './listings.js';
 import * as jobs from './jobs.js';
 import { newRequestId, reportError, requestId, withRequestId } from './log.js';
@@ -308,6 +309,8 @@ route('GET', 'ops', '/shipments', async (c) => await orders.listShipments(c.db, 
 route('POST', 'ops', '/shipments/(\\d+)/advance', async (c, sid) => await orders.advanceShipment(c.db, int(sid), 'ops'));
 route('POST', 'ops', '/shipments/advance-all', async (c) => {
   const active = await orders.listShipments(c.db);
+  // Guardrail: a bulk click must never touch an unbounded number of records.
+  capBulk(active.length, { label: 'shipments' });
   for (const s of active) await orders.advanceShipment(c.db, s.id, 'ops');
   return { advanced: active.length };
 });
@@ -423,6 +426,12 @@ route('POST', 'ops', '/approvals/(\\d+)/decide', async (c, id) =>
     byUserId: c.user.id,
     note: c.body.note ? String(c.body.note).trim().slice(0, 500) : null,
   }));
+
+// Guardrails: what the rules stopped or flagged, for every role (customer, seller, staff).
+route('GET', 'ops', '/guardrails', async (c) => ({
+  events: await recentGuardrails(c.db, 100),
+  counts: await guardrailCounts(c.db),
+}));
 
 // Work items the agents raised (Fulfilment Watch opens one per shipment twice as late). A
 // person closes them; the agent's job only ever opens them.

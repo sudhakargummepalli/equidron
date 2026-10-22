@@ -5,6 +5,7 @@
 // seller to the right Seller Central page instead.
 import { converse, telugu, VOICE_REPLY } from './assistant.js';
 import { CATEGORIES, CITIES, describeOffers } from './catalog.js';
+import { guardChat } from './guardrails.js';
 import { catalogLookup, listSubmissions, PRICE_REVIEW_THRESHOLD, RESTRICTED_TERMS, sellerListings } from './listings.js';
 import { inr, REFERRAL_FEE_RATE, sellerLedger, sellerOrders } from './orders.js';
 
@@ -157,7 +158,12 @@ async function runTool(db, ctx, name, input, seen) {
 // ctx: { user, voice, language } with user.seller_id; voice: the question was spoken;
 // language: 'en' (default) or 'te' (Telugu).
 // Returns { reply, products } where products are the seller's listings the reply names ({id: listing id, title}).
-export function answerSeller(db, ctx, rawMessages, options = {}) {
+export async function answerSeller(db, ctx, rawMessages, options = {}) {
+  // Screen the seller's own words before anything is counted or sent to the model.
+  const last = Array.isArray(rawMessages) ? [...rawMessages].reverse().find((m) => m && m.role === 'user') : null;
+  if (last && typeof last.content === 'string') {
+    await guardChat(db, { role: 'seller', area: 'seller', user: ctx.user, text: last.content });
+  }
   return converse(db, ctx, rawMessages, {
     system: SYSTEM,
     context: [`You are helping the seller "${ctx.user.seller_name}".`,

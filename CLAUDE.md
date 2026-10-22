@@ -34,6 +34,7 @@ src/db.js                    SCHEMA, ? -> $n conversion, all/one/run/scalar, tra
 src/auth.js                  passwords (scrypt), sessions, sign-in, lockout, codes, TOTP, staff permissions, agent accounts
 src/audit.js                 audit_log: actingAs(), audit(), who did what
 src/mask.js                  mask(): hides emails, phones, PAN, card and bank numbers
+src/guardrails.js            rules per role (customer, seller, staff): refuse or flag, all recorded
 src/outbox.js                emails waiting to be sent (Ops admins read them until Phase 10)
 src/security-headers.js      CSP and other headers for the local server (same as netlify.toml)
 src/events.js                emit(): the events outbox, written inside service functions
@@ -96,6 +97,10 @@ tests/                       node:test suites (order flow, PostgreSQL, assistant
   route needs admin. Agent accounts (role `agent`) never get a session.
 - Personal data in logs: pass log text through `mask()` (`src/mask.js`). Sign-in failures are answered with a
   `Reply`, not thrown, so attempt records survive the transaction.
+- Guardrails: user text that reaches a model or a reviewer goes through `src/guardrails.js`. Refuse what must
+  not happen at all (card numbers, attempts to rewrite instructions, abuse); flag what a person should see
+  (contact details, odd listing text). Every refusal and flag is written to `guardrail_events`, masked, and Ops
+  → Guardrails shows them. A flagged listing always gains a review reason, so it can never auto-approve.
 - Demo mode: the sample accounts and shared password work only with `EQUIDRON_SEED_DEMO=1` (`node app.js` and the
   tests set it). Security headers live in `src/security-headers.js` and `netlify.toml`, kept equal by a test.
 - Events and jobs: when something other parts may react to happens, call `emit()` inside the same transaction, with

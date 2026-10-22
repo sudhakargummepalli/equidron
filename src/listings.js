@@ -9,6 +9,7 @@ import { all, dumps, loads, now, one, run } from './db.js';
 import { badRequest, conflict, forbidden, notFound } from './errors.js';
 import { actorUserId, audit } from './audit.js';
 import { emit } from './events.js';
+import { guardListing, guardSellerRate } from './guardrails.js';
 import { notify } from './notify.js';
 
 export const PRICE_REVIEW_THRESHOLD = 0.2;
@@ -130,6 +131,9 @@ const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 // Validate a seller's change and either apply it now or hold it for review.
 export async function submit(db, sellerId, data) {
+  // Guardrail: how many changes this seller has sent in the last hour. Refused before any
+  // validation work, and recorded so Ops can see it.
+  await guardSellerRate(db, sellerId);
   let offer = null;
   let product = null;
   let kind;
@@ -173,6 +177,11 @@ export async function submit(db, sellerId, data) {
   }
   const flagged = restrictedTerms(payload);
   if (flagged.length) reasons.push(`Contains restricted terms: ${flagged.join(', ')}.`);
+
+  // Guardrail: text in a listing that reads like instructions to a reviewer, or abuse. It is
+  // recorded, and it forces a person to look — a flagged listing must never be auto-approved.
+  const guard = await guardListing(db, { sellerId, title: payload.title, description: payload.description });
+  if (guard.verdict === 'flag') reasons.push('Guardrail: the listing text may be trying to instruct the reviewer. A person will look at it.');
 
   // A newer submission replaces an older one still waiting for review.
   if (offer) {

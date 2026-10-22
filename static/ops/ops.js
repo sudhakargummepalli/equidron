@@ -40,6 +40,7 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
         case 'agents': return loadAgents();
         case 'runs': return loadRuns();
         case 'tasks': return loadTasks();
+        case 'guardrails': return loadGuardrails();
       }
     }
 
@@ -226,4 +227,10 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
         loadTasks(); refreshOverview();
       }, function (e) { Toast.show(e.message); loadTasks(); });
     };
+
+    // ---------------------------------------------------------------- guardrails
+    function loadGuardrails() {
+      return api.get('/guardrails').then(function (x) { vm.guardEvents = x.events; vm.guardCounts = x.counts; }, fail);
+    }
+    vm.loadGuardrails = loadGuardrails;
   }]);
