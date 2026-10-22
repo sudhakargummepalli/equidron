@@ -15,6 +15,7 @@ import * as catalog from './catalog.js';
 import { all, changes, one, run, scalar, transaction } from './db.js';
 import { AppError } from './errors.js';
 import { capBulk, counts as guardrailCounts, recent as recentGuardrails } from './guardrails.js';
+import * as incidents from './incidents.js';
 import * as listings from './listings.js';
 import * as jobs from './jobs.js';
 import { newRequestId, reportError, requestId, withRequestId } from './log.js';
@@ -439,6 +440,9 @@ route('GET', 'ops', '/tasks', async (c) => ({
   tasks: await all(c.db, "SELECT * FROM ops_tasks WHERE status = 'open' ORDER BY created_at, id LIMIT 100"),
   done: await all(c.db, "SELECT * FROM ops_tasks WHERE status = 'done' ORDER BY closed_at DESC, id DESC LIMIT 20"),
 }));
+
+// The incidents dashboard: one answer to "is anything wrong right now?".
+route('GET', 'ops', '/incidents', async (c) => await incidents.snapshot(c.db));
 route('POST', 'ops', '/tasks/(\\d+)/done', async (c, id) => {
   const task = await one(c.db, "SELECT id FROM ops_tasks WHERE id = ? AND status = 'open'", int(id));
   if (!task) throw new AppError(409, 'That task is already done.');

@@ -33,6 +33,7 @@
   <a ng-if="vm.can('admin')" href="#/runs" ng-class="{on: vm.route.name === 'runs'}">Agent runs</a>
   <a ng-if="vm.can('admin')" href="#/tasks" ng-class="{on: vm.route.name === 'tasks'}">Tasks<span ng-if="vm.overview.open_tasks"> ({{vm.overview.open_tasks}})</span></a>
   <a ng-if="vm.can('admin')" href="#/guardrails" ng-class="{on: vm.route.name === 'guardrails'}">Guardrails</a>
+  <a ng-if="vm.can('admin')" href="#/incidents" ng-class="{on: vm.route.name === 'incidents'}">Incidents<span ng-if="vm.incidents && vm.incidents.status !== 'ok'"> ●</span></a>
 </div></div>
 <div class="sample">Sample data: every seller, product, customer and order here is fictional. Payments are simulated.</div>
 
@@ -429,6 +430,85 @@
       <p>{{m.body}}</p>
     </div>
     <div class="empty card" ng-if="vm.outbox && !vm.outbox.length">No messages yet.</div>
+  </section>
+
+  <!-- ============ INCIDENTS (admin) ============ -->
+  <section ng-if="vm.user && vm.route.name === 'incidents'">
+    <div class="row between"><h1>Incidents</h1><button class="btn small" ng-click="vm.loadIncidents()">Refresh</button></div>
+    <p class="small muted">One answer to "is anything wrong right now?", counted from the same tables the rest of Ops
+      uses. Each check links to the page where you can act on it.</p>
+
+    <div class="alert bad" ng-if="vm.incidents.status === 'critical'">
+      <strong>Something is broken.</strong> A job has died or an agent run failed.
+      <span ng-if="vm.incidents.paused"> Agents are paused.</span>
+      <span class="small muted">Checked {{vm.incidents.at | when}}.</span>
+    </div>
+    <div class="alert warn" ng-if="vm.incidents.status === 'attention'">
+      <strong>Needs attention.</strong> Something is waiting for a person, or a rule has fired.
+      <span ng-if="vm.incidents.paused"> Agents are paused.</span>
+      <span class="small muted">Checked {{vm.incidents.at | when}}.</span>
+    </div>
+    <div class="alert good" ng-if="vm.incidents.status === 'ok'">
+      <strong>All clear.</strong> Nothing below is above zero.
+      <span class="small muted">Checked {{vm.incidents.at | when}}.</span>
+    </div>
+
+    <div class="card">
+      <h2>Checks</h2>
+      <table class="small">
+        <tr ng-repeat="c in vm.incidents.checks">
+          <td ng-class="{muted: !c.count}">{{c.label}}</td>
+          <td style="width:80px">
+            <span class="badge" ng-class="c.count ? (c.severity === 'critical' ? 'bad' : c.severity === 'attention' ? 'warn' : 'info') : 'good'">{{c.count}}</span>
+          </td>
+          <td class="right" style="width:70px"><a ng-if="c.count" href="{{c.link}}">Open</a></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card" ng-if="vm.incidents.recent.errors.length">
+      <h2>Recent errors</h2>
+      <table class="small">
+        <tr><th>When</th><th>Where</th><th>What</th><th>Request</th></tr>
+        <tr ng-repeat="e in vm.incidents.recent.errors">
+          <td>{{e.at | when}}</td><td><code>{{e.source}}</code></td><td>{{e.message}}</td><td class="muted">{{e.request_id}}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card" ng-if="vm.incidents.recent.dead_jobs.length">
+      <h2>Dead jobs</h2>
+      <table class="small">
+        <tr><th>Job</th><th>Kind</th><th>Tries</th><th>Last error</th></tr>
+        <tr ng-repeat="j in vm.incidents.recent.dead_jobs">
+          <td>#{{j.id}}</td><td><code>{{j.kind}}</code></td><td>{{j.attempts}}</td><td>{{j.last_error}}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card" ng-if="vm.incidents.recent.failed_runs.length">
+      <h2>Failed agent runs</h2>
+      <table class="small">
+        <tr><th>Run</th><th>Agent</th><th>Subject</th><th>Error</th><th>Started</th></tr>
+        <tr ng-repeat="r in vm.incidents.recent.failed_runs">
+          <td>#{{r.id}}</td><td>{{r.agent_id}}</td><td>{{r.subject || '—'}}</td><td>{{r.error}}</td><td>{{r.started_at | when}}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card" ng-if="vm.incidents.recent.guardrails.length">
+      <h2>Recent guardrail events</h2>
+      <table class="small">
+        <tr><th>When</th><th>Role</th><th>Rule</th><th>Severity</th></tr>
+        <tr ng-repeat="g in vm.incidents.recent.guardrails">
+          <td>{{g.at | when}}</td><td>{{g.role}}</td><td><code>{{g.rule}}</code></td>
+          <td><span class="badge {{g.severity === 'refuse' ? 'bad' : 'warn'}}">{{g.severity}}</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <p class="muted small" ng-if="vm.incidents.status === 'ok'">Nothing has fired, died or is waiting. This page is a
+      summary: the detail lives on System, Guardrails, Tasks, Approvals and Agent runs.</p>
   </section>
 </main>
 <div class="toast" ng-if="toast" role="status">{{toast}}</div>

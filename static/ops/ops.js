@@ -41,6 +41,7 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
         case 'runs': return loadRuns();
         case 'tasks': return loadTasks();
         case 'guardrails': return loadGuardrails();
+        case 'incidents': return loadIncidents();
       }
     }
 
@@ -233,4 +234,10 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
       return api.get('/guardrails').then(function (x) { vm.guardEvents = x.events; vm.guardCounts = x.counts; }, fail);
     }
     vm.loadGuardrails = loadGuardrails;
+
+    // ---------------------------------------------------------------- incidents
+    function loadIncidents() {
+      return api.get('/incidents').then(function (x) { vm.incidents = x; }, fail);
+    }
+    vm.loadIncidents = loadIncidents;
   }]);
