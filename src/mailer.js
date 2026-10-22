@@ -13,6 +13,13 @@ export const MAX_ATTEMPTS = 4;
 // A row claimed by a worker that died is claimed again after this long, so a crash cannot strand it.
 const CLAIM_TIMEOUT_MINUTES = 10;
 
+// Is there anything to do? Pending rows, or a row a dead worker left in 'sending' long enough
+// that claiming it again is safe. The tick asks this before queueing a delivery, so an abandoned
+// row is not stranded for ever.
+export const needsDelivery = async (db) => Boolean(await one(db, `SELECT 1 AS x FROM outbox
+  WHERE status = 'pending' OR (status = 'sending' AND claimed_at < now() - make_interval(mins => ?)) LIMIT 1`,
+CLAIM_TIMEOUT_MINUTES));
+
 const settings = () => ({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT || 587),

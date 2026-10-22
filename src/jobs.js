@@ -15,6 +15,7 @@ import { all, indiaDate, now, one, run, transaction } from './db.js';
 import { AGENT_KINDS, BUILT_IN, EXTERNAL_KINDS } from './job-kinds.js';
 import { log, reportError, withRequestId } from './log.js';
 import { mask } from './mask.js';
+import { needsDelivery } from './mailer.js';
 
 // One entry per kind: { fn, outsideTransaction }. A handler normally runs inside the job's
 // transaction, together with marking the job done. An agent handler cannot: a run waits
@@ -189,10 +190,11 @@ export async function tick(db, { at = new Date() } = {}) {
       const day = indiaDate(at);
       if (await enqueue(db, 'agent:daily_brief', {}, { dedupeKey: `brief:${day}`, maxAttempts: 2 })) enqueued.push('agent:daily_brief');
     }
-    // Deliver the outbox: once a minute, and only when something is waiting. The dedupe key is
-    // the minute itself, so a tick that runs twice does not queue two deliveries.
+    // Deliver the outbox: once a minute, and only when something is waiting — including a row a
+    // dead worker left in 'sending' past its claim timeout, which must not be stranded. The
+    // dedupe key is the minute itself, so a tick that runs twice does not queue two deliveries.
     const minute = Math.floor(at.getTime() / 60_000);
-    if (await one(db, "SELECT 1 AS x FROM outbox WHERE status = 'pending' LIMIT 1")) {
+    if (await needsDelivery(db)) {
       if (await enqueue(db, 'email:deliver', {}, { dedupeKey: `email:${minute}`, maxAttempts: 1 })) enqueued.push('email:deliver');
     }
     await setSetting(db, 'tick.last', at.toISOString());

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { all, one, run } from '../src/db.js';
 import { runsOutsideTransaction } from '../src/jobs.js';
-import { deliverOutbox, MAX_ATTEMPTS, smtpConfigured } from '../src/mailer.js';
+import { deliverOutbox, MAX_ATTEMPTS, needsDelivery, smtpConfigured } from '../src/mailer.js';
 import { openDatabase } from '../src/server.js';
 
 // Each block gets its own database, so one block's leftover rows cannot change another's counts.
@@ -139,5 +139,27 @@ describe('with SMTP settings', () => {
 
     const later = await tick(db, { at: new Date(at.getTime() + 60_000) });
     assert.ok(!later.enqueued.includes('email:deliver'), 'nothing pending, so no job');
+  });
+
+  test('a row left in sending by a dead worker is picked up once its claim is old', async () => {
+    const mail = await addMail({ subject: 'Abandoned mid-send' });
+    // A worker claimed it, then died: 'sending', with an old claim.
+    await run(db, "UPDATE outbox SET status = 'sending', attempts = 1, claimed_at = now() - interval '11 minutes' WHERE id = ?", mail.id);
+    assert.equal(await needsDelivery(db), true, 'the tick must still queue a delivery');
+
+    const mailer = fakeMailer();
+    const out = await deliverOutbox(db, { mailer: mailer.send });
+    assert.equal(out.sent, 1, 'the abandoned row is sent, not stranded');
+    assert.equal((await row(mail.id)).status, 'sent');
+
+    // A fresh claim (younger than the timeout) is left alone, so a live worker keeps its row.
+    const busy = await addMail({ subject: 'Still being sent' });
+    await run(db, "UPDATE outbox SET status = 'sending', attempts = 1, claimed_at = now() WHERE id = ?", busy.id);
+    const second = fakeMailer();
+    await deliverOutbox(db, { mailer: second.send });
+    assert.equal(second.calls.length, 0, 'a recent claim is not stolen');
+    assert.equal((await row(busy.id)).status, 'sending');
+
+    assert.equal(await needsDelivery(db), false, 'nothing left to do');
   });
 });
