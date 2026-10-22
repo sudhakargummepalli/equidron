@@ -282,3 +282,47 @@ export async function webhookReply(db, { headers = {}, body, send = null }) {
   }
   return { status: 200, payload: { ok: true }, setCookie: null };
 }
+
+// Long polling, for a local run. Telegram cannot call http://localhost, so the app asks Telegram
+// for new messages instead. It runs inside the app's own process because PGlite allows one
+// process per database folder: a second process would fight the server for it.
+export function startPolling(db, { send = createSender() } = {}) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return { stop() {} };
+  let stopped = false;
+  let offset = 0;
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  (async () => {
+    while (!stopped) {
+      let updates = [];
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?timeout=25&offset=${offset}`, {
+          signal: AbortSignal.timeout(40_000),
+        });
+        const body = await res.json();
+        if (!body.ok) {
+          log('warn', 'telegram getUpdates refused', { status: res.status, description: body.description ?? null });
+          await sleep(5000);
+          continue;
+        }
+        updates = body.result || [];
+      } catch (e) {
+        log('warn', 'telegram getUpdates error', { reason: e?.message ?? 'unknown' });
+        await sleep(5000);
+        continue;
+      }
+      for (const update of updates) {
+        offset = update.update_id + 1;
+        try {
+          await handleUpdate(db, update, { send });
+          log('info', 'telegram update handled', { update_id: update.update_id });
+        } catch (e) {
+          log('error', 'telegram update failed', { update_id: update.update_id, reason: e?.message ?? 'unknown' });
+        }
+      }
+    }
+  })();
+
+  return { stop() { stopped = true; } };
+}

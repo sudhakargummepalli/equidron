@@ -9,6 +9,7 @@ import { isServerUrl } from './src/db.js';
 import { loadEnv } from './src/env.js';
 import { tick, work } from './src/jobs.js';
 import { createServer, openDatabase } from './src/server.js';
+import { startPolling } from './src/telegram.js';
 
 // A local .env (never committed) supplies secrets such as TELEGRAM_BOT_TOKEN.
 loadEnv();
@@ -20,6 +21,7 @@ const { values: args } = parseArgs({
     db: { type: 'string', default: process.env.DATABASE_URL || path.join(here, 'data', 'pg') },
     reset: { type: 'boolean', default: false },
     'no-jobs': { type: 'boolean', default: false },
+    'no-telegram': { type: 'boolean', default: false },
   },
 });
 
@@ -43,6 +45,14 @@ if (!args['no-jobs']) {
   };
   setTimeout(minute, 5_000).unref();
   setInterval(minute, 60_000).unref();
+}
+
+// Telegram cannot call localhost, so when a bot token is present the app polls Telegram itself.
+// It has to be this process: PGlite allows one process per database folder. --no-telegram turns
+// it off, and a hosted deployment uses the webhook instead.
+if (process.env.TELEGRAM_BOT_TOKEN && !args['no-telegram']) {
+  startPolling(db);
+  console.log('  Telegram:       polling for messages (local mode)');
 }
 
 const server = createServer(db);

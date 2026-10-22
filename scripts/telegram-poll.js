@@ -1,6 +1,6 @@
-// Local development helper: Telegram cannot reach http://localhost, so instead of a webhook
-// this script asks Telegram for new messages and feeds them to the same handler the webhook
-// uses. Run it next to `node app.js`:
+// Standalone long polling, for when the app is not using this database folder (for example it
+// points at a PostgreSQL server). A local `node app.js` already polls inside its own process,
+// because PGlite allows only one process per database folder — do not run both on data/pg.
 //
 //   node scripts/telegram-poll.js        (reads TELEGRAM_BOT_TOKEN from .env)
 //
