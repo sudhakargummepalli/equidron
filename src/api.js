@@ -16,6 +16,7 @@ import { all, changes, one, run, scalar, transaction } from './db.js';
 import { AppError } from './errors.js';
 import { capBulk, counts as guardrailCounts, recent as recentGuardrails } from './guardrails.js';
 import * as incidents from './incidents.js';
+import * as analytics from './analytics.js';
 import * as listings from './listings.js';
 import * as jobs from './jobs.js';
 import { newRequestId, reportError, requestId, withRequestId } from './log.js';
@@ -449,6 +450,13 @@ route('POST', 'ops', '/tasks/(\\d+)/done', async (c, id) => {
   await run(c.db, "UPDATE ops_tasks SET status = 'done', closed_at = now(), closed_by = ? WHERE id = ? AND status = 'open'", c.user.id, task.id);
   await audit(c.db, 'task.done', 'ops_task', task.id, { status: 'open' }, { status: 'done' });
   return { ok: true };
+});
+
+// Analytics: who sells the most, revenue per seller per quarter, and customers to promote.
+// months is a whole number of months, 1 to 60.
+route('GET', 'ops', '/analytics', async (c) => {
+  const months = Math.min(60, Math.max(1, Number(c.q('months', 12)) || 12));
+  return await analytics.snapshot(c.db, { months });
 });
 
 // The Agent runs page: the list, and one run step by step.

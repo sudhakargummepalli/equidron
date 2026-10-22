@@ -42,6 +42,7 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
         case 'tasks': return loadTasks();
         case 'guardrails': return loadGuardrails();
         case 'incidents': return loadIncidents();
+        case 'analytics': return loadAnalytics();
       }
     }
 
@@ -240,4 +241,12 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
       return api.get('/incidents').then(function (x) { vm.incidents = x; }, fail);
     }
     vm.loadIncidents = loadIncidents;
+
+    // ---------------------------------------------------------------- analytics
+    vm.aMonths = 12;
+    function loadAnalytics(months) {
+      vm.aMonths = months || vm.aMonths;
+      return api.get('/analytics', { months: vm.aMonths }).then(function (x) { vm.analytics = x; }, fail);
+    }
+    vm.loadAnalytics = loadAnalytics;
   }]);

@@ -34,6 +34,7 @@
   <a ng-if="vm.can('admin')" href="#/tasks" ng-class="{on: vm.route.name === 'tasks'}">Tasks<span ng-if="vm.overview.open_tasks"> ({{vm.overview.open_tasks}})</span></a>
   <a ng-if="vm.can('admin')" href="#/guardrails" ng-class="{on: vm.route.name === 'guardrails'}">Guardrails</a>
   <a ng-if="vm.can('admin')" href="#/incidents" ng-class="{on: vm.route.name === 'incidents'}">Incidents<span ng-if="vm.incidents && vm.incidents.status !== 'ok'"> ●</span></a>
+  <a ng-if="vm.can('admin')" href="#/analytics" ng-class="{on: vm.route.name === 'analytics'}">Analytics</a>
 </div></div>
 <div class="sample">Sample data: every seller, product, customer and order here is fictional. Payments are simulated.</div>
 
@@ -509,6 +510,89 @@
 
     <p class="muted small" ng-if="vm.incidents.status === 'ok'">Nothing has fired, died or is waiting. This page is a
       summary: the detail lives on System, Guardrails, Tasks, Approvals and Agent runs.</p>
+  </section>
+
+  <!-- ============ ANALYTICS (admin) ============ -->
+  <section ng-if="vm.user && vm.route.name === 'analytics'">
+    <div class="row between">
+      <h1>Analytics</h1>
+      <div>
+        <button class="btn small" ng-class="{ghost: vm.aMonths !== 3}" ng-click="vm.loadAnalytics(3)">3 months</button>
+        <button class="btn small" ng-class="{ghost: vm.aMonths !== 12}" ng-click="vm.loadAnalytics(12)">12 months</button>
+        <button class="btn small" ng-class="{ghost: vm.aMonths !== 24}" ng-click="vm.loadAnalytics(24)">24 months</button>
+      </div>
+    </div>
+    <p class="small muted">Counted live from the orders themselves, in India days. A sale is an order that was not
+      cancelled and whose money was taken (captured). Money in rupees; the database keeps paise.</p>
+
+    <div class="card" ng-if="vm.analytics">
+      <p class="small muted">{{vm.analytics.range.label}} · from {{vm.analytics.first_day}} ·
+        {{vm.analytics.totals.orders}} orders · {{vm.analytics.totals.revenue_paise / 100 | currency:'₹':0}} ·
+        {{vm.analytics.totals.sellers}} sellers</p>
+      <p ng-if="vm.analytics.top_seller_by_orders">
+        <strong>Most orders:</strong> {{vm.analytics.top_seller_by_orders.seller}}
+        ({{vm.analytics.top_seller_by_orders.orders}} orders,
+        {{vm.analytics.top_seller_by_orders.revenue_paise / 100 | currency:'₹':0}}).
+      </p>
+      <p ng-if="vm.analytics.quarterly.summary.length">
+        <strong>This quarter’s revenue:</strong> {{vm.analytics.quarterly.summary[0].top_seller}}
+        with {{vm.analytics.quarterly.summary[0].top_seller_paise / 100 | currency:'₹':0}}
+        ({{vm.analytics.quarterly.summary[0].top_seller_share}}% of {{vm.analytics.quarterly.summary[0].quarter}}).
+      </p>
+      <p><strong>Customers to promote:</strong> {{vm.analytics.promote.customers.length}} spent
+        {{vm.analytics.promote.threshold_paise / 100 | currency:'₹':0}} or more in this period.</p>
+    </div>
+
+    <div class="card" ng-if="vm.analytics">
+      <h2>Orders by seller</h2>
+      <table class="small">
+        <tr><th>Seller</th><th>Orders</th><th>Revenue</th><th>Share of revenue</th></tr>
+        <tr ng-repeat="s in vm.analytics.orders_by_seller">
+          <td>{{s.seller}}</td>
+          <td>{{s.orders}}</td>
+          <td>{{s.revenue_paise / 100 | currency:'₹':0}}</td>
+          <td>{{vm.analytics.totals.revenue_paise ? ((s.revenue_paise / vm.analytics.totals.revenue_paise * 100) | number:0) : 0}}%</td>
+        </tr>
+      </table>
+      <p class="muted small" ng-if="!vm.analytics.orders_by_seller.length">No sales in this period yet.</p>
+    </div>
+
+    <div class="card" ng-if="vm.analytics && vm.analytics.quarterly.summary.length">
+      <h2>Revenue per quarter</h2>
+      <table class="small">
+        <tr><th>Quarter</th><th>Revenue</th><th>Most revenue</th><th>Share</th></tr>
+        <tr ng-repeat="q in vm.analytics.quarterly.summary">
+          <td><strong>{{q.quarter}}</strong></td>
+          <td>{{q.revenue_paise / 100 | currency:'₹':0}}</td>
+          <td>{{q.top_seller}}</td>
+          <td>{{q.top_seller_share}}%</td>
+        </tr>
+      </table>
+      <h2 style="margin-top:18px">Per seller, per quarter</h2>
+      <table class="small">
+        <tr><th>Quarter</th><th>Seller</th><th>Orders</th><th>Revenue</th></tr>
+        <tr ng-repeat="r in vm.analytics.quarterly.rows">
+          <td>{{r.quarter}}</td><td>{{r.seller}}</td><td>{{r.orders}}</td>
+          <td>{{r.revenue_paise / 100 | currency:'₹':0}}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card" ng-if="vm.analytics">
+      <h2>Customers to promote</h2>
+      <p class="small muted">Spent {{vm.analytics.promote.threshold_paise / 100 | currency:'₹':0}} or more in
+        {{vm.analytics.range.label}}. Names only: no phone, email or address is shown here.</p>
+      <table class="small" ng-if="vm.analytics.promote.customers.length">
+        <tr><th>Customer</th><th>Orders</th><th>Spent</th><th>Last order</th></tr>
+        <tr ng-repeat="c in vm.analytics.promote.customers">
+          <td>{{c.name}}</td><td>{{c.orders}}</td>
+          <td>{{c.spend_paise / 100 | currency:'₹':0}}</td>
+          <td>{{c.last_order_at | when}}</td>
+        </tr>
+      </table>
+      <p class="muted small" ng-if="!vm.analytics.promote.customers.length">Nobody has crossed the threshold in this
+        period yet.</p>
+    </div>
   </section>
 </main>
 <div class="toast" ng-if="toast" role="status">{{toast}}</div>
