@@ -26,16 +26,42 @@ export const smtpConfigured = () => {
   return Boolean(s.host && s.user && s.pass && s.from);
 };
 
-// A new transport per batch: nodemailer pools nothing by default, and a stale socket after a
-// long gap is a common source of "connection closed" errors.
+// One pooled transport, reused for every message, with bounded waits. Both parts matter: a
+// transport per message paid a TLS handshake per email (about 3 s each, so a batch of 20 took
+// minutes), and a connection with no timeout could hang a whole batch in 'sending'.
+//
+// On a machine whose TLS is inspected (a corporate proxy re-signs the certificate chain), Node
+// refuses the connection with 'self-signed certificate in certificate chain'. Start the app with
+// `node --use-system-ca app.js` so Node trusts the operating system's certificate store. Never
+// fix this by turning verification off: the SMTP password travels inside that connection.
+let pooled = null;
+let pooledKey = '';
+
 function transport() {
   const s = settings();
-  return nodemailer.createTransport({
+  const key = `${s.host}|${s.port}|${s.user}`;
+  if (pooled && pooledKey === key) return pooled;
+  pooled = nodemailer.createTransport({
     host: s.host,
     port: s.port || 587,
     secure: (s.port || 587) === 465, // 465 is TLS from the first byte; 587 upgrades with STARTTLS
     auth: { user: s.user, pass: s.pass },
+    pool: true,
+    maxConnections: 3,
+    maxMessages: 50,
+    connectionTimeout: 15_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   });
+  pooledKey = key;
+  return pooled;
+}
+
+// Drop the pool (tests, shutdown, or after a settings change).
+export function closeMailer() {
+  if (pooled) pooled.close();
+  pooled = null;
+  pooledKey = '';
 }
 
 // The one place that touches the network. Kept small so a test can hand in its own implementation.
