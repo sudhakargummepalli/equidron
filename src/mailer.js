@@ -72,7 +72,9 @@ export async function deliverOutbox(db, { mailer = sendEmail, limit = 20 } = {})
   if (!smtpConfigured()) {
     const waiting = await one(db, "SELECT COUNT(*) AS n FROM outbox WHERE status = 'pending'");
     log('warn', 'email delivery skipped: SMTP is not configured', {
-      pending: Number(waiting.n), missing: ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM'].filter((k) => !process.env[k]),
+      pending: Number(waiting.n),
+      // SMTP_PORT is not listed: it falls back to 587, so it is not the reason for skipping.
+      missing: ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM'].filter((k) => !process.env[k]),
     });
     return { skipped: true, sent: 0, failed: 0, retried: 0, pending: Number(waiting.n) };
   }
