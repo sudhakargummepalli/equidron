@@ -15,8 +15,10 @@ import { costOf, knownModel } from '../src/agents/models.js';
 import { seedEvalCases, taskFor } from '../src/agents/evals.js';
 import { PROFILES } from '../src/agents/profiles.js';
 import { runAgent } from '../src/agents/runtime.js';
+import { loadEnv } from '../src/env.js';
 import { openDatabase } from '../src/server.js';
 
+loadEnv(); // ANTHROPIC_API_KEY may live in a local .env
 const args = process.argv.slice(2);
 const agentId = args.find((a) => !a.startsWith('--'));
 const yes = args.includes('--yes');

@@ -2,13 +2,15 @@
 // this script asks Telegram for new messages and feeds them to the same handler the webhook
 // uses. Run it next to `node app.js`:
 //
-//   TELEGRAM_BOT_TOKEN=... node scripts/telegram-poll.js
+//   node scripts/telegram-poll.js        (reads TELEGRAM_BOT_TOKEN from .env)
 //
 // It prints nothing but errors; replies are sent by the bot itself.
 import path from 'node:path';
+import { loadEnv } from '../src/env.js';
 import { createSender, handleUpdate } from '../src/telegram.js';
 import { openDatabase } from '../src/server.js';
 
+loadEnv();
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
   console.error('Set TELEGRAM_BOT_TOKEN in your environment (or a local .env) first.');

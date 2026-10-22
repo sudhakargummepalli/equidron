@@ -229,11 +229,15 @@ account the chat is linked to, so one customer can never see another's order.
 1. Talk to **@BotFather** in Telegram, create a bot, and keep the token it gives you.
 2. Set, in Netlify (or a local `.env`): `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` (any long
    random text) and optionally `TELEGRAM_BOT_USERNAME` (the bot's @name, shown on the link card).
-3. Point Telegram at the deployment once: `node scripts/telegram-setup.js https://your-site.netlify.app`.
-   For local development, Telegram cannot reach `localhost`; run `node scripts/telegram-poll.js`
-   instead (it long-polls and uses the same handler).
+3. **Local, the easy way** (no deployment): put the token in a `.env` next to `package.json`
+   (git ignores it), start `node app.js`, and in a second terminal run `node scripts/telegram-poll.js`.
+   Telegram cannot reach `localhost`, so the script long-polls and feeds the same handler the webhook
+   uses. On a hosted site, `node scripts/telegram-setup.js https://your-site` sets the webhook instead.
 4. In the Store (**Orders**) or Seller Central (**Dashboard**), press **Get my code** and send
    `/start 123456` to the bot. The code lasts ten minutes and works once.
+
+`node app.js` and every script in `scripts/` load `.env` at start (a variable already set in the
+shell wins), so secrets never need to be typed on the command line.
 
 The bot answers `/orders`, `/order 12`, `/products laptop` and `/product 75`; other text is treated
 as a product search. Product questions work without linking (the catalogue is public); order

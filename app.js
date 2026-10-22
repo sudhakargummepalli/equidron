@@ -6,9 +6,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { isServerUrl } from './src/db.js';
+import { loadEnv } from './src/env.js';
 import { tick, work } from './src/jobs.js';
 import { createServer, openDatabase } from './src/server.js';
 
+// A local .env (never committed) supplies secrets such as TELEGRAM_BOT_TOKEN.
+loadEnv();
 const here = path.dirname(fileURLToPath(import.meta.url));
 const { values: args } = parseArgs({
   options: {

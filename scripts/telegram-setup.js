@@ -1,9 +1,13 @@
-// Point the bot at this deployment. Run it once after a deploy:
+// Point the bot at a hosted deployment. Run it once after a deploy:
 //
-//   TELEGRAM_BOT_TOKEN=... TELEGRAM_WEBHOOK_SECRET=... node scripts/telegram-setup.js https://your-site.netlify.app
+//   node scripts/telegram-setup.js https://your-site.example
 //
 // It sets the webhook to <site>/api/telegram and tells Telegram to send the secret header that
-// src/telegram.js checks. The secrets live in your environment / Netlify variables, never here.
+// src/telegram.js checks. Both values come from .env or the environment, never from this file.
+// For a local-only run there is no hosted URL: use scripts/telegram-poll.js instead.
+import { loadEnv } from '../src/env.js';
+
+loadEnv();
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
 const base = process.argv[2];
