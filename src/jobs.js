@@ -35,7 +35,17 @@ export const runsOutsideTransaction = (kind) => HANDLERS.get(kind)?.outsideTrans
 // Who reacts to which event. Each listener gets its own job for each event.
 export const LISTENERS = {
   'order.placed': ['email:order_confirmation'],
-  'submission.created': ['agent:listing_review'],
+  // Every later state of an order also emails the customer: the payment, each courier stage, a
+  // cancellation, and the return that may follow a delivery.
+  'payment.captured': ['email:order_event'],
+  'shipment.status_changed': ['email:order_event'],
+  'order.cancelled': ['email:order_event'],
+  'return.requested': ['email:order_event'],
+  'return.received': ['email:order_event'],
+  'return.rejected': ['email:order_event'],
+  // A seller hears about their own listing: when it is added or edited, and when it is decided.
+  'submission.created': ['agent:listing_review', 'email:seller_listing'],
+  'submission.decided': ['email:seller_listing'],
 };
 
 // ---------------------------------------------------------------- settings (switches)

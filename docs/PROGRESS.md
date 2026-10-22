@@ -81,6 +81,15 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
   - `scripts/telegram-setup.js <site>` sets the webhook; `scripts/telegram-poll.js` is for local development,
     where Telegram cannot reach localhost.
   - `node --test`: 199 of 199 pass (10 new).
+- Notifications (asked for outside the roadmap):
+  - **Customers**: one email at every state of an order — placed, payment received, packed, shipped, in transit,
+    out for delivery, delivered, cancelled, and return approved / refunded / rejected. `pending` is deliberately
+    silent, because the confirmation already says the order was received.
+  - **Sellers**: an email when a listing is added or edited (saying whether it is live or under review and why),
+    and another when it is decided (approved or rejected, with the reviewer's note).
+  - All wording lives in `src/emails.js`; `src/job-kinds.js` reads the facts and writes to the outbox. The two
+    new events (`submission.decided`, `return.rejected`) are dispatched like every other.
+  - `node --test`: 210 of 210 pass (7 new).
 
 ## How to check
 - `npm ci` then `node --test`: all tests pass.

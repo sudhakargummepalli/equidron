@@ -197,6 +197,8 @@ export async function submit(db, sellerId, data) {
     await apply(db, subId);
     await run(db, "UPDATE submissions SET status = 'approved', auto_decided = true, decided_at = ?, reviewer_note = ? WHERE id = ?",
       now(), 'Approved automatically: no review needed.', subId);
+    // The seller still hears the outcome, in the same way as when a person decides.
+    await emit(db, 'submission.decided', 'submission', subId, { approved: true, auto: true });
   }
   return await getSubmission(db, subId);
 }
@@ -257,6 +259,7 @@ export async function decide(db, subId, approve, note = '', decidedBy = actorUse
   const sellerUser = (await one(db, 'SELECT user_id FROM sellers WHERE id = ?', sub.seller_id)).user_id;
   const title = loads(sub.payload).title || await productTitle(db, sub.product_id);
   await notify(db, sellerUser, `Listing ${approve ? 'approved and live' : 'rejected'}: ${title}${note ? ' — ' + note : ''}`, '#/submissions');
+  await emit(db, 'submission.decided', 'submission', subId, { approved: approve, note: note || null });
   return await getSubmission(db, subId);
 }
 

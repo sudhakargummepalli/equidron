@@ -574,6 +574,7 @@ export async function rejectReturn(db, returnId, note, decidedBy = actorUserId()
   await run(db, "UPDATE returns SET status = 'rejected', updated_at = ?, decided_by = ? WHERE id = ?", now(), decidedBy, returnId);
   await audit(db, 'return.reject', 'return', returnId, { status: r.status }, { status: 'rejected', note: note || null, decided_by: decidedBy });
   await notify(db, r.user_id, `Return #${returnId} was rejected: ${note || 'item did not match the return reason.'}`, `#/orders/${r.order_id}`);
+  await emit(db, 'return.rejected', 'return', returnId, { order_id: r.order_id, note: note || null });
 }
 
 export async function listReturns(db, status = null) {

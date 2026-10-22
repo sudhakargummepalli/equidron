@@ -5,19 +5,94 @@ import { saveBackup } from './backup.js';
 import { getAgent, allPaused } from './agents/agents.js';
 import { runAgent } from './agents/runtime.js';
 import { tool } from './agents/tools.js';
-import { changes, indiaDate, one, run } from './db.js';
+import { all, changes, indiaDate, loads, one, run } from './db.js';
+import * as emails from './emails.js';
 import * as orders from './orders.js';
 import { sendEmail } from './outbox.js';
 
 export const BUILT_IN = {
   // The confirmation email for a new order (into the outbox until email is connected).
   async 'email:order_confirmation'(db, payload) {
-    const o = await one(db, `SELECT o.id, o.total_paise, u.id AS user_id, u.email, u.name
+    const o = await one(db, `SELECT o.id, o.total_paise, u.id AS user_id, u.email, u.name,
+                                    (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS items
                              FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?`, payload.entity_id);
     if (!o) return;
-    await sendEmail(db, o.user_id, o.email, `Your Equidron order #${o.id} is confirmed`,
-      `Thank you, ${o.name.split(' ')[0]}. Your order #${o.id} for ${orders.inr(o.total_paise)} is confirmed. `
-      + "We'll let you know when it ships. You can follow it under Your orders.");
+    const city = (await one(db, 'SELECT city FROM addresses WHERE user_id = ? ORDER BY id LIMIT 1', o.user_id))?.city;
+    const msg = emails.orderPlaced({
+      firstName: o.name, orderId: Number(o.id), totalPaise: o.total_paise, itemCount: Number(o.items), city,
+    });
+    await sendEmail(db, o.user_id, o.email, msg.subject, msg.body);
+  },
+
+  // One email for each state an order passes through after it is placed: the payment, every
+  // courier stage, a cancellation, and the return that may follow a delivery. The event says
+  // which state; the handler reads the facts as they are now, so the message matches the page.
+  // 'pending' is skipped: the confirmation already said the order was received.
+  async 'email:order_event'(db, payload) {
+    if (payload.type === 'shipment.status_changed') {
+      const s = await one(db, `SELECT s.id, s.status, s.tracking_no, s.eta, s.order_id,
+                                      u.id AS user_id, u.email, u.name,
+                                      (SELECT city FROM addresses WHERE user_id = o.user_id ORDER BY id LIMIT 1) AS city
+                               FROM shipments s JOIN orders o ON o.id = s.order_id JOIN users u ON u.id = o.user_id
+                               WHERE s.id = ?`, payload.entity_id);
+      if (!s || !emails.STAGE_WORDS[s.status]) return;
+      const items = await all(db, 'SELECT title, qty FROM order_items WHERE shipment_id = ? ORDER BY id', s.id);
+      const msg = emails.shipmentUpdate({
+        firstName: s.name, orderId: Number(s.order_id), stage: s.status,
+        items: items.map((i) => `${i.title} × ${i.qty}`), tracking: s.tracking_no, eta: s.eta, city: s.city,
+      });
+      await sendEmail(db, s.user_id, s.email, msg.subject, msg.body);
+      return;
+    }
+
+    if (payload.type.startsWith('return.')) {
+      const r = await one(db, `SELECT r.id, r.order_id, r.qty, r.status, oi.title, oi.unit_price_paise,
+                                      u.id AS user_id, u.email, u.name
+                               FROM returns r JOIN order_items oi ON oi.id = r.order_item_id
+                               JOIN users u ON u.id = r.user_id WHERE r.id = ?`, payload.entity_id);
+      if (!r) return;
+      const facts = { firstName: r.name, orderId: Number(r.order_id), returnId: Number(r.id), title: r.title, qty: r.qty };
+      const msg = payload.type === 'return.requested' ? emails.returnApproved(facts)
+        : payload.type === 'return.received' ? emails.returnRefunded({ ...facts, refundPaise: r.unit_price_paise * r.qty })
+        : emails.returnRejected(facts);
+      await sendEmail(db, r.user_id, r.email, msg.subject, msg.body);
+      return;
+    }
+
+    const o = await one(db, `SELECT o.id, o.total_paise, o.payment_method, u.id AS user_id, u.email, u.name
+                             FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?`, payload.entity_id);
+    if (!o) return;
+    const facts = { firstName: o.name, orderId: Number(o.id), totalPaise: o.total_paise, method: o.payment_method };
+    const msg = payload.type === 'payment.captured' ? emails.paymentReceived(facts)
+      : payload.type === 'order.cancelled' ? emails.orderCancelled(facts)
+      : null;
+    if (msg) await sendEmail(db, o.user_id, o.email, msg.subject, msg.body);
+  },
+
+  // A seller email when a listing is added or edited, and again when it is decided. The seller is
+  // the person who submitted it, so this is a receipt, not a request: it repeats what the page says.
+  async 'email:seller_listing'(db, payload) {
+    const sub = await one(db, `SELECT s.id, s.kind, s.status, s.review_reasons, s.reviewer_note, s.auto_decided, s.payload,
+                                      s.product_id, u.id AS user_id, u.email, u.name
+                               FROM submissions s JOIN sellers se ON se.id = s.seller_id
+                               JOIN users u ON u.id = se.user_id WHERE s.id = ?`, payload.entity_id);
+    if (!sub) return;
+    // An update carries only the fields that changed, so its title comes from the product itself.
+    const title = loads(sub.payload).title
+      || (sub.product_id ? (await one(db, 'SELECT title FROM products WHERE id = ?', sub.product_id))?.title : null)
+      || '(untitled listing)';
+    const facts = {
+      firstName: sub.name,
+      title,
+      kind: sub.kind,
+      approved: sub.status === 'approved',
+      note: sub.reviewer_note,
+      auto: sub.auto_decided,
+    };
+    const msg = payload.type === 'submission.created'
+      ? emails.listingSubmitted({ ...facts, status: sub.status, reasons: loads(sub.review_reasons) })
+      : emails.listingDecided(facts);
+    await sendEmail(db, sub.user_id, sub.email, msg.subject, msg.body);
   },
 
   // The logistics simulator: every active shipment moves one stage, as the Ops button does.
