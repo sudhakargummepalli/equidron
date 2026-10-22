@@ -39,7 +39,11 @@
     <span ng-if="a.register && a.mode === 'login'"> · <button class="linkbtn" ng-click="a.go('register')">New to Equidron? Create an account</button></span>
   </p>
   <p class="small muted" ng-if="a.mode === 'verify' || a.mode === 'forgot' || a.mode === 'reset'">
-    Emails aren't sent yet: until email is connected, codes wait in the Ops Outbox.
+    Emails aren't sent yet: until email is connected, the code waits in <strong>Ops → Outbox</strong>.
+    <span ng-if="a.demo">In this demo, sign in to <a href="/ops/" target="_blank" rel="noopener">Ops</a> as
+      <code>ops@example.com</code> with the password <code>equidron-demo</code>, open <strong>Outbox</strong>, and read
+      the code for this address.</span>
+    <span ng-if="!a.demo">Ask an Equidron admin to read it for you there.</span>
   </p>
   <div class="demo-accounts" ng-if="a.demo && a.demoAccounts.length && a.mode === 'login'">
     Sample accounts (password <code>equidron-demo</code>):
