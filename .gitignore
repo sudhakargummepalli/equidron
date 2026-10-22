@@ -3,3 +3,5 @@ node_modules/
 .netlify/
 .env
 .env.*
+# The example file holds no secrets and must be committed, so it is an exception to the two rules above.
+!.env.example
