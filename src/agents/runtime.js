@@ -20,6 +20,7 @@ import { one, run } from '../db.js';
 import { AppError } from '../errors.js';
 import { log } from '../log.js';
 import { mask } from '../mask.js';
+import { policyText } from '../policies.js';
 import { allPaused, budgetLeft, getAgent } from './agents.js';
 import { requestApproval } from './approvals.js';
 import { costOf, knownModel } from './models.js';
@@ -127,6 +128,9 @@ export async function runAgent(db, { agentId, task, messages: history, trigger =
   const { id: runId } = await startRun(db, agent, { trigger, subject, jobId });
   let step = 0;
   let tokens = 0;
+  // Read once per run: the rules the agent must follow, with the version it followed. Cached on
+  // the run so every round of the same conversation sees the same text.
+  const policies = await policyText(db);
 
   // Update the run's totals after every model call, so the next budget check sees this spend
   // and a crash still leaves an honest trace.
@@ -164,7 +168,7 @@ export async function runAgent(db, { agentId, task, messages: history, trigger =
         response = await callModel(client, {
           model: agent.model,
           max_tokens: MAX_TOKENS,
-          system: `${profile.system}\n\n${profile.context ? profile.context(ctx) : ''}`.trim(),
+          system: [profile.system, profile.context ? profile.context(ctx) : '', policies].filter(Boolean).join('\n\n').trim(),
           output_config: { effort: agent.effort },
           tools: toolDefsFor(agent.id).length ? toolDefsFor(agent.id) : undefined,
           // The last round: answer with what has been looked up so far.
