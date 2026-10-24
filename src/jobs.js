@@ -49,6 +49,10 @@ export const LISTENERS = {
   // A seller hears about their own listing: when it is added or edited, and when it is decided.
   'submission.created': ['agent:listing_review', 'email:seller_listing'],
   'submission.decided': ['email:seller_listing'],
+  // Support answers a new ticket and any new customer message on one. Its own reply emits
+  // ticket.message too, so the handler checks who wrote last before starting a run.
+  'ticket.created': ['agent:support'],
+  'ticket.message': ['agent:support'],
 };
 
 // ---------------------------------------------------------------- settings (switches)

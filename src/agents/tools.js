@@ -111,7 +111,7 @@ registerTool({
   name: 'get_order',
   description: 'One order: status, payment, total, and each shipment with its stage and tracking number. Read-only.',
   risk: 'read',
-  agents: ['ops_helper'],
+  agents: ['ops_helper', 'support'],
   input_schema: {
     type: 'object', additionalProperties: false,
     properties: { order_id: { type: 'integer', description: 'The order number.' } },
@@ -475,5 +475,85 @@ registerTool({
       failed_runs_today: await n("SELECT COUNT(*) FROM agent_runs WHERE status = 'failed' AND started_at >= ?", from),
       open_ops_tasks: await n("SELECT COUNT(*) FROM ops_tasks WHERE status = 'open'"),
     };
+  },
+});
+
+// ---------------------------------------------------------------- Phase 6: customer support
+
+registerTool({
+  name: 'get_ticket',
+  description: 'One support ticket with its messages, the customer name and the order it is about. Read-only.',
+  risk: 'read',
+  agents: ['support'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: { ticket_id: { type: 'integer', description: 'The ticket number.' } },
+    required: ['ticket_id'],
+  },
+  async run(db, ctx, input) {
+    const t = await one(db, `SELECT t.*, u.name AS customer_name FROM support_tickets t
+                             JOIN users u ON u.id = t.user_id WHERE t.id = ?`, input.ticket_id);
+    if (!t) throw badRequest('There is no such ticket.');
+    // The customer in the case comes from the event, never from the model.
+    if (ctx.customerId && t.user_id !== ctx.customerId) throw badRequest('That ticket belongs to another customer.');
+    const messages = await all(db, 'SELECT author_role, body, at FROM support_messages WHERE ticket_id = ? ORDER BY id', t.id);
+    return {
+      ticket_id: Number(t.id), status: t.status, subject: t.subject, order_id: t.order_id ? Number(t.order_id) : null,
+      customer_name: t.customer_name, messages,
+    };
+  },
+});
+
+registerTool({
+  name: 'reply_to_ticket',
+  description: 'Post a reply to the customer on their ticket. Set close when the question is settled.',
+  risk: 'write',
+  agents: ['support'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      ticket_id: { type: 'integer', description: 'The ticket number.' },
+      body: { type: 'string', minLength: 1, maxLength: 4000, description: 'What the customer will read.' },
+      close: { type: 'boolean', description: 'True when this reply settles the ticket.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why this reply is the right one.' },
+    },
+    required: ['ticket_id', 'body', 'reason'],
+  },
+  async run(db, ctx, input) {
+    const t = await one(db, 'SELECT * FROM support_tickets WHERE id = ?', input.ticket_id);
+    if (!t) throw badRequest('There is no such ticket.');
+    if (ctx.customerId && t.user_id !== ctx.customerId) throw badRequest('That ticket belongs to another customer.');
+    await orders.replyTicket(db, input.ticket_id, 'support', input.body, Boolean(input.close));
+    return { ticket_id: Number(input.ticket_id), replied: true, closed: Boolean(input.close) };
+  },
+});
+
+registerTool({
+  name: 'escalate_ticket',
+  description: 'Hand this ticket to a person: an Ops task with your summary, and a short note to the customer.',
+  risk: 'write',
+  agents: ['support'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      ticket_id: { type: 'integer', description: 'The ticket number.' },
+      summary: { type: 'string', minLength: 1, maxLength: 800, description: 'One paragraph a person can act on: what the customer wants, what you found, why you stopped.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why this needs a person.' },
+    },
+    required: ['ticket_id', 'summary', 'reason'],
+  },
+  async run(db, ctx, input) {
+    const t = await one(db, 'SELECT * FROM support_tickets WHERE id = ?', input.ticket_id);
+    if (!t) throw badRequest('There is no such ticket.');
+    if (ctx.customerId && t.user_id !== ctx.customerId) throw badRequest('That ticket belongs to another customer.');
+    // One Ops task per ticket: a retried run must not open a second one.
+    const fresh = await changes(db, `INSERT INTO ops_tasks (kind, subject, body, dedupe_key)
+                                     VALUES ('support_escalation', ?, ?, ?) ON CONFLICT (dedupe_key) DO NOTHING`,
+    `Ticket #${input.ticket_id}: ${t.subject}`, input.summary, `support:${input.ticket_id}:escalated`);
+    if (fresh) {
+      await orders.replyTicket(db, input.ticket_id, 'support',
+        'Thank you for the details. I have passed this to a person on our team, who will reply here shortly.', false);
+    }
+    return { ticket_id: Number(input.ticket_id), escalated: true, already_escalated: !fresh };
   },
 });

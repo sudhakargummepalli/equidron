@@ -99,7 +99,15 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
   - The seeded text matches the code rather than inventing numbers: 10% referral fee, ₹40 shipping below the free
     threshold, returns inside the product's window, a shipment two days late is escalated, and an agent may refund
     up to ₹2,000 without a person (the limit Phase 6's Returns agent works under).
-  - `node --test`: 216 of 216 pass (6 new: `tests/policies.test.js`).
+  - `node --test`: 229 of 229 pass (5 new for policies, 6 for the Support agent).
+  - **Support agent** (slice 2): `src/agents/profiles.js` gains the Support profile (Haiku, off by default, L1);
+    `src/agents/tools.js` gains `get_ticket`, `reply_to_ticket` and `escalate_ticket`, and `get_order` now serves it,
+    still scoped by `ctx.customerId` so another customer's order or ticket is refused whatever the model asks.
+    `answerTicket()` runs on `ticket.created` and `ticket.message` and answers **once per customer message**: it
+    stops when the last message is not the customer's, which is what keeps its own reply from starting a loop.
+    Escalation writes one Ops task per ticket and tells the customer a person will follow up.
+  - The 50 support cases and the timers/rating are still to come; refunds and returns stay a person's decision in
+    this slice (no money tools on this agent yet).
   - Next in this phase: Support agent on `ticket.created` (triage, facts, reply, escalation, timers, rating), then
     Returns, then the Shopping Concierge with `propose_*` tools and confirmation cards, then the 50-case eval set.
 

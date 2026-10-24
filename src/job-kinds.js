@@ -140,7 +140,36 @@ export const AGENT_KINDS = {
 
   // Once a morning: the brief. Its text is the run's summary, which Ops shows.
   'agent:daily_brief': (db) => writeDailyBrief(db),
+
+  // A customer wrote to support: answer it, or escalate with a summary.
+  'agent:support': (db, payload) => answerTicket(db, payload.entity_id),
 };
+
+// Phase 6: one run per customer message, never one per reply of ours. The guard on the last
+// message's author is what stops a loop: our own reply emits ticket.message too.
+export async function answerTicket(db, ticketId, options = {}) {
+  if (!(await ready(db, 'support'))) return;
+  const t = await one(db, `SELECT t.id, t.user_id, t.status, t.order_id, u.name AS customer_name
+                           FROM support_tickets t JOIN users u ON u.id = t.user_id WHERE t.id = ?`, ticketId);
+  if (!t || t.status === 'closed') return;
+  const last = await one(db, 'SELECT id, author_role, body FROM support_messages WHERE ticket_id = ? ORDER BY id DESC LIMIT 1', t.id);
+  if (!last || last.author_role !== 'customer') return;
+  // One run per customer message: a retried job, or our own reply, must not answer twice.
+  const subject = `ticket:${t.id}:msg:${last.id}`;
+  const earlier = await one(db, `SELECT 1 AS x FROM agent_runs WHERE agent_id = 'support' AND subject = ?
+                                AND (status IN ('done', 'waiting')
+                                     OR (status = 'running' AND started_at > now() - interval '20 minutes'))
+                                LIMIT 1`, subject);
+  if (earlier) return;
+
+  return await runAgent(db, {
+    agentId: 'support',
+    trigger: 'event:ticket.message',
+    subject,
+    task: `Ticket #${t.id} from ${t.customer_name}: "${String(last.body).slice(0, 500)}". `
+      + 'Look up the facts, then reply to the customer or escalate to a person.',
+  }, { ...options, ctx: { customerId: t.user_id, ticketId: Number(t.id), customerName: t.customer_name, ...options.ctx } });
+}
 
 // The work behind each kind, separately, so tests can hand it a scripted model.
 export async function reviewListing(db, submissionId, options = {}) {
