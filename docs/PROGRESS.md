@@ -90,6 +90,18 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
   - All wording lives in `src/emails.js`; `src/job-kinds.js` reads the facts and writes to the outbox. The two
     new events (`submission.decided`, `return.rejected`) are dispatched like every other.
   - `node --test`: 210 of 210 pass (7 new).
+- Phase 6 · Customer agents (in progress, branch `phase-6-customer-agents`):
+  - **Policies as data** (this slice): a `policies` table holds the marketplace's rules for returns, refunds,
+    delivery and fees as versioned documents. Version 1 of each is seeded from `src/policies.js` when a database
+    is opened, and the active version of every kind is added to **every agent's system prompt**, so an agent can
+    name the version it followed. Publishing a new version deactivates the old one in the same transaction; a
+    partial unique index makes two active versions impossible.
+  - The seeded text matches the code rather than inventing numbers: 10% referral fee, ₹40 shipping below the free
+    threshold, returns inside the product's window, a shipment two days late is escalated, and an agent may refund
+    up to ₹2,000 without a person (the limit Phase 6's Returns agent works under).
+  - `node --test`: 216 of 216 pass (6 new: `tests/policies.test.js`).
+  - Next in this phase: Support agent on `ticket.created` (triage, facts, reply, escalation, timers, rating), then
+    Returns, then the Shopping Concierge with `propose_*` tools and confirmation cards, then the 50-case eval set.
 
 ## How to check
 - `npm ci` then `node --test`: all tests pass.

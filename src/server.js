@@ -8,6 +8,7 @@ import { handleApi, parseCookies, placeholderSvg } from './api.js';
 import { connect, dropSchema, initSchema, transaction } from './db.js';
 import { ensureAgents } from './agents/agents.js';
 import { PROFILES } from './agents/profiles.js';
+import { ensurePolicies } from './policies.js';
 import { SECURITY_HEADERS } from './security-headers.js';
 import { seed } from './seed.js';
 
@@ -29,6 +30,9 @@ export async function openDatabase(target, { reset = false, createSchema = true,
   // Agents that code knows about but the database has not got yet (a database built before
   // Phase 4, or a new agent added to profiles.js). Existing rows are never touched.
   await ensureAgents(db, PROFILES);
+  // Version 1 of each marketplace policy, on a database that has none. A policy is data, not code:
+  // this only fills the gap for a database created before Phase 6.
+  await ensurePolicies(db);
   return db;
 }
 

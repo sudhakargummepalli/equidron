@@ -40,6 +40,7 @@ src/mask.js                  mask(): hides emails, phones, PAN, card and bank nu
 src/guardrails.js            rules per role (customer, seller, staff): refuse or flag, all recorded
 src/outbox.js                emails waiting to be sent (Ops admins read them until Phase 10)
 src/emails.js                the wording of every email: order states, returns, seller listing receipts
+src/policies.js              versioned marketplace rules (returns, refunds, delivery, fees) in every agent's prompt
 src/security-headers.js      CSP and other headers for the local server (same as netlify.toml)
 src/events.js                emit(): the events outbox, written inside service functions
 src/jobs.js                  the job queue: dispatch, claim (SKIP LOCKED + lease), retries, tick, settings
