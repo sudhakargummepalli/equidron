@@ -17,6 +17,7 @@
     "@electric-sql/pglite": "^0.2.17",
     "@netlify/blobs": "11.1.2",
     "@netlify/database": "^2.0.1",
+    "nodemailer": "^10.2.1",
     "pg": "^8.13.1"
   }
 }

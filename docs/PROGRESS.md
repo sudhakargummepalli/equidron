@@ -103,6 +103,24 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
   - Next in this phase: Support agent on `ticket.created` (triage, facts, reply, escalation, timers, rating), then
     Returns, then the Shopping Concierge with `propose_*` tools and confirmation cards, then the 50-case eval set.
 
+- Email delivery (Phase 10a, asked for outside the roadmap):
+  - `src/mailer.js` sends through **Gmail SMTP** with `nodemailer`. Every setting comes from the environment
+    (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`); none is written in the code.
+  - A job kind `email:deliver` runs at most once a minute (queued by the tick, and only while something is
+    pending). It claims a batch with one guarded `UPDATE ... FOR UPDATE SKIP LOCKED`, sends each message, and
+    marks it `sent`. A message is never sent twice; a row left `sending` by a crashed worker is reclaimed after
+    10 minutes.
+  - Failure keeps the reason in `last_error` and retries on later ticks: one attempt plus three retries, then the
+    row is marked `failed` and stays visible in Ops. With any setting missing, nothing is attempted — messages
+    stay `pending` and a warning is logged, which is how the app behaved before delivery existed.
+  - Messages already waiting in **Ops → Outbox** become `pending`, so configuring SMTP sends them on the next tick.
+  - `.env.example` lists the five variables with empty values.
+  - Sending is not yet shown per row on the Outbox page (the API returns `status`, `attempts` and `last_error`).
+  - `node --test`: 217 of 217 pass (6 new, all against a fake mailer — no test sends an email).
+
+
+- `node --test`: 223 of 223 pass on `main` after merging `phase-10a-email` and `phase-6-customer-agents` (12 migrations).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,
@@ -126,6 +144,8 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
   and the click is refused.
 
 ## Still open (needs the owner)
+- Email delivery: set the five SMTP variables in Netlify (Gmail needs an **App Password**, not the account
+  password), then watch the messages already in Ops → Outbox turn `sent` on the next tick.
 - Phase 5: deploy, switch Listing Review, Fulfilment Watch and the Daily Brief on (they ship switched off and at L1),
   and let two weeks or 100 cases collect before promoting any of them.
 - Review the branch and open the pull request into `main` when ready.
