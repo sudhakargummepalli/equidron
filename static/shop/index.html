@@ -30,7 +30,7 @@
       <a href="#/cart"><strong>{{ 'shop.cart' | t }} ({{vm.cart.count || 0}})</strong></a>
       <span ng-if="vm.user">Hi, {{vm.user.name.split(' ')[0]}} · <button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logout()">Sign out</button> · <button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logoutAll()" title="Ends your sessions on every device">Sign out everywhere</button></span>
       <a ng-if="!vm.user" href="#/login">{{ 'shop.signIn' | t }}</a>
-      <span eq-lang-switch></span>
+      <span eq-lang-switch="shop"></span>
     </nav>
   </div>
 </header>

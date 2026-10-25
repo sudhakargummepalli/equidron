@@ -14,13 +14,13 @@ import { sendEmail } from './outbox.js';
 export const BUILT_IN = {
   // The confirmation email for a new order (into the outbox until email is connected).
   async 'email:order_confirmation'(db, payload) {
-    const o = await one(db, `SELECT o.id, o.total_paise, u.id AS user_id, u.email, u.name,
+    const o = await one(db, `SELECT o.id, o.total_paise, u.id AS user_id, u.email, u.name, u.language,
                                     (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS items
                              FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?`, payload.entity_id);
     if (!o) return;
     const city = (await one(db, 'SELECT city FROM addresses WHERE user_id = ? ORDER BY id LIMIT 1', o.user_id))?.city;
     const msg = emails.orderPlaced({
-      firstName: o.name, orderId: Number(o.id), totalPaise: o.total_paise, itemCount: Number(o.items), city,
+      lang: o.language, firstName: o.name, orderId: Number(o.id), totalPaise: o.total_paise, itemCount: Number(o.items), city,
     });
     await sendEmail(db, o.user_id, o.email, msg.subject, msg.body);
   },
@@ -32,18 +32,18 @@ export const BUILT_IN = {
   async 'email:order_event'(db, payload) {
     if (payload.type === 'shipment.status_changed') {
       const s = await one(db, `SELECT s.id, s.status, s.tracking_no, s.eta, s.order_id,
-                                      u.id AS user_id, u.email, u.name,
+                                      u.id AS user_id, u.email, u.name, u.language,
                                       (SELECT city FROM addresses WHERE user_id = o.user_id ORDER BY id LIMIT 1) AS city
                                FROM shipments s JOIN orders o ON o.id = s.order_id JOIN users u ON u.id = o.user_id
                                WHERE s.id = ?`, payload.entity_id);
       if (!s) return;
       // The stage the event reported, not the row's stage now: two changes can be dispatched in
       // one tick, and a second email about the same stage would be a duplicate.
-      const stage = emails.STAGE_WORDS[payload.data?.to] ? payload.data.to : s.status;
-      if (!emails.STAGE_WORDS[stage]) return;
+      const stage = emails.STAGE_WORDS.en[payload.data?.to] ? payload.data.to : s.status;
+      if (!emails.STAGE_WORDS.en[stage]) return;
       const items = await all(db, 'SELECT title, qty FROM order_items WHERE shipment_id = ? ORDER BY id', s.id);
       const msg = emails.shipmentUpdate({
-        firstName: s.name, orderId: Number(s.order_id), stage,
+        lang: s.language, firstName: s.name, orderId: Number(s.order_id), stage,
         items: items.map((i) => `${i.title} × ${i.qty}`), tracking: s.tracking_no, eta: s.eta, city: s.city,
       });
       await sendEmail(db, s.user_id, s.email, msg.subject, msg.body);
@@ -52,11 +52,11 @@ export const BUILT_IN = {
 
     if (payload.type.startsWith('return.')) {
       const r = await one(db, `SELECT r.id, r.order_id, r.qty, r.status, oi.title, oi.unit_price_paise,
-                                      u.id AS user_id, u.email, u.name
+                                      u.id AS user_id, u.email, u.name, u.language
                                FROM returns r JOIN order_items oi ON oi.id = r.order_item_id
                                JOIN users u ON u.id = r.user_id WHERE r.id = ?`, payload.entity_id);
       if (!r) return;
-      const facts = { firstName: r.name, orderId: Number(r.order_id), returnId: Number(r.id), title: r.title, qty: r.qty };
+      const facts = { lang: r.language, firstName: r.name, orderId: Number(r.order_id), returnId: Number(r.id), title: r.title, qty: r.qty };
       const msg = payload.type === 'return.requested' ? emails.returnApproved(facts)
         : payload.type === 'return.received' ? emails.returnRefunded({ ...facts, refundPaise: r.unit_price_paise * r.qty })
         : emails.returnRejected(facts);
@@ -67,7 +67,7 @@ export const BUILT_IN = {
     const o = await one(db, `SELECT o.id, o.total_paise, o.payment_method, u.id AS user_id, u.email, u.name
                              FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?`, payload.entity_id);
     if (!o) return;
-    const facts = { firstName: o.name, orderId: Number(o.id), totalPaise: o.total_paise, method: o.payment_method };
+    const facts = { lang: o.language, firstName: o.name, orderId: Number(o.id), totalPaise: o.total_paise, method: o.payment_method };
     const msg = payload.type === 'payment.captured' ? emails.paymentReceived(facts)
       : payload.type === 'order.cancelled' ? emails.orderCancelled(facts)
       : null;
@@ -78,7 +78,7 @@ export const BUILT_IN = {
   // the person who submitted it, so this is a receipt, not a request: it repeats what the page says.
   async 'email:seller_listing'(db, payload) {
     const sub = await one(db, `SELECT s.id, s.kind, s.status, s.review_reasons, s.reviewer_note, s.auto_decided, s.payload,
-                                      s.product_id, u.id AS user_id, u.email, u.name
+                                      s.product_id, u.id AS user_id, u.email, u.name, u.language
                                FROM submissions s JOIN sellers se ON se.id = s.seller_id
                                JOIN users u ON u.id = se.user_id WHERE s.id = ?`, payload.entity_id);
     if (!sub) return;
@@ -87,6 +87,7 @@ export const BUILT_IN = {
       || (sub.product_id ? (await one(db, 'SELECT title FROM products WHERE id = ?', sub.product_id))?.title : null)
       || '(untitled listing)';
     const facts = {
+      lang: sub.language,
       firstName: sub.name,
       title,
       kind: sub.kind,

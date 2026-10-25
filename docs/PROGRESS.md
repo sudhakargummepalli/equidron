@@ -223,6 +223,19 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     API (titles, descriptions), the two assistants' prompts and the emails.
   - `node --test`: 298 of 298 pass (4 new: `tests/i18n.test.js`).
 
+- Phase 10 · emails in the customer's language (slice 2):
+  - `users.language` (en | te, default en). The store's language switch saves it through
+    `POST /api/shop/language` (and `/api/seller/language`), and the session decides whose row is written.
+  - `src/emails.js` is now a dictionary per language with shared phrases (greeting, items, total, tracking,
+    sign-off), so every message is translated once. Courier stages exist in both languages; an unknown language
+    falls back to English.
+  - Every email job reads the recipient's language and passes it in: order confirmation, payment, each shipment
+    stage, cancellation, the three return emails, and the two seller listing emails.
+  - `tests/email-language.test.js`: key parity across languages, Telugu must contain Telugu script, unknown
+    language falls back, the route writes only the session's own row, and a real order sends its confirmation in
+    Telugu while a later one goes out in English.
+  - `node --test`: 303 of 303 pass (5 new).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,

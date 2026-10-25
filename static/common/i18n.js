@@ -34,10 +34,18 @@
     return value;
   }
 
-  function setLang(next) {
+  // The area ('shop' or 'seller') decides which route saves the choice; when nobody is signed in
+  // the call fails and the interface still switches, which is the right behaviour.
+  function setLang(next, area) {
     if (LANGS.indexOf(next) < 0) return;
     try { window.localStorage.setItem(LANG_KEY, next); } catch (e) { /* ignore */ }
-    window.location.reload();
+    if (!area) { window.location.reload(); return; }
+    window.fetch('/api/' + area + '/language', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ language: next }),
+    }).catch(function () { /* offline or signed out: the interface still switches */ })
+      .then(function () { window.location.reload(); });
   }
 
   window.eqT = t;
@@ -52,9 +60,9 @@
       restrict: 'A',
       template: '<select class="eq-lang" ng-model="lang" ng-change="change()" aria-label="Language">'
         + '<option value="en">English</option><option value="te">తెలుగు</option></select>',
-      controller: function ($scope) {
-        $scope.lang = current();
-        $scope.change = function () { setLang($scope.lang); };
+      link: function (scope, element, attrs) {
+        scope.lang = current();
+        scope.change = function () { setLang(scope.lang, attrs.eqLangSwitch || null); };
       },
     };
   });

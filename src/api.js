@@ -130,6 +130,17 @@ for (const area of ['shop', 'seller']) {
   });
 }
 
+// The language a person reads. The interface keeps it in localStorage; saving it here is what
+// lets emails be written in it.
+for (const area of ['shop', 'seller']) {
+  route('POST', area, '/language', async (c) => {
+    const language = String(c.body.language || '').trim();
+    if (!['en', 'te'].includes(language)) throw new AppError(400, 'Choose English or Telugu.');
+    await run(c.db, 'UPDATE users SET language = ? WHERE id = ?', language, c.user.id);
+    return { language };
+  });
+}
+
 // Two-step sign-in with an authenticator app, for sellers and staff.
 for (const area of ['seller', 'ops']) {
   route('GET', area, '/2fa', async (c) => await auth.twoStepStatus(c.db, c.user.id));

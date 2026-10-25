@@ -38,10 +38,10 @@ const subjectsFor = async (address) => (await inboxFor(address)).map((m) => m.su
 
 test('the wording is fixed for every courier stage', () => {
   for (const stage of ['packed', 'shipped', 'in_transit', 'out_for_delivery', 'delivered']) {
-    assert.ok(emails.STAGE_WORDS[stage], `no wording for ${stage}`);
+    assert.ok(emails.STAGE_WORDS.en[stage], `no wording for ${stage}`);
   }
   // 'pending' is deliberately silent: the confirmation already said the order was received.
-  assert.equal(emails.STAGE_WORDS.pending, undefined);
+  assert.equal(emails.STAGE_WORDS.en.pending, undefined);
 });
 
 test('a placed order gets a confirmation, and the payment gets its own email', async () => {
@@ -62,7 +62,7 @@ test('each shipment stage emails the customer with its tracking and expected dat
   await drain();
 
   const messages = await inboxFor(asha.email);
-  const match = messages.find((m) => m.subject === `${emails.STAGE_WORDS[shipment.status]} — order #${order.id}`);
+  const match = messages.find((m) => m.subject === `${emails.STAGE_WORDS.en[shipment.status]} — order #${order.id}`);
   assert.ok(match, `an email for stage ${shipment.status}`);
   if (shipment.tracking_no) assert.match(match.body, new RegExp(String(shipment.tracking_no)));
 });
@@ -78,7 +78,7 @@ test('two stage changes sent in one tick produce two different emails, not the s
   const added = (await subjectsFor(asha.email)).slice(before);
   assert.equal(added.length, 2, 'exactly two emails');
   assert.deepEqual(added.map((s) => s.replace(` — order #${order.id}`, '')).sort(),
-    [emails.STAGE_WORDS.packed, emails.STAGE_WORDS.shipped].sort());
+    [emails.STAGE_WORDS.en.packed, emails.STAGE_WORDS.en.shipped].sort());
 });
 
 test('a cancelled order emails the customer', async () => {

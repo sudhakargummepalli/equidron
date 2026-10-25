@@ -591,6 +591,8 @@ CREATE TABLE IF NOT EXISTS payout_lines (
     net_paise INTEGER NOT NULL,
     UNIQUE (batch_id, seller_id)
 );
+ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'en'
+    CHECK (language IN ('en', 'te'));
 `;
 
 const pad = (n) => String(n).padStart(2, '0');
