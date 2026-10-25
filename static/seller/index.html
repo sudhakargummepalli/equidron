@@ -68,7 +68,7 @@
       <p class="small muted">Connect this account to the Equidron bot and ask about the orders waiting for you, from a
         chat. The bot never asks for your password.</p>
       <div ng-if="!vm.tgCode">
-        <button class="btn small" ng-click="vm.telegramCode()" ng-disabled="vm.tgBusy">Get my code</button>
+        <button class="btn small" ng-click="vm.telegramCode()" ng-disabled="vm.tgBusy"{{ 'shop.getCode' | t }}/button>
       </div>
       <div ng-if="vm.tgCode">
         <p>Send this to the bot{{vm.tgBot ? ' @' + vm.tgBot : ''}} within 10 minutes:</p>
@@ -81,9 +81,9 @@
 
   <!-- ============ INVENTORY ============ -->
   <section ng-if="vm.route.name === 'inventory' && vm.listings">
-    <div class="row between"><h1>Manage inventory</h1><a class="btn primary" href="#/edit/new">+ Add a product</a></div>
+    <div class="row between">{{ 'seller.manageInventory' | t }}<a class="btn primary" href="#/edit/new">+ Add a product</a></div>
     <div class="card" ng-if="vm.listings.pending_new.length">
-      <h2>New listings waiting for review</h2>
+      {{ 'seller.newWaiting' | t }}
       <div ng-repeat="s in vm.listings.pending_new" class="small">#{{s.id}} {{s.title}} · <span class="badge warn">In review</span> <span class="muted">{{s.review_reasons.join(' ')}}</span></div>
     </div>
     <div class="card table-wrap">
@@ -97,7 +97,7 @@
           <td class="small">{{o.fulfilment === 'equidron' ? 'Equidron FC' : 'Self-ship'}}<div class="muted">{{o.handling_days}}-day handling</div></td>
           <td><span class="badge {{o.status | tone}}">{{o.status | label}}</span>
             <div ng-if="o.pending_submission_id"><span class="badge warn">Change in review</span></div></td>
-          <td class="right"><a class="btn small" href="#/edit/{{o.id}}">Edit</a></td>
+          <td class="right"><a class="btn small" href="#/edit/{{o.id}}"{{ 'seller.edit' | t }}/a></td>
         </tr>
       </table>
       <div class="empty" ng-if="!vm.listings.offers.length">No listings yet.</div>
@@ -111,7 +111,7 @@
       <strong ng-if="vm.result.status === 'approved'">Saved and live. Customers see the update now.</strong>
       <strong ng-if="vm.result.status === 'pending'">Submitted for review (submission #{{vm.result.id}}). Your live listing stays unchanged until it's approved.</strong>
       <ul ng-if="vm.result.review_reasons.length"><li ng-repeat="r in vm.result.review_reasons">{{r}}</li></ul>
-      <div style="margin-top:8px"><a class="btn small" href="#/inventory">Back to inventory</a> <a class="btn small" href="#/submissions">View submissions</a></div>
+      <div style="margin-top:8px"><a class="btn small" href="#/inventory"{{ 'seller.backToInventory' | t }}/a> <a class="btn small" href="#/submissions">View submissions</a></div>
     </div>
 
     <div ng-if="!vm.result">
@@ -119,15 +119,15 @@
 
       <!-- step 1: pick an existing catalogue product or create a new one -->
       <div class="card" ng-if="!vm.f.mode">
-        <h2>Is this product already sold on Equidron?</h2>
+        {{ 'seller.alreadySold' | t }}
         <p class="small muted">If it is, add your offer to the existing product page so customers can compare sellers.</p>
-        <form class="row" ng-submit="vm.searchCatalog()"><input type="text" ng-model="vm.lookup.q" placeholder="Search the catalogue, e.g. Orbit Nova" style="flex:1"><button class="btn dark" type="submit">Search</button></form>
+        <form class="row" ng-submit="vm.searchCatalog()"><input type="text" ng-model="vm.lookup.q" placeholder="Search the catalogue, e.g. Orbit Nova" style="flex:1"><button class="btn dark" type="submit"{{ 'common.search' | t }}/button></form>
         <table ng-if="vm.lookup.results" style="margin-top:10px">
-          <tr ng-repeat="p in vm.lookup.results"><td>{{p.title}}<div class="small muted">{{p.brand}} · {{p.category}}</div></td><td class="right"><button class="btn small" ng-click="vm.pickProduct(p)">Sell this</button></td></tr>
+          <tr ng-repeat="p in vm.lookup.results"><td>{{p.title}}<div class="small muted">{{p.brand}} · {{p.category}}</div></td><td class="right"><button class="btn small" ng-click="vm.pickProduct(p)"{{ 'seller.sellThis' | t }}/button></td></tr>
           <tr ng-if="!vm.lookup.results.length"><td class="muted">No matches.</td></tr>
         </table>
         <hr>
-        <button class="btn" ng-click="vm.newProduct()">Create a new product page instead</button>
+        <button class="btn" ng-click="vm.newProduct()"{{ 'seller.createNew' | t }}/button>
       </div>
 
       <form ng-if="vm.f.mode" ng-submit="vm.submit()" novalidate>
@@ -137,13 +137,13 @@
         <div class="alert bad" ng-if="vm.fieldErrors.product_id">{{vm.fieldErrors.product_id}}</div>
 
         <div class="card" ng-if="vm.f.mode === 'new_offer'">
-          <h2>Product</h2>
+          {{ 'seller.product' | t }}
           <p><strong>{{vm.f.product.title}}</strong> <span class="muted small">{{vm.f.product.brand}} · {{vm.f.product.category}}</span></p>
           <button type="button" class="linkbtn small" ng-click="vm.f.mode = null">Choose a different product</button>
         </div>
 
         <div class="card" ng-if="vm.f.mode !== 'new_offer'">
-          <h2>Product details</h2>
+          {{ 'seller.productDetails' | t }}
           <div class="field" ng-class="{invalid: vm.fieldErrors.title}"><label>Title</label><input type="text" ng-model="vm.f.title" maxlength="200"><div class="err">{{vm.fieldErrors.title}}</div></div>
           <div class="form-grid">
             <div class="field" ng-class="{invalid: vm.fieldErrors.brand}"><label>Brand</label><input type="text" ng-model="vm.f.brand"><div class="err">{{vm.fieldErrors.brand}}</div></div>
@@ -159,7 +159,7 @@
         </div>
 
         <div class="card">
-          <h2>Your offer</h2>
+          {{ 'seller.yourOffer' | t }}
           <div class="form-grid">
             <div class="field" ng-class="{invalid: vm.fieldErrors.price}"><label>Price (₹)</label><input type="text" inputmode="decimal" ng-model="vm.f.price"><div class="err">{{vm.fieldErrors.price}}</div>
               <div class="small muted" ng-if="vm.f.listing">Live price {{vm.f.listing.price_paise | inr}}</div></div>
@@ -183,7 +183,7 @@
 
   <!-- ============ SUBMISSIONS ============ -->
   <section ng-if="vm.route.name === 'submissions' && vm.submissions">
-    <h1>Submissions</h1>
+    {{ 'seller.submissions' | t }}
     <div class="card table-wrap">
       <table>
         <tr><th>#</th><th>Listing</th><th>Type</th><th>Status</th><th>Notes</th><th>Submitted</th></tr>
@@ -200,7 +200,7 @@
 
   <!-- ============ ORDERS ============ -->
   <section ng-if="vm.route.name === 'orders' && vm.orders">
-    <h1>Orders</h1>
+    {{ 'seller.orders' | t }}
     <p class="small muted">Items shipped from an Equidron fulfilment centre are picked and packed by Equidron. You dispatch self-ship items: pick, pack and hand over to the carrier.</p>
     <div class="card table-wrap">
       <table>
@@ -221,7 +221,7 @@
 
   <!-- ============ PAYMENTS ============ -->
   <section ng-if="vm.route.name === 'payments' && vm.ledger">
-    <h1>Payments</h1>
+    {{ 'seller.payments' | t }}
     <div class="stats"><div class="stat"><div class="v">{{vm.ledger.balance_paise | inr}}</div><div class="k">Unsettled balance (paid out at the next settlement)</div></div></div>
     <div class="card table-wrap">
       <table>
@@ -235,7 +235,7 @@
 
   <!-- ============ NOTIFICATIONS ============ -->
   <section ng-if="vm.route.name === 'notifications'">
-    <h1>Notifications</h1>
+    {{ 'seller.notifications' | t }}
     <div class="card">
       <div class="empty" ng-if="!vm.notes.length">Nothing yet.</div>
       <div ng-repeat="n in vm.notes" style="padding:8px 0;border-bottom:1px solid var(--line)"><a ng-href="{{n.link || '#/'}}">{{n.message}}</a> <span class="small muted">{{n.at | when}}</span></div>

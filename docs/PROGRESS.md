@@ -217,6 +217,10 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     still English (no Telugu script), and on any key a page uses that the dictionaries do not have.
   - Not translated yet: the long-form page bodies, the seller assistants' prompts and the emails. Those are the next
     pass, and the test makes each gap visible rather than silent.
+  - **Second pass**: the cart, checkout, order detail (payment, returns, cancel, return, receipt), notifications,
+    customer service and paging in the store; inventory, the listing editor, submissions, orders, payments and
+    notifications in Seller Central. 74 keys per language now. Still English: product-card copy that comes from the
+    API (titles, descriptions), the two assistants' prompts and the emails.
   - `node --test`: 298 of 298 pass (4 new: `tests/i18n.test.js`).
 
 ## How to check
