@@ -26,6 +26,7 @@
     </form>
     <nav class="nav">
       <a href="#/orders">{{ 'shop.orders' | t }}</a>
+      <a href="#/sell">{{ 'shop.sell' | t }}</a>
       <a href="#/notifications" ng-if="vm.user">{{ 'shop.alerts' | t }}<span ng-if="vm.unread"> ({{vm.unread}})</span></a>
       <a href="#/cart"><strong>{{ 'shop.cart' | t }} ({{vm.cart.count || 0}})</strong></a>
       <span ng-if="vm.user">Hi, {{vm.user.name.split(' ')[0]}} · <button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logout()">Sign out</button> · <button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logoutAll()" title="Ends your sessions on every device">Sign out everywhere</button></span>
@@ -135,6 +136,83 @@
   </section>
 
   <!-- ============ CART ============ -->
+
+  <!-- ============ SELL ON EQUIDRON (Phase 11) ============ -->
+  <section ng-if="vm.route.name === 'sell' && vm.user">
+    <h1>{{ 'sell.title' | t }}</h1>
+    <p class="muted">{{ 'sell.intro' | t }}</p>
+
+    <div class="card" ng-if="vm.application && vm.application.status === 'submitted'">
+      <p><strong>{{ 'sell.submitted' | t }}</strong></p>
+      <p class="small muted">{{ 'sell.submittedHint' | t }}</p>
+      <a class="btn primary" href="/seller/">{{ 'sell.openSellerCentral' | t }}</a>
+    </div>
+
+    <form ng-if="!vm.application || vm.application.status === 'draft'" ng-submit="vm.saveStep()" novalidate>
+      <div class="card">
+        <h2>{{ 'sell.step.business' | t }}</h2>
+        <div class="field"><label>{{ 'sell.businessName' | t }}</label>
+          <input type="text" ng-model="vm.app.business_name" maxlength="120" required>
+          <div class="small bad" ng-if="vm.appErrors.business_name">{{vm.appErrors.business_name}}</div></div>
+        <div class="field"><label>{{ 'sell.businessType' | t }}</label>
+          <select ng-model="vm.app.business_type" ng-options="b.value as b.label for b in vm.businessTypes" required></select>
+          <div class="small bad" ng-if="vm.appErrors.business_type">{{vm.appErrors.business_type}}</div></div>
+      </div>
+
+      <div class="card">
+        <h2>{{ 'sell.step.tax' | t }}</h2>
+        <p class="small muted">{{ 'sell.taxHint' | t }}</p>
+        <div class="field"><label>PAN</label>
+          <input type="text" ng-model="vm.app.pan" maxlength="10" style="text-transform:uppercase">
+          <div class="small bad" ng-if="vm.appErrors.pan">{{vm.appErrors.pan}}</div></div>
+        <div class="field"><label>GSTIN</label>
+          <input type="text" ng-model="vm.app.gstin" maxlength="15" style="text-transform:uppercase">
+          <div class="small bad" ng-if="vm.appErrors.gstin">{{vm.appErrors.gstin}}</div></div>
+      </div>
+
+      <div class="card">
+        <h2>{{ 'sell.step.bank' | t }}</h2>
+        <div class="field"><label>{{ 'sell.accountName' | t }}</label>
+          <input type="text" ng-model="vm.app.bank_account_name" maxlength="120">
+          <div class="small bad" ng-if="vm.appErrors.bank_account_name">{{vm.appErrors.bank_account_name}}</div></div>
+        <div class="field"><label>{{ 'sell.accountNo' | t }}</label>
+          <input type="text" ng-model="vm.app.bank_account_no" maxlength="18" inputmode="numeric">
+          <div class="small bad" ng-if="vm.appErrors.bank_account_no">{{vm.appErrors.bank_account_no}}</div></div>
+        <div class="field"><label>IFSC</label>
+          <input type="text" ng-model="vm.app.bank_ifsc" maxlength="11" style="text-transform:uppercase">
+          <div class="small bad" ng-if="vm.appErrors.bank_ifsc">{{vm.appErrors.bank_ifsc}}</div></div>
+      </div>
+
+      <div class="card">
+        <h2>{{ 'sell.step.pickup' | t }}</h2>
+        <div class="field"><label>{{ 'sell.address' | t }}</label>
+          <input type="text" ng-model="vm.app.pickup_line1" maxlength="200">
+          <div class="small bad" ng-if="vm.appErrors.pickup_line1">{{vm.appErrors.pickup_line1}}</div></div>
+        <div class="field"><label>{{ 'sell.city' | t }}</label>
+          <input type="text" ng-model="vm.app.pickup_city" maxlength="60">
+          <div class="small bad" ng-if="vm.appErrors.pickup_city">{{vm.appErrors.pickup_city}}</div></div>
+        <div class="field"><label>{{ 'sell.pincode' | t }}</label>
+          <input type="text" ng-model="vm.app.pickup_pincode" maxlength="6" inputmode="numeric">
+          <div class="small bad" ng-if="vm.appErrors.pickup_pincode">{{vm.appErrors.pickup_pincode}}</div></div>
+        <div class="field"><label>{{ 'sell.phone' | t }}</label>
+          <input type="text" ng-model="vm.app.pickup_phone" maxlength="10" inputmode="tel">
+          <div class="small bad" ng-if="vm.appErrors.pickup_phone">{{vm.appErrors.pickup_phone}}</div></div>
+      </div>
+
+      <div class="card">
+        <h2>{{ 'sell.step.agreement' | t }}</h2>
+        <label class="row small"><input type="checkbox" ng-model="vm.agreed" style="width:auto">
+          <span>{{ 'sell.agreement' | t }}</span></label>
+        <div class="small bad" ng-if="vm.appError">{{vm.appError}}</div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" type="submit" ng-disabled="vm.saving">{{ 'sell.saveDraft' | t }}</button>
+          <button class="btn primary" type="button" ng-click="vm.submitApp()" ng-disabled="vm.saving || !vm.agreed">{{ 'sell.submit' | t }}</button>
+        </div>
+        <p class="small muted" ng-if="vm.appMissing.length">{{ 'sell.stillNeeded' | t }}: {{vm.appMissing.join(', ')}}</p>
+      </div>
+    </form>
+  </section>
+
   <section ng-if="vm.route.name === 'cart' && vm.user">
     <div class="layout-cart">
       <div class="card">

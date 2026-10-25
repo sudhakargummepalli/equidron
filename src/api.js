@@ -272,6 +272,10 @@ route('POST', 'shop', '/shipments/(\\d+)/confirm', async (c, sid) => {
 // Proposals: a change the assistant suggested, which only the customer can confirm. The tap on
 // the card calls these routes, and they call the same services as the buttons on the order page.
 // Phase 11: a customer applies to sell. A draft is not a seller; submit is the last step.
+route('GET', 'shop', '/seller-application', async (c) => {
+  const application = await sellerSignup.applicationFor(c.db, c.user.id);
+  return { application, missing: application ? sellerSignup.missingFor(application) : null };
+});
 route('POST', 'shop', '/seller-application', async (c) => ({ application: await sellerSignup.saveDraft(c.db, c.user, c.body) }));
 route('POST', 'shop', '/seller-application/submit', async (c) => await sellerSignup.submit(c.db, c.user, { agreement: c.body.agreement === true }));
 

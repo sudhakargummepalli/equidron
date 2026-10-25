@@ -71,6 +71,7 @@ angular.module('shop', ['eqCommon', 'equidronI18n']).controller('ShopCtrl', ['$s
         case '': case 'search': return runSearch(r.search);
         case 'product': return loadProduct(r.id);
         case 'cart': if (requireLogin()) refreshCart(); return;
+        case 'sell': if (requireLogin()) loadApplication(); return;
         case 'checkout': if (requireLogin()) startCheckout(); return;
         case 'orders':
           if (!requireLogin()) return;
@@ -213,6 +214,48 @@ angular.module('shop', ['eqCommon', 'equidronI18n']).controller('ShopCtrl', ['$s
           vm.co.payError = e.message;
         }
       });
+    };
+
+    // ---------------------------------------------------------------- sell on Equidron (Phase 11)
+    // The form saves a step at a time; nothing becomes a seller until the last step is submitted.
+    vm.app = {};
+    vm.appErrors = {};
+    vm.appMissing = [];
+    vm.businessTypes = [
+      { value: 'individual', label: 'Individual' },
+      { value: 'proprietorship', label: 'Proprietorship' },
+      { value: 'partnership', label: 'Partnership' },
+      { value: 'private_limited', label: 'Private limited' },
+    ];
+    function loadApplication() {
+      return api.get('/seller-application').then(function (r) {
+        vm.application = r.application;
+        if (r.application) vm.app = angular.copy(r.application);
+        vm.appMissing = r.missing ? r.missing.fields : [];
+      }, fail);
+    }
+    vm.saveStep = function () {
+      vm.saving = true;
+      return api.post('/seller-application', vm.app).then(function (r) {
+        vm.application = r.application;
+        vm.appErrors = {};
+        Toast.show('Saved. You can come back to this later.');
+      }, function (e) {
+        vm.appErrors = (e.details && e.details.errors) || {};
+        Toast.show(e.message);
+      }).finally(function () { vm.saving = false; });
+    };
+    vm.submitApp = function () {
+      vm.saving = true;
+      vm.appError = null;
+      return api.post('/seller-application/submit', { agreement: vm.agreed === true }).then(function (r) {
+        vm.application = r.application;
+        Toast.show('Application submitted. Seller Central is open to you now.');
+      }, function (e) {
+        vm.appErrors = (e.details && e.details.errors) || {};
+        vm.appMissing = (e.details && e.details.fields) || [];
+        vm.appError = (e.details && e.details.steps) ? 'Still needed: ' + e.details.steps.join(', ') : e.message;
+      }).finally(function () { vm.saving = false; });
     };
 
     // ---------------------------------------------------------------- orders
