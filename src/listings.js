@@ -11,6 +11,7 @@ import { actorUserId, audit } from './audit.js';
 import { emit } from './events.js';
 import { guardListing, guardSellerRate } from './guardrails.js';
 import { notify } from './notify.js';
+import { inr } from './orders.js';
 
 export const PRICE_REVIEW_THRESHOLD = 0.2;
 export const RESTRICTED_TERMS = ['replica', 'counterfeit', 'first copy', 'fake', 'duplicate', 'imitation'];
@@ -319,4 +320,29 @@ export async function catalogLookup(db, q) {
   const like = `%${String(q || '').trim()}%`;
   return await all(db, `SELECT id, title, brand, category, images FROM products
                   WHERE status = 'live' AND (title LIKE ? OR brand LIKE ?) ORDER BY title LIMIT 20`, like, like);
+}
+
+// The price band belongs to the seller: an agent may move a price inside it, but only the seller
+// can set it. That is why this is a service function on the seller's own route, not a tool.
+export async function setPriceBand(db, sellerId, offerId, { floorPaise, ceilingPaise, autoPricing = false } = {}) {
+  const offer = await one(db, 'SELECT * FROM offers WHERE id = ? AND seller_id = ?', Number(offerId), sellerId);
+  if (!offer) throw notFound('Listing');
+  const floor = floorPaise == null ? null : Math.round(Number(floorPaise));
+  const ceiling = ceilingPaise == null ? null : Math.round(Number(ceilingPaise));
+
+  if (floor == null && ceiling == null) {
+    // Clearing the band switch also switches automatic pricing off: there is nothing to price inside.
+    await run(db, 'UPDATE offers SET price_floor_paise = NULL, price_ceiling_paise = NULL, auto_pricing = false, updated_at = ? WHERE id = ?',
+      now(), offer.id);
+    return await one(db, 'SELECT * FROM offers WHERE id = ?', offer.id);
+  }
+  if (!Number.isFinite(floor) || !Number.isFinite(ceiling)) throw badRequest('Set both a minimum and a maximum price.');
+  if (floor <= 0 || ceiling <= 0) throw badRequest('Prices must be more than zero.');
+  if (floor > ceiling) throw badRequest('The minimum price cannot be above the maximum.');
+  if (offer.price_paise < floor || offer.price_paise > ceiling) {
+    throw badRequest(`The current price (${inr(offer.price_paise)}) must sit inside the band you set.`);
+  }
+  await run(db, 'UPDATE offers SET price_floor_paise = ?, price_ceiling_paise = ?, auto_pricing = ?, updated_at = ? WHERE id = ?',
+    floor, ceiling, Boolean(autoPricing), now(), offer.id);
+  return await one(db, 'SELECT * FROM offers WHERE id = ?', offer.id);
 }

@@ -133,6 +133,18 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
 
 - `node --test`: 223 of 223 pass on `main` after merging `phase-10a-email` and `phase-6-customer-agents` (12 migrations).
 
+- Phase 7 · Seller agents (branch work, merged locally):
+  - **Price band as data**: `offers` gains `price_floor_paise`, `price_ceiling_paise` and `auto_pricing`.
+    Only the seller sets them (`listings.setPriceBand()`); the band must contain the current price.
+  - **Catalog Builder**: `draft_listing` runs the real `listings.validate()` and returns the draft with every
+    error. It never submits, so the seller still reviews and submits.
+  - **Pricing and Stock Copilot**: `get_listing`, `set_listing_price` and `low_stock_listings`. A price outside
+    the band is **refused, not clamped**; automatic pricing off means no change at all; every change goes through
+    `listings.submit()`, so a large move still goes to review.
+  - **Isolation**: every seller tool takes the seller from the context (never the model) and refuses another
+    seller's offer.
+  - `node --test`: 250 of 250 pass (9 new: `tests/seller-agents.test.js`).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,

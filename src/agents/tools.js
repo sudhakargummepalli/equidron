@@ -106,6 +106,121 @@ export async function executeTool(db, agent, call, key, ctx = {}) {
   });
 }
 
+// ---------------------------------------------------------------- Phase 7: seller agents
+
+registerTool({
+  name: 'get_listing',
+  description: 'One of the signed-in seller’s offers: price, stock, status, and the price band and automatic-pricing switch if set. Read-only.',
+  risk: 'read',
+  agents: ['pricing_copilot', 'catalog_builder'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: { offer_id: { type: 'integer', description: 'The offer id from the seller’s listings.' } },
+    required: ['offer_id'],
+  },
+  async run(db, ctx, input) {
+    if (!ctx.sellerId) throw badRequest('This tool works inside Seller Central.');
+    const o = await one(db, `SELECT o.*, p.title, p.category FROM offers o JOIN products p ON p.id = o.product_id
+                             WHERE o.id = ? AND o.seller_id = ?`, input.offer_id, ctx.sellerId);
+    if (!o) throw badRequest('That listing belongs to another seller.');
+    const stock = await all(db, 'SELECT COALESCE(SUM(on_hand - reserved), 0) AS available FROM inventory WHERE offer_id = ?', o.id);
+    return {
+      offer_id: Number(o.id), title: o.title, category: o.category, price_paise: Number(o.price_paise),
+      floor_paise: o.price_floor_paise == null ? null : Number(o.price_floor_paise),
+      ceiling_paise: o.price_ceiling_paise == null ? null : Number(o.price_ceiling_paise),
+      auto_pricing: Boolean(o.auto_pricing), status: o.status,
+      available: Number(stock[0]?.available ?? 0),
+    };
+  },
+});
+
+registerTool({
+  name: 'set_listing_price',
+  description: 'Change the price of one of the seller’s offers, inside the band the seller set. Outside the band it is refused, not clamped.',
+  risk: 'write',
+  agents: ['pricing_copilot'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      offer_id: { type: 'integer', description: 'The offer id.' },
+      price_paise: { type: 'integer', minimum: 1, description: 'The new price in paise.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why this price now.' },
+    },
+    required: ['offer_id', 'price_paise', 'reason'],
+  },
+  async run(db, ctx, input) {
+    if (!ctx.sellerId) throw badRequest('This tool works inside Seller Central.');
+    const o = await one(db, 'SELECT * FROM offers WHERE id = ? AND seller_id = ?', input.offer_id, ctx.sellerId);
+    if (!o) throw badRequest('That listing belongs to another seller.');
+    if (o.price_floor_paise == null || o.price_ceiling_paise == null) {
+      throw badRequest('This listing has no price band. The seller must set one before a price can move.');
+    }
+    if (!o.auto_pricing) throw badRequest('Automatic pricing is switched off for this listing.');
+    const price = Number(input.price_paise);
+    if (price < Number(o.price_floor_paise) || price > Number(o.price_ceiling_paise)) {
+      // Refused, not clamped: a clamp would silently do something the seller never allowed.
+      throw badRequest(`That price is outside the seller’s band (${orders.inr(o.price_floor_paise)}–${orders.inr(o.price_ceiling_paise)}).`);
+    }
+    const sub = await listings.submit(db, ctx.sellerId, {
+      offer_id: o.id, price: price / 100, quantity: Number(ctx.qty ?? 0), ships_to: ['ALL'],
+    });
+    return { offer_id: Number(o.id), price_paise: price, submission_id: Number(sub.id), status: sub.status };
+  },
+});
+
+registerTool({
+  name: 'low_stock_listings',
+  description: 'The signed-in seller’s offers at or below a stock level. Read-only.',
+  risk: 'read',
+  agents: ['pricing_copilot'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: { at_or_below: { type: 'integer', minimum: 0, maximum: 100, description: 'Stock level to report. Default 5.' } },
+  },
+  async run(db, ctx, input) {
+    if (!ctx.sellerId) throw badRequest('This tool works inside Seller Central.');
+    const level = Number(input.at_or_below ?? 5);
+    const rows = await all(db, `SELECT o.id, p.title, COALESCE(SUM(i.on_hand - i.reserved), 0) AS available
+                                FROM offers o JOIN products p ON p.id = o.product_id
+                                LEFT JOIN inventory i ON i.offer_id = o.id
+                                WHERE o.seller_id = ? GROUP BY o.id, p.title
+                                HAVING COALESCE(SUM(i.on_hand - i.reserved), 0) <= ? ORDER BY available`, ctx.sellerId, level);
+    return rows.map((r) => ({ offer_id: Number(r.id), title: r.title, available: Number(r.available) }));
+  },
+});
+
+registerTool({
+  name: 'draft_listing',
+  description: 'Check a draft listing against the real rules and return it with every error found. Writes nothing: the seller reviews and submits it.',
+  risk: 'read',
+  agents: ['catalog_builder'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      title: { type: 'string', maxLength: 200 },
+      brand: { type: 'string', maxLength: 60 },
+      category: { type: 'string', maxLength: 40 },
+      description: { type: 'string', maxLength: 5000 },
+      price: { type: 'number', description: 'Price in rupees, as the seller would type it.' },
+      quantity: { type: 'integer', minimum: 0, maximum: 100000 },
+      specs: { type: 'object', description: 'Name/value pairs.' },
+      images: { type: 'array', items: { type: 'string' }, maxItems: 8 },
+      ships_to: { type: 'array', items: { type: 'string' }, description: 'ALL, or a list of cities.' },
+      fulfilment: { type: 'string', enum: ['equidron', 'seller'], description: 'Who ships it.' },
+    },
+  },
+  async run(db, ctx, input) {
+    if (!ctx.sellerId) throw badRequest('This tool works inside Seller Central.');
+    const [payload, errors] = listings.validate(input, 'new_product');
+    return {
+      valid: Object.keys(errors).length === 0,
+      draft: payload,
+      errors,
+      next: Object.keys(errors).length ? 'Fix these, then check again.' : 'The seller can submit this from Seller Central → Inventory.',
+    };
+  },
+});
+
 // ---------------------------------------------------------------- Phase 6: shopping concierge
 
 registerTool({

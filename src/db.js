@@ -550,6 +550,9 @@ CREATE TABLE IF NOT EXISTS proposals (
     decided_at TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS proposals_open ON proposals (user_id, status) WHERE status = 'pending';
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS price_floor_paise INTEGER;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS price_ceiling_paise INTEGER;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS auto_pricing BOOLEAN NOT NULL DEFAULT false;
 `;
 
 const pad = (n) => String(n).padStart(2, '0');

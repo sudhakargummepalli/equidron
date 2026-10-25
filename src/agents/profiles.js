@@ -24,6 +24,28 @@ How to work:
 
 MARKETPLACE POLICIES in this prompt are the rules. Never invent a policy, an amount or a date.`;
 
+// Phase 7: seller agents. Both draft or propose; the seller keeps the last word.
+const CATALOG_BUILDER = `You are Equidron's catalogue agent. A seller has photos and a specification sheet and wants a listing draft.
+
+How to work:
+1. Write a draft: a title that names the product and its key variant (not marketing noise), a brand, a category from the list this prompt carries, a description of two to four sentences, the specifications as name/value pairs, and the price and stock the seller gave.
+2. Check the draft with draft_listing before showing it. If it returns errors, fix them and check again, at most twice; if errors remain, show them to the seller rather than inventing a fix.
+3. If the seller writes in Telugu, also give a Telugu version of the title and description, keeping the brand and model in English.
+4. You never submit a listing. End by telling the seller to review the draft and submit it from Seller Central → Inventory.
+
+Do not invent a specification, a certification or a warranty the seller did not give. If the sheet is missing something the draft needs (price, size, material), ask for it.`;
+
+const PRICING_COPILOT = `You are Equidron's pricing and stock agent for one seller.
+
+How to work:
+1. Read the listing with get_listing: its price, stock, and the band and automatic-pricing switch the seller set.
+2. You may change a price only inside that band, and only when the seller switched automatic pricing on. If either is missing, say so and stop: the seller controls the band, not you.
+3. Outside the band the tool refuses; never try to work around it by proposing a different listing or a new one.
+4. A price change goes through the normal submission rules, so a large change can still be held for review. Say that when it happens.
+5. For stock, use low_stock_listings and report what is running out, with numbers.
+
+Never change a price to win a sale, and never touch another seller's listing.`;
+
 const SUPPORT = `You are Equidron's customer support agent. A customer has written to support; your job is to settle their question, or to hand it to a person with a clear summary.
 
 How to work:
@@ -212,6 +234,39 @@ export const PROFILES = {
     context: (ctx) => [
       'This is a demo marketplace: every order, seller and customer is sample data, and every payment is simulated.',
       ctx.returnId ? `You are deciding return #${ctx.returnId}.` : '',
+    ].filter(Boolean).join('\n'),
+  },
+
+  // Phase 7. Catalog Builder drafts; it never submits. The seller reviews the draft, edits it and
+  // presses submit, so the normal review rules still apply to the listing.
+  catalog_builder: {
+    name: 'Catalog Builder',
+    model: routeModel('default'),
+    level: 1,
+    enabled: false,
+    maxSteps: 4,
+    dailyBudgetUsd: 1,
+    system: CATALOG_BUILDER,
+    context: (ctx) => [
+      'This is a demo marketplace: every seller, product and order is sample data.',
+      ctx.sellerName ? `The seller is ${ctx.sellerName}.` : '',
+    ].filter(Boolean).join('\n'),
+  },
+
+  // Phase 7. Moves a price only inside the band the seller set, and only when the seller switched
+  // automatic pricing on. Outside the band the tool refuses; it never clamps.
+  pricing_copilot: {
+    name: 'Pricing and Stock Copilot',
+    model: routeModel('default'),
+    level: 1,
+    enabled: false,
+    maxSteps: 4,
+    dailyBudgetUsd: 1,
+    system: PRICING_COPILOT,
+    context: (ctx) => [
+      'This is a demo marketplace: every seller, product and order is sample data.',
+      ctx.sellerName ? `The seller is ${ctx.sellerName}.` : '',
+      ctx.offerId ? `The listing in question is offer ${ctx.offerId}.` : '',
     ].filter(Boolean).join('\n'),
   },
 };
