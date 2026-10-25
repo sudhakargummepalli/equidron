@@ -155,14 +155,56 @@
   <section ng-if="vm.user && vm.route.name === 'settlement'">
     <h1>Seller settlement</h1>
     <div class="card">
-      <p>Sellers are credited when items are delivered (sale minus a 10% referral fee) and debited when a return is refunded. Settlement pays each seller's positive balance to their bank account (simulated).</p>
+      <p>Sellers are credited when items are delivered (sale minus a 10% referral fee) and debited when a return is
+        refunded. A payout is a <strong>batch a person approves</strong>: building it moves nothing, approving it pays
+        the net amounts (simulated bank transfer).</p>
       <p><strong>Unsettled across all sellers: {{vm.overview.unsettled_paise | inr}}</strong></p>
-      <button class="btn primary" ng-click="vm.settle()">Run settlement now</button>
-      <table ng-if="vm.payouts" style="margin-top:12px">
-        <tr><th>Seller</th><th class="right">Paid out</th></tr>
-        <tr ng-repeat="p in vm.payouts"><td>{{p.seller_name}}</td><td class="right">{{p.amount_paise | inr}}</td></tr>
-        <tr ng-if="!vm.payouts.length"><td colspan="2" class="muted">No balances to pay.</td></tr>
+      <button class="btn primary" ng-click="vm.settle()" ng-disabled="vm.busy">Build a payout batch</button>
+      <p class="small muted" style="margin-top:8px">TCS and TDS in the batch are drafts for the CA, not a filing.</p>
+    </div>
+
+    <div class="card" ng-if="vm.batch">
+      <h2>Batch #{{vm.batch.id}} · {{vm.batch.status}}</h2>
+      <p class="small muted">{{vm.batch.note}}</p>
+      <table>
+        <tr><th>Seller</th><th class="right">Balance</th><th class="right">TCS draft</th><th class="right">TDS draft</th><th class="right">Net</th></tr>
+        <tr ng-repeat="l in vm.batch.lines">
+          <td>{{l.seller}}</td>
+          <td class="right">{{l.gross_paise | inr}}</td>
+          <td class="right">{{l.tcs_paise | inr}}</td>
+          <td class="right">{{l.tds_paise | inr}}</td>
+          <td class="right"><strong>{{l.net_paise | inr}}</strong></td>
+        </tr>
+        <tr><td colspan="4" class="right"><strong>Total to pay</strong></td><td class="right"><strong>{{vm.batch.total_paise | inr}}</strong></td></tr>
       </table>
+      <p ng-if="vm.batch.status === 'pending'" style="margin-top:10px">
+        <button class="btn primary" ng-click="vm.decideBatch(vm.batch.id, true)">Approve and pay</button>
+        <button class="btn ghost" ng-click="vm.decideBatch(vm.batch.id, false)">Reject</button>
+      </p>
+    </div>
+
+    <div class="card" ng-if="vm.settlement">
+      <h2>Recent batches</h2>
+      <table class="small" ng-if="vm.settlement.batches.length">
+        <tr><th>#</th><th>Built</th><th>Status</th><th class="right">Total</th></tr>
+        <tr ng-repeat="b in vm.settlement.batches">
+          <td>#{{b.id}}</td><td>{{b.created_at | when}}</td><td>{{b.status}}</td>
+          <td class="right">{{b.total_paise | inr}}</td>
+        </tr>
+      </table>
+      <p class="muted small" ng-if="!vm.settlement.batches.length">No batches yet.</p>
+
+      <h2 style="margin-top:16px">This month's tax drafts</h2>
+      <table class="small" ng-if="vm.settlement.tax.length">
+        <tr><th>Seller</th><th>Month</th><th class="right">Gross sales</th><th class="right">TCS ({{vm.settlement.tcs_rate * 100}}%)</th><th class="right">TDS ({{vm.settlement.tds_rate * 100}}%)</th></tr>
+        <tr ng-repeat="t in vm.settlement.tax">
+          <td>{{t.seller}}</td><td>{{t.month}}</td>
+          <td class="right">{{t.gross_paise | inr}}</td>
+          <td class="right">{{t.tcs_paise | inr}}</td>
+          <td class="right">{{t.tds_paise | inr}}</td>
+        </tr>
+      </table>
+      <p class="muted small" ng-if="!vm.settlement.tax.length">No paid sales this month yet.</p>
     </div>
   </section>
 

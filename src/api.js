@@ -20,6 +20,7 @@ import * as analytics from './analytics.js';
 import * as telegram from './telegram.js';
 import * as listings from './listings.js';
 import * as proposals from './proposals.js';
+import * as settlement from './settlement.js';
 import * as jobs from './jobs.js';
 import { newRequestId, reportError, requestId, withRequestId } from './log.js';
 import { mask } from './mask.js';
@@ -347,7 +348,17 @@ route('POST', 'ops', '/support/(\\d+)/reply', async (c, tid) => {
   await orders.replyTicket(c.db, int(tid), 'ops', c.body.message, Boolean(c.body.close));
   return await orders.listTickets(c.db);
 });
-route('POST', 'ops', '/settlement/run', async (c) => ({ payouts: await orders.runSettlement(c.db) }));
+// Settlement is a batch a person approves. The old route paid everyone the moment it was called;
+// it now only builds the batch, so nothing leaves without an approval record.
+route('GET', 'ops', '/settlement', async (c) => ({
+  batches: await settlement.listBatches(c.db),
+  tax: await settlement.taxDrafts(c.db),
+  tcs_rate: settlement.TCS_RATE,
+  tds_rate: settlement.TDS_RATE,
+}));
+route('POST', 'ops', '/settlement/run', async (c) => ({ batch: await settlement.buildBatch(c.db) }));
+route('POST', 'ops', '/settlement/batches/(\\d+)/approve', async (c, id) => await settlement.approveBatch(c.db, int(id), { by: c.user.id }));
+route('POST', 'ops', '/settlement/batches/(\\d+)/reject', async (c, id) => await settlement.rejectBatch(c.db, int(id), { by: c.user.id, note: c.body.note ?? null }));
 route('GET', 'ops', '/staff', async (c) => ({ staff: await auth.staffList(c.db), permissions: auth.PERMISSIONS }));
 route('POST', 'ops', '/staff/(\\d+)/permissions', async (c, uid) => await auth.setPermissions(c.db, int(uid), c.body.permissions, c.user.id));
 route('GET', 'ops', '/audit', async (c) => mask(await listAudit(c.db, { entity: c.q('entity') || null })));

@@ -71,8 +71,9 @@ test('every successful write request leaves an audit row with the actor', async 
   const row = await one(db, "SELECT * FROM audit_log WHERE action = 'shop.cart' ORDER BY id DESC LIMIT 1");
   assert.equal(row.actor_type, 'user');
   assert.equal(row.actor_id, String(asha));
-  const settle = await one(db, "SELECT * FROM audit_log WHERE action = 'settlement.run' ORDER BY id DESC LIMIT 1");
-  assert.ok(settle, 'settlement is audited by the service function');
+  // Settlement builds a batch now; the service records that, and the approval records the payment.
+  const settle = await one(db, "SELECT * FROM audit_log WHERE action = 'payout.batch' ORDER BY id DESC LIMIT 1");
+  assert.ok(settle, 'building a payout batch is audited by the service function');
   // Reads write nothing.
   const before = await audits();
   await ops('GET', '/api/ops/overview');

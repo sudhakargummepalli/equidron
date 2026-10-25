@@ -177,6 +177,17 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     or ban, and it starts off at L1 like every other agent.
   - `node --test`: 272 of 272 pass (8 new: `tests/risk.test.js`).
 
+- Phase 12 · settlement as an approved batch (slice 2):
+  - `payout_batches` + `payout_lines`: building a batch computes each seller's balance, a **draft** TCS (s.52,
+    0.5%) and TDS (194-O, 1%) on the month's paid sales, and the net. **Building moves no money.**
+  - `POST /api/ops/settlement/run` now only builds; `POST /api/ops/settlement/batches/:id/approve` is what writes
+    the payout ledger rows and notifies the sellers. A guarded UPDATE means two clicks pay once, and a rejection
+    pays nothing and leaves the batch replaceable.
+  - `GET /api/ops/settlement` returns the batches and this month's tax drafts; the Ops page shows the batch lines,
+    the approve/reject buttons and the drafts.
+  - The tax figures are marked as drafts for a CA, not a filing (see DECISIONS).
+  - `node --test`: 279 of 279 pass (7 new: `tests/settlement.test.js`).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,

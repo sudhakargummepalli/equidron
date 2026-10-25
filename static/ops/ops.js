@@ -28,7 +28,7 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
         case 'shipments': return loadShipments();
         case 'returns': return api.get('/returns').then(function (x) { vm.returns = x; }, fail);
         case 'support': return api.get('/support').then(function (x) { vm.tickets = x; }, fail);
-        case 'settlement': return;
+        case 'settlement': return loadSettlement();
         case 'login': if (vm.user) $location.path('/'); return;
         case 'reset': vm.auth.startReset(r.search.code); return;
         case 'security': return vm.security.load();
@@ -147,8 +147,27 @@ angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window
     };
 
     // ---------------------------------------------------------------- settlement
+    // Building a batch moves no money; approving it does. That is the whole point of the split.
+    function loadSettlement() {
+      return api.get('/settlement').then(function (x) { vm.settlement = x; }, fail);
+    }
     vm.settle = function () {
-      api.post('/settlement/run').then(function (r) { vm.payouts = r.payouts; refreshOverview(); });
+      vm.busy = true;
+      api.post('/settlement/run').then(function (r) {
+        vm.batch = r.batch;
+        Toast.show('Batch #' + r.batch.id + ' built. Nothing has been paid yet.');
+        loadSettlement();
+        refreshOverview();
+      }, function (e) { Toast.show(e.message); }).finally(function () { vm.busy = false; });
+    };
+    vm.decideBatch = function (id, approve) {
+      var path = '/settlement/batches/' + id + (approve ? '/approve' : '/reject');
+      api.post(path, approve ? {} : { note: 'Rejected in Ops.' }).then(function (b) {
+        vm.batch = b;
+        Toast.show(approve ? 'Approved. The payouts are in the ledger.' : 'Rejected. Nothing was paid.');
+        loadSettlement();
+        refreshOverview();
+      }, function (e) { Toast.show(e.message); });
     };
 
     // ---------------------------------------------------------------- approvals
