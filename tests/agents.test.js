@@ -223,9 +223,12 @@ test('only the tools an agent is allowed are offered to it', () => {
   const ops = toolDefsFor('ops_helper').map((t) => t.name).sort();
   assert.deepEqual(ops, ['advance_shipment', 'get_order', 'refund_return']);
   const chat = toolDefsFor('store_assistant').map((t) => t.name).sort();
-  assert.deepEqual(chat, ['get_my_order', 'get_product', 'list_my_orders', 'search_products']);
-  // The shop assistant can look, never act.
-  assert.ok(toolsFor('store_assistant').every((t) => t.risk === 'read'));
+  // Phase 6 gave the chat assistant the cart and two "propose" tools. The proposals change
+  // nothing themselves: the customer taps a card, and the normal API does the work.
+  assert.deepEqual(chat, ['add_to_cart', 'get_my_order', 'get_product', 'list_my_orders',
+    'propose_cancel', 'propose_return', 'search_products', 'update_cart']);
+  // It still cannot move money or do anything irreversible.
+  assert.ok(toolsFor('store_assistant').every((t) => t.risk === 'read' || t.risk === 'write'));
   // What the model sees is the schema and nothing about risk or limits.
   assert.equal(Object.hasOwn(toolDefsFor('ops_helper')[0], 'risk'), false);
   assert.ok(toolsFor('ops_helper').every((t) => t.agents.includes('ops_helper')));

@@ -19,6 +19,7 @@ import * as incidents from './incidents.js';
 import * as analytics from './analytics.js';
 import * as telegram from './telegram.js';
 import * as listings from './listings.js';
+import * as proposals from './proposals.js';
 import * as jobs from './jobs.js';
 import { newRequestId, reportError, requestId, withRequestId } from './log.js';
 import { mask } from './mask.js';
@@ -254,6 +255,11 @@ route('POST', 'shop', '/shipments/(\\d+)/confirm', async (c, sid) => {
   await orders.confirmDelivery(c.db, c.user.id, int(sid));
   return { ok: true };
 });
+// Proposals: a change the assistant suggested, which only the customer can confirm. The tap on
+// the card calls these routes, and they call the same services as the buttons on the order page.
+route('GET', 'shop', '/proposals', async (c) => await proposals.listOpen(c.db, c.user.id));
+route('POST', 'shop', '/proposals/(\\d+)/confirm', async (c, id) => await proposals.confirm(c.db, c.user.id, id));
+route('POST', 'shop', '/proposals/(\\d+)/dismiss', async (c, id) => await proposals.dismiss(c.db, c.user.id, id));
 route('GET', 'shop', '/support', async (c) => await orders.listTickets(c.db, c.user.id));
 route('POST', 'shop', '/support', async (c) => {
   await orders.createTicket(c.db, c.user.id, c.body.order_id, c.body.subject, c.body.message);

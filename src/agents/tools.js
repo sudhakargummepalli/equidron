@@ -19,6 +19,7 @@ import { CATEGORIES, productDetail, search } from '../catalog.js';
 import * as listings from '../listings.js';
 import * as notify from '../notify.js';
 import * as orders from '../orders.js';
+import * as proposals from '../proposals.js';
 
 export const RISKS = ['read', 'write', 'money', 'irreversible'];
 
@@ -104,6 +105,107 @@ export async function executeTool(db, agent, call, key, ctx = {}) {
     return { replayed: false, result };
   });
 }
+
+// ---------------------------------------------------------------- Phase 6: shopping concierge
+
+registerTool({
+  name: 'add_to_cart',
+  description: 'Put one offer in the signed-in customer’s cart. Returns the cart’s new line count.',
+  risk: 'write',
+  agents: ['store_assistant'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      offer_id: { type: 'integer', description: 'The offer id from search_products or get_product.' },
+      qty: { type: 'integer', minimum: 1, maximum: 10, description: 'How many. Default 1.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why this belongs in the cart.' },
+    },
+    required: ['offer_id', 'reason'],
+  },
+  async run(db, ctx, input) {
+    if (!ctx.customerId) throw badRequest('The customer needs to be signed in to use a cart.');
+    await orders.addToCart(db, ctx.customerId, input.offer_id, input.qty ?? 1);
+    const cart = await orders.getCart(db, ctx.customerId);
+    return { offer_id: input.offer_id, lines: cart.items.length, subtotal_paise: cart.estimate?.subtotal_paise ?? null };
+  },
+});
+
+registerTool({
+  name: 'update_cart',
+  description: 'Change the quantity of an offer already in the cart. A quantity of 0 removes it.',
+  risk: 'write',
+  agents: ['store_assistant'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      offer_id: { type: 'integer', description: 'The offer id in the cart.' },
+      qty: { type: 'integer', minimum: 0, maximum: 10, description: 'New quantity; 0 removes the line.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why the cart changes.' },
+    },
+    required: ['offer_id', 'qty', 'reason'],
+  },
+  async run(db, ctx, input) {
+    if (!ctx.customerId) throw badRequest('The customer needs to be signed in to use a cart.');
+    await orders.setCartQty(db, ctx.customerId, input.offer_id, input.qty);
+    const cart = await orders.getCart(db, ctx.customerId);
+    return { offer_id: input.offer_id, qty: input.qty, lines: cart.items.length };
+  },
+});
+
+// "Propose" tools never change an order. They write a card the customer taps; the tap calls the
+// same API a person would use, so the customer, not the agent, makes the change.
+registerTool({
+  name: 'propose_cancel',
+  description: 'Offer to cancel an order: shows the customer a confirmation card. It does not cancel anything itself.',
+  risk: 'write',
+  agents: ['store_assistant'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      order_id: { type: 'integer', description: 'The order the customer wants to cancel.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why cancelling is what they asked for.' },
+    },
+    required: ['order_id', 'reason'],
+  },
+  async run(db, ctx, input) {
+    if (!ctx.customerId) throw badRequest('The customer needs to be signed in to cancel an order.');
+    const o = await orders.getOrder(db, input.order_id, ctx.customerId); // scoped: not found if it is not theirs
+    if (o.status !== 'confirmed') throw badRequest(`Order #${o.id} is ${o.status}, so it cannot be cancelled.`);
+    const proposalId = await proposals.create(db, ctx.customerId, 'cancel_order', { order_id: o.id, total_paise: o.total_paise });
+    return { proposal_id: proposalId, needs_confirmation: true, summary: `Cancel order #${o.id} (${orders.inr(o.total_paise)})` };
+  },
+});
+
+registerTool({
+  name: 'propose_return',
+  description: 'Offer to return an item: shows the customer a confirmation card. It does not open a return itself.',
+  risk: 'write',
+  agents: ['store_assistant'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      order_id: { type: 'integer', description: 'The order with the item.' },
+      order_item_id: { type: 'integer', description: 'The order item id from get_my_order.' },
+      qty: { type: 'integer', minimum: 1, maximum: 10, description: 'How many to return.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why the customer wants a return.' },
+    },
+    required: ['order_id', 'order_item_id', 'reason'],
+  },
+  async run(db, ctx, input) {
+    if (!ctx.customerId) throw badRequest('The customer needs to be signed in to return an item.');
+    const o = await orders.getOrder(db, input.order_id, ctx.customerId);
+    // Items live under their shipment, and getOrder() has already attached the return rules.
+    const item = o.shipments.flatMap((s) => s.items).find((i) => Number(i.id) === Number(input.order_item_id));
+    if (!item) throw badRequest('That item is not in this order.');
+    if (!item.returnable) throw badRequest(item.return_note || 'That item cannot be returned.');
+    const qty = Number(input.qty ?? 1);
+    if (qty > Number(item.returnable_qty ?? 0)) throw badRequest(`You can return at most ${item.returnable_qty} of this item.`);
+    const proposalId = await proposals.create(db, ctx.customerId, 'return_item', {
+      order_id: o.id, order_item_id: item.id, qty, title: item.title, reason: input.reason,
+    });
+    return { proposal_id: proposalId, needs_confirmation: true, summary: `Return ${item.title} from order #${o.id}` };
+  },
+});
 
 // ---------------------------------------------------------------- the tools
 
