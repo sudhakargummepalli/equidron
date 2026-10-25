@@ -692,8 +692,9 @@ export async function createTicket(db, userId, orderId, subject, body) {
   body = String(body || '').trim();
   if (!subject || !body) throw badRequest('Add a subject and a message.');
   if (orderId && !await one(db, 'SELECT 1 AS x FROM orders WHERE id = ? AND user_id = ?', Number(orderId), userId)) throw notFound('Order');
-  const tid = await run(db, "INSERT INTO support_tickets (user_id, order_id, subject, status, created_at) VALUES (?,?,?, 'open', ?)",
-    userId, orderId ? Number(orderId) : null, subject, now());
+  const tid = await run(db, `INSERT INTO support_tickets (user_id, order_id, subject, status, created_at, first_response_due_at)
+                             VALUES (?,?,?, 'open', ?, now() + interval '4 hours')`,
+  userId, orderId ? Number(orderId) : null, subject, now());
   await run(db, "INSERT INTO support_messages (ticket_id, author_role, body, at) VALUES (?, 'customer', ?, ?)", tid, body, now());
   await emit(db, 'ticket.created', 'ticket', tid, { order_id: orderId ? Number(orderId) : null });
   return tid;
@@ -704,7 +705,13 @@ export async function listTickets(db, userId = null) {
   const params = [];
   if (userId) { sql += ' WHERE t.user_id = ?'; params.push(userId); }
   const tickets = await all(db, sql + ' ORDER BY t.id DESC LIMIT 200', ...params);
-  for (const t of tickets) t.messages = await all(db, 'SELECT * FROM support_messages WHERE ticket_id = ? ORDER BY id', t.id);
+  for (const t of tickets) {
+    t.messages = await all(db, 'SELECT * FROM support_messages WHERE ticket_id = ? ORDER BY id', t.id);
+    // Ops reads this: a ticket past its first-reply deadline, or answered late.
+    t.first_response_breached = Boolean(t.first_response_due_at)
+      && (t.first_response_at ? new Date(t.first_response_at) > new Date(t.first_response_due_at) : new Date(t.first_response_due_at) < new Date());
+    t.awaiting_customer = t.status === 'answered';
+  }
   return tickets;
 }
 
@@ -715,7 +722,26 @@ export async function replyTicket(db, ticketId, authorRole, body, close = false,
   if (!body) throw badRequest('Write a message.');
   await run(db, 'INSERT INTO support_messages (ticket_id, author_role, body, at) VALUES (?,?,?,?)', ticketId, authorRole, body, now());
   await emit(db, 'ticket.message', 'ticket', ticketId, { author_role: authorRole, closed: Boolean(close) });
-  const status = close ? 'closed' : authorRole === 'ops' ? 'answered' : 'open';
-  await run(db, 'UPDATE support_tickets SET status = ? WHERE id = ?', status, ticketId);
-  if (authorRole === 'ops') await notify(db, t.user_id, `Equidron Support replied to "${t.subject}".`, '#/support');
+  const status = close ? 'closed' : authorRole === 'customer' ? 'open' : 'answered';
+  // The first reply from anyone who is not the customer stops the response clock; closing records
+  // when it was resolved, because that is the moment the rating is about.
+  const staff = authorRole !== 'customer';
+  await run(db, `UPDATE support_tickets SET status = ?,
+                   first_response_at = CASE WHEN ? AND first_response_at IS NULL THEN now() ELSE first_response_at END,
+                   resolved_at = CASE WHEN ? THEN now() ELSE resolved_at END
+                 WHERE id = ?`, status, staff, Boolean(close), ticketId);
+  if (authorRole === 'ops' || authorRole === 'support') await notify(db, t.user_id, `Equidron Support replied to "${t.subject}".`, '#/support');
+}
+
+// One tap after the ticket is closed. One rating per ticket: changing it later would make the
+// number mean something different from what the customer first said.
+export async function rateTicket(db, userId, ticketId, stars) {
+  const t = await one(db, 'SELECT * FROM support_tickets WHERE id = ? AND user_id = ?', Number(ticketId), userId);
+  if (!t) throw notFound('Ticket');
+  if (t.status !== 'closed') throw conflict('You can rate a ticket once it is closed.');
+  if (t.rating != null) throw conflict('This ticket already has your rating.');
+  const value = Number(stars);
+  if (!Number.isInteger(value) || value < 1 || value > 5) throw badRequest('A rating is 1 to 5 stars.');
+  await run(db, 'UPDATE support_tickets SET rating = ?, rated_at = ? WHERE id = ?', value, now(), t.id);
+  return { ticket_id: Number(t.id), rating: value };
 }

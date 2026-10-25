@@ -145,6 +145,16 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     seller's offer.
   - `node --test`: 250 of 250 pass (9 new: `tests/seller-agents.test.js`).
 
+- Phase 6 · support timers and the one-tap rating (slice 5):
+  - `support_tickets` gains `first_response_due_at` (four hours from opening), `first_response_at`,
+    `resolved_at`, `rating` (1–5) and `rated_at`.
+  - The first reply from anyone who is not the customer stops the clock — including the Support agent, which now
+    also sets the ticket to `answered` (it used to leave it `open`).
+  - Closing records `resolved_at`; the customer rates a closed ticket **once**, through the session's own
+    `POST /api/shop/support/:id/rating`, and another customer's ticket is a 404.
+  - Ops sees `first_response_breached` on each ticket in `listTickets()`.
+  - `node --test`: 257 of 257 pass (7 new: `tests/support-timers.test.js`).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,

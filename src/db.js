@@ -553,6 +553,11 @@ CREATE INDEX IF NOT EXISTS proposals_open ON proposals (user_id, status) WHERE s
 ALTER TABLE offers ADD COLUMN IF NOT EXISTS price_floor_paise INTEGER;
 ALTER TABLE offers ADD COLUMN IF NOT EXISTS price_ceiling_paise INTEGER;
 ALTER TABLE offers ADD COLUMN IF NOT EXISTS auto_pricing BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS first_response_due_at TIMESTAMPTZ;
+ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS first_response_at TIMESTAMPTZ;
+ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
+ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS rating INTEGER CHECK (rating BETWEEN 1 AND 5);
+ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS rated_at TIMESTAMPTZ;
 `;
 
 const pad = (n) => String(n).padStart(2, '0');

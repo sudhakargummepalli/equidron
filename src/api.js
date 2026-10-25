@@ -269,6 +269,8 @@ route('POST', 'shop', '/support/(\\d+)/reply', async (c, tid) => {
   await orders.replyTicket(c.db, int(tid), 'customer', c.body.message, false, c.user.id);
   return await orders.listTickets(c.db, c.user.id);
 });
+// One tap after the ticket closes. The session decides whose ticket it is, not the body.
+route('POST', 'shop', '/support/(\\d+)/rating', async (c, tid) => await orders.rateTicket(c.db, c.user.id, tid, c.body.stars ?? c.body.rating));
 
 route('GET', 'shop', '/assistant', async () => ({ available: assistant.isAvailable() }), true);
 route('POST', 'shop', '/assistant', async (c) =>
