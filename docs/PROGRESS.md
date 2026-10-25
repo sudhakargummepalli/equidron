@@ -248,6 +248,20 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     multi-step form UI in the store.
   - `node --test`: 312 of 312 pass (9 new: `tests/seller-signup.test.js`).
 
+- Phase 9 · the courier, as a provider with a sandbox (slice 1):
+  - `src/shipping.js`: one interface — serviceability, rate, createShipment (AWB + label + ETA), schedulePickup,
+    track — with two providers. `simulated` is the default and is deterministic (the same shipment always gets the
+    same AWB), so tests and the demo never need a carrier.
+  - `http` is a JSON-over-HTTP adapter configured only by `SHIPPING_BASE_URL`, `SHIPPING_TOKEN` and
+    `SHIPPING_PROVIDER=http`. **It fails closed**: with no configuration it refuses to book rather than pretending.
+    The exact paths differ per carrier, so the mapping lives in that one file (see DECISIONS).
+  - `POST /api/ops/shipments/:id/book` stores the AWB, label URL, carrier ref and booked time on the shipment.
+  - `POST /api/webhooks/shipping` authenticates with `x-shipping-secret` (constant-time, fail closed), finds the
+    shipment by AWB, maps the carrier status onto our stages, writes the event, and ignores a repeated event id.
+  - Not built: a named carrier's exact field mapping (needs a sandbox account), NDR/RTO automation beyond the
+    stage mapping, and the label PDF (we keep the carrier's URL).
+  - `node --test`: 318 of 318 pass (6 new: `tests/shipping.test.js`).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,

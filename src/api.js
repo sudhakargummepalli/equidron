@@ -12,7 +12,7 @@ import * as approvals from './agents/approvals.js';
 import { runAgent } from './agents/runtime.js';
 import * as auth from './auth.js';
 import * as catalog from './catalog.js';
-import { all, changes, one, run, scalar, transaction } from './db.js';
+import { all, changes, now, one, run, scalar, transaction } from './db.js';
 import { AppError } from './errors.js';
 import { capBulk, counts as guardrailCounts, recent as recentGuardrails } from './guardrails.js';
 import * as incidents from './incidents.js';
@@ -23,6 +23,11 @@ import * as listings from './listings.js';
 import * as proposals from './proposals.js';
 import * as settlement from './settlement.js';
 import * as sellerSignup from './seller-signup.js';
+import { emit } from './events.js';
+import * as shipping from './shipping.js';
+import crypto from 'node:crypto';
+
+const { STAGE_FROM_CARRIER } = shipping;
 import * as jobs from './jobs.js';
 import { newRequestId, reportError, requestId, withRequestId } from './log.js';
 import { mask } from './mask.js';
@@ -349,6 +354,16 @@ route('GET', 'ops', '/submissions', async (c) => await listings.listSubmissions(
 route('POST', 'ops', '/submissions/(\\d+)/decide', async (c, sid) =>
   await listings.decide(c.db, int(sid), Boolean(c.body.approve), String(c.body.note || '').trim(), c.user.id));
 route('GET', 'ops', '/shipments', async (c) => await orders.listShipments(c.db, c.q('all') !== '1'));
+route('POST', 'ops', '/shipments/(\\d+)/book', async (c, sid) => {
+  const s = await orders.getShipment(c.db, int(sid));
+  const address = await one(c.db, 'SELECT address FROM orders WHERE id = ?', s.order_id);
+  const city = (address?.address || {}).city ?? null;
+  const pincode = (address?.address || {}).pincode ?? null;
+  const booked = await shipping.createShipment({ shipmentId: s.id, orderId: s.order_id, pincode, city, weightGrams: 500 });
+  await run(c.db, 'UPDATE shipments SET awb = ?, label_url = ?, carrier_ref = ?, eta = ?, booked_at = ?, updated_at = ? WHERE id = ?',
+    booked.awb, booked.label_url, booked.carrier_ref, booked.eta ?? s.eta, now(), now(), s.id);
+  return { shipment_id: Number(s.id), awb: booked.awb, label_url: booked.label_url, eta: booked.eta ?? s.eta };
+});
 route('POST', 'ops', '/shipments/(\\d+)/advance', async (c, sid) => await orders.advanceShipment(c.db, int(sid), 'ops'));
 route('POST', 'ops', '/shipments/advance-all', async (c) => {
   const active = await orders.listShipments(c.db);
@@ -525,6 +540,40 @@ route('GET', 'ops', '/agent-runs/(\\d+)', async (c, id) => {
   return { run, steps: await all(c.db, 'SELECT * FROM agent_steps WHERE run_id = ? ORDER BY step', run.id) };
 });
 
+
+// Constant-time comparison for a shared secret.
+function cryptoEqual(a, b) {
+  const x = Buffer.from(String(a));
+  const y = Buffer.from(String(b));
+  return x.length === y.length && crypto.timingSafeEqual(x, y);
+}
+
+// The carrier webhook: find the shipment by AWB, move it to the stage the carrier reports, and
+// record the event once. A repeated event id changes nothing.
+async function shippingWebhook(db, body) {
+  const awb = String(body?.awb || '').trim();
+  const status = String(body?.status || '').trim().toUpperCase();
+  const eventId = String(body?.event_id || '').trim();
+  if (!awb || !status || !eventId) {
+    return { status: 400, payload: { error: 'awb, status and event_id are required.' }, setCookie: null };
+  }
+  const shipment = await one(db, 'SELECT * FROM shipments WHERE awb = ?', awb);
+  if (!shipment) return { status: 200, payload: { ok: true, ignored: 'unknown awb' }, setCookie: null };
+
+  const fresh = await changes(db,
+    "INSERT INTO settings (key, value, updated_at) VALUES (?, ?, now()) ON CONFLICT (key) DO NOTHING",
+    `shipping:event:${eventId}`, JSON.stringify({ awb, status }));
+  if (!fresh) return { status: 200, payload: { ok: true, duplicate: true }, setCookie: null };
+
+  const stage = STAGE_FROM_CARRIER[status] ?? null;
+  if (!stage) return { status: 200, payload: { ok: true, ignored: `status ${status} is not a stage we use` }, setCookie: null };
+  await run(db, 'UPDATE shipments SET status = ?, updated_at = ? WHERE id = ?', stage, now(), shipment.id);
+  await run(db, 'INSERT INTO shipment_events (shipment_id, status, note, at) VALUES (?,?,?,?)',
+    shipment.id, stage, `Carrier update: ${status}.`, now());
+  await emit(db, 'shipment.status_changed', 'shipment', shipment.id, { order_id: Number(shipment.order_id), from: shipment.status, to: stage });
+  return { status: 200, payload: { ok: true, shipment_id: Number(shipment.id), stage }, setCookie: null };
+}
+
 // ---------------------------------------------------------------- dispatch
 
 // Handle one API call. query is a URLSearchParams; cookies a plain object.
@@ -553,6 +602,18 @@ async function answer(db, { method, path, query, body, cookies, headers = {} }) 
   // Telegram's webhook: not an area route, and it authenticates with its own secret header.
   if (path === '/api/telegram' && method === 'POST') return await telegram.webhookReply(db, { headers, body });
   // The MCP server: JSON-RPC, authenticated with its own bearer token (MCP_TOKEN), fail closed.
+
+// Phase 9: the carrier webhook. No session: it authenticates with the shared secret and fails closed.
+// A repeated event id changes nothing, so a carrier retry cannot move a shipment twice.
+if (path === '/api/webhooks/shipping' && method === 'POST') {
+  const secret = process.env.SHIPPING_WEBHOOK_SECRET;
+  if (!secret) return { status: 403, payload: { error: 'Shipping webhook is not configured.' }, setCookie: null };
+  const given = String(headers['x-shipping-secret'] ?? '');
+  if (given.length !== secret.length || !cryptoEqual(given, secret)) {
+    return { status: 403, payload: { error: 'Forbidden.' }, setCookie: null };
+  }
+  return await shippingWebhook(db, body);
+}
   if (path === '/api/mcp' && method === 'POST') return { ...(await mcp.handle(db, { headers, body })), setCookie: null };
   try {
     const m = /^\/api\/(shop|seller|ops)(\/.*)$/.exec(path);

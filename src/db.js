@@ -613,6 +613,10 @@ CREATE TABLE IF NOT EXISTS seller_applications (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     submitted_at TIMESTAMPTZ
 );
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS awb TEXT;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS label_url TEXT;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS carrier_ref TEXT;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS booked_at TIMESTAMPTZ;
 `;
 
 const pad = (n) => String(n).padStart(2, '0');
