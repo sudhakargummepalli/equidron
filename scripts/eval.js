@@ -12,7 +12,7 @@ import path from 'node:path';
 import { all, isServerUrl, run } from '../src/db.js';
 import { getAgent, budgetLeft } from '../src/agents/agents.js';
 import { costOf, knownModel } from '../src/agents/models.js';
-import { seedEvalCases, taskFor } from '../src/agents/evals.js';
+import { gradeSupport, seedEvalCases, taskFor } from '../src/agents/evals.js';
 import { PROFILES } from '../src/agents/profiles.js';
 import { runAgent } from '../src/agents/runtime.js';
 import { loadEnv } from '../src/env.js';
@@ -94,8 +94,17 @@ try {
     let caseCost = 0;
     try {
       const out = await runAgent(db, { agentId, task, trigger: 'eval', subject: `eval:${c.id}` }, {});
-      actual = out.decision ?? out.reply ?? null;
-      ok = matches(actual, want) && !mustNot.includes(actual?.decision);
+      if (agentId === 'support') {
+        // A support run is graded by what it did: the tools it reached for, read back from its
+        // trace, because its answer is prose and a person reads that.
+        const steps = await all(db, 'SELECT tool FROM agent_steps WHERE run_id = ? ORDER BY step', out.id ?? out.run_id ?? 0);
+        const graded = gradeSupport(steps, c.expected || {});
+        actual = { outcome: graded.outcome, tools: graded.tools, why: graded.why };
+        ok = graded.ok;
+      } else {
+        actual = out.decision ?? out.reply ?? null;
+        ok = matches(actual, want) && !mustNot.includes(actual?.decision);
+      }
       caseCost = Number(out.cost_usd) || 0;
       spent += caseCost;
     } catch (e) {

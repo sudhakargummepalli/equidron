@@ -5,9 +5,11 @@
 // scripted stand-in, so they prove the machinery, not the judgement.
 import { all, run } from '../db.js';
 import LISTING_REVIEW from './evals/listing-review.json' with { type: 'json' };
+import SUPPORT from './evals/support.json' with { type: 'json' };
 
 export const SETS = {
   listing_review: LISTING_REVIEW,
+  support: SUPPORT,
 };
 
 // Add the set to eval_cases, skipping names that are already there, so it can run on every
@@ -29,9 +31,34 @@ export async function seedEvalCases(db, agentId) {
 // in the case, without tools, so an eval never needs rows in the database.
 export function taskFor(agentId, fixture) {
   if (fixture.task) return String(fixture.task);
+  if (agentId === 'support') {
+    return `A customer wrote to support:\n"${fixture.ticket}"\n\n`
+      + 'Read the ticket, look up the facts, then reply to the customer or escalate to a person.';
+  }
   if (agentId === 'listing_review') {
     return `Judge this submission. The facts:\n${JSON.stringify(fixture, null, 2)}\n\n`
       + 'Do not call any tools. Answer with the JSON decision only.';
   }
   return JSON.stringify(fixture);
+}
+
+// A support run is graded by what it did, not by its prose: the tool it reached for is the
+// outcome. 'must_not_tools' is the hard half of the expectation - a case may pass on outcome and
+// still fail by touching money it should have left alone.
+export function gradeSupport(steps, expected = {}) {
+  const tools = (steps || []).map((s) => s.tool).filter(Boolean);
+  const outcome = tools.includes('refund_return') ? 'refund'
+    : tools.includes('reject_return') ? 'reject'
+      : tools.includes('escalate_ticket') ? 'escalate'
+        : tools.includes('reply_to_ticket') ? 'reply' : 'none';
+  const wanted = [].concat(expected.outcomes || []);
+  const forbidden = [].concat(expected.must_not_tools || []);
+  const broke = tools.filter((t) => forbidden.includes(t));
+  const ok = (wanted.length ? wanted.includes(outcome) : outcome !== 'none') && broke.length === 0;
+  return {
+    ok, outcome, tools, broke,
+    why: ok ? 'as expected'
+      : broke.length ? `used a tool it must not: ${[...new Set(broke)].join(', ')}`
+        : `outcome ${outcome}, expected ${wanted.join(' or ')}`,
+  };
 }

@@ -155,6 +155,18 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
   - Ops sees `first_response_breached` on each ticket in `listTickets()`.
   - `node --test`: 257 of 257 pass (7 new: `tests/support-timers.test.js`).
 
+- Phase 6 · the 50 support cases (slice 6, closes the phase's build):
+  - `src/agents/evals/support.json`: 50 cases across where-is-my-order, damaged, late, fake-support scams,
+    Telugu, angry customers, policy edges (grocery, return window, refund to another account), invoices, address
+    changes, cancellations, and prompt injection.
+  - Every case names the acceptable outcomes and the tools it **must not** use; no case allows a refund, because a
+    refund is the Returns agent's decision.
+  - `gradeSupport()` grades a run by the tools its trace shows: `reply_to_ticket` = reply, `escalate_ticket` =
+    escalate, and touching a forbidden tool fails the case even when the outcome is otherwise right.
+  - `node scripts/eval.js support` is a free dry run; `--yes` runs the 50 cases against the real model (about
+    $0.40 at Sonnet/Haiku rates) and records pass/fail in `eval_results`.
+  - `node --test`: 264 of 264 pass (7 new: `tests/evals-support.test.js`, no model needed).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,
