@@ -18,6 +18,7 @@ import { capBulk, counts as guardrailCounts, recent as recentGuardrails } from '
 import * as incidents from './incidents.js';
 import * as analytics from './analytics.js';
 import * as telegram from './telegram.js';
+import * as mcp from './mcp.js';
 import * as listings from './listings.js';
 import * as proposals from './proposals.js';
 import * as settlement from './settlement.js';
@@ -531,6 +532,8 @@ async function answer(db, { method, path, query, body, cookies, headers = {} }) 
   if (path === '/api/health' && method === 'GET') return await health(db);
   // Telegram's webhook: not an area route, and it authenticates with its own secret header.
   if (path === '/api/telegram' && method === 'POST') return await telegram.webhookReply(db, { headers, body });
+  // The MCP server: JSON-RPC, authenticated with its own bearer token (MCP_TOKEN), fail closed.
+  if (path === '/api/mcp' && method === 'POST') return { ...(await mcp.handle(db, { headers, body })), setCookie: null };
   try {
     const m = /^\/api\/(shop|seller|ops)(\/.*)$/.exec(path);
     if (!m) throw new AppError(404, 'Unknown API endpoint.');

@@ -198,6 +198,15 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     dead changes nothing.
   - `node --test`: 287 of 287 pass (8 new: `tests/ops-manager.test.js`).
 
+- Phase 13 · the MCP server (slice 2):
+  - `POST /api/mcp` speaks JSON-RPC 2.0 (`initialize`, `ping`, `tools/list`, `tools/call`) and is
+    authenticated with `Authorization: Bearer $MCP_TOKEN`. **With no token configured it refuses every call**,
+    and the comparison is constant-time.
+  - Tools: `list_approvals`, `decide_approval` (the only write), `get_incidents`, `get_agent_runs`,
+    `get_job_queue`. Each calls the same service function the Ops page calls, so an MCP decision leaves the same
+    audit row. A tool error comes back as tool output (`isError`), not a transport failure.
+  - `node --test`: 294 of 294 pass (7 new: `tests/mcp.test.js`).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,
