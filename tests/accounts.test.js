@@ -82,7 +82,8 @@ test('an admin changes permissions, and the change is audited; nobody else can',
 });
 
 test('every interface refuses an agent account and an agent session', async () => {
-  const agentId = await transaction(db, () => auth.createAgentUser(db, 'returns', 'Returns agent'));
+  // A name that is not one of the seeded agents: 'returns' and the others already have accounts.
+  const agentId = await transaction(db, () => auth.createAgentUser(db, 'demo_agent', 'Demo agent'));
   const agent = await one(db, 'SELECT * FROM users WHERE id = ?', agentId);
   assert.equal(agent.role, 'agent');
   for (const [area, role] of Object.entries(AREAS)) {

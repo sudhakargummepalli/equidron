@@ -43,7 +43,7 @@ export const LISTENERS = {
   'payment.captured': ['email:order_event'],
   'shipment.status_changed': ['email:order_event'],
   'order.cancelled': ['email:order_event'],
-  'return.requested': ['email:order_event'],
+  'return.requested': ['email:order_event', 'agent:returns'],
   'return.received': ['email:order_event'],
   'return.rejected': ['email:order_event'],
   // A seller hears about their own listing: when it is added or edited, and when it is decided.

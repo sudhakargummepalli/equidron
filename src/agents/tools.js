@@ -256,7 +256,7 @@ registerTool({
   name: 'refund_return',
   description: 'Mark a returned item as received and refund it to the original payment method. Above the limit a person must approve it.',
   risk: 'money',
-  agents: ['ops_helper'],
+  agents: ['ops_helper', 'returns'],
   autoLimitPaise: 200_000, // Rs 2,000: above this, a person approves
   input_schema: {
     type: 'object', additionalProperties: false,
@@ -657,5 +657,53 @@ registerTool({
         'Thank you for the details. I have passed this to a person on our team, who will reply here shortly.', false);
     }
     return { ticket_id: Number(input.ticket_id), escalated: true, already_escalated: !fresh };
+  },
+});
+
+// ---------------------------------------------------------------- Phase 6: returns
+
+registerTool({
+  name: 'get_return',
+  description: 'One return: the item, its order, the customer, the reason they gave and the return status. Read-only.',
+  risk: 'read',
+  agents: ['returns'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: { return_id: { type: 'integer', description: 'The return number.' } },
+    required: ['return_id'],
+  },
+  async run(db, ctx, input) {
+    const r = await one(db, `SELECT r.*, oi.title, oi.unit_price_paise, oi.qty AS item_qty, o.status AS order_status,
+                                    o.payment_status, u.name AS customer_name, s.name AS seller_name,
+                                    oi.unit_price_paise * r.qty AS refund_paise
+                             FROM returns r JOIN order_items oi ON oi.id = r.order_item_id
+                             JOIN orders o ON o.id = r.order_id JOIN users u ON u.id = r.user_id
+                             JOIN sellers s ON s.id = oi.seller_id WHERE r.id = ?`, input.return_id);
+    if (!r) throw badRequest('There is no such return.');
+    return {
+      return_id: Number(r.id), status: r.status, order_id: Number(r.order_id), title: r.title,
+      qty: r.qty, reason: r.reason, refund_paise: Number(r.refund_paise), customer_name: r.customer_name,
+      seller_name: r.seller_name, order_status: r.order_status, payment_status: r.payment_status,
+    };
+  },
+});
+
+registerTool({
+  name: 'reject_return',
+  description: 'Refuse a return with a short reason the customer will read. Use it only when the reason given does not match the policy.',
+  risk: 'write',
+  agents: ['returns'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      return_id: { type: 'integer', description: 'The return number.' },
+      note: { type: 'string', minLength: 3, maxLength: 300, description: 'Why it is refused, in the customer’s words.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why refusing is right here.' },
+    },
+    required: ['return_id', 'note', 'reason'],
+  },
+  async run(db, ctx, input) {
+    await orders.rejectReturn(db, input.return_id, input.note, ctx.agent.user_id);
+    return { return_id: Number(input.return_id), rejected: true };
   },
 });

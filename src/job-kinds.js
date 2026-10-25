@@ -143,7 +143,30 @@ export const AGENT_KINDS = {
 
   // A customer wrote to support: answer it, or escalate with a summary.
   'agent:support': (db, payload) => answerTicket(db, payload.entity_id),
+
+  // A return was requested: decide it, and refund it if the policy allows.
+  'agent:returns': (db, payload) => reviewReturn(db, payload.entity_id),
 };
+
+// Phase 6: one run per return, while it is still waiting for a pickup. The guard is on the
+// return's status, so a retried job cannot decide the same return twice.
+export async function reviewReturn(db, returnId, options = {}) {
+  if (!(await ready(db, 'returns'))) return;
+  const r = await one(db, 'SELECT id, status FROM returns WHERE id = ?', returnId);
+  if (!r || r.status !== 'pickup_scheduled') return;
+  const subject = `return:${r.id}`;
+  const earlier = await one(db, `SELECT 1 AS x FROM agent_runs WHERE agent_id = 'returns' AND subject = ?
+                                AND (status IN ('done', 'waiting')
+                                     OR (status = 'running' AND started_at > now() - interval '20 minutes'))
+                                LIMIT 1`, subject);
+  if (earlier) return;
+  return await runAgent(db, {
+    agentId: 'returns',
+    trigger: 'event:return.requested',
+    subject,
+    task: `Return #${r.id} was requested. Read it with get_return, then refund it if the policy allows, or reject it with a clear note.`,
+  }, { ...options, ctx: { returnId: Number(r.id), ...options.ctx } });
+}
 
 // Phase 6: one run per customer message, never one per reply of ours. The guard on the last
 // message's author is what stops a loop: our own reply emits ticket.message too.
