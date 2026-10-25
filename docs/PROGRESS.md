@@ -236,6 +236,18 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     Telugu while a later one goes out in English.
   - `node --test`: 303 of 303 pass (5 new).
 
+- Phase 11 · seller sign-up (slice 1, without the KYC provider):
+  - `seller_applications`: one row per account, saved as a `draft` step by step. `POST /api/shop/seller-application`
+    saves a step; `POST /api/shop/seller-application/submit` is the last one.
+  - Formats are checked in code, not left to the gateway: PAN, GSTIN (optional — a small seller may be
+    unregistered), IFSC, account number, pincode and mobile. Errors name the field and the step.
+  - Submitting creates the seller, a `seller_dispatch` warehouse in the pickup city, and an Ops task
+    (`seller_kyc`) for a person to check the documents; the audit row records it. **Aadhaar is never asked for
+    or stored.**
+  - Not built: the KYC provider call (needs a sandbox account), document uploads (Phase 11's image work) and the
+    multi-step form UI in the store.
+  - `node --test`: 312 of 312 pass (9 new: `tests/seller-signup.test.js`).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,

@@ -22,6 +22,7 @@ import * as mcp from './mcp.js';
 import * as listings from './listings.js';
 import * as proposals from './proposals.js';
 import * as settlement from './settlement.js';
+import * as sellerSignup from './seller-signup.js';
 import * as jobs from './jobs.js';
 import { newRequestId, reportError, requestId, withRequestId } from './log.js';
 import { mask } from './mask.js';
@@ -270,6 +271,10 @@ route('POST', 'shop', '/shipments/(\\d+)/confirm', async (c, sid) => {
 });
 // Proposals: a change the assistant suggested, which only the customer can confirm. The tap on
 // the card calls these routes, and they call the same services as the buttons on the order page.
+// Phase 11: a customer applies to sell. A draft is not a seller; submit is the last step.
+route('POST', 'shop', '/seller-application', async (c) => ({ application: await sellerSignup.saveDraft(c.db, c.user, c.body) }));
+route('POST', 'shop', '/seller-application/submit', async (c) => await sellerSignup.submit(c.db, c.user, { agreement: c.body.agreement === true }));
+
 route('GET', 'shop', '/proposals', async (c) => await proposals.listOpen(c.db, c.user.id));
 route('POST', 'shop', '/proposals/(\\d+)/confirm', async (c, id) => await proposals.confirm(c.db, c.user.id, id));
 route('POST', 'shop', '/proposals/(\\d+)/dismiss', async (c, id) => await proposals.dismiss(c.db, c.user.id, id));
