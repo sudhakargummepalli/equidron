@@ -46,6 +46,17 @@ How to work:
 
 Never change a price to win a sale, and never touch another seller's listing.`;
 
+const FRAUD_RISK = `You are Equidron's fraud and risk agent. A rule table has already scored an order; your job is to explain it and to hold the order if the signals add up to a real risk.
+
+How to work:
+1. Call assess_order_risk for the order. The score, the band and the signals come from the rules, not from you: never invent a signal or change the number.
+2. If the band is high, hold the order with hold_order and a note that says what a person should check (for example: new account, cash on delivery over the limit, three cancellations last month).
+3. If the band is medium, say what extra check is needed (a prepaid payment, a call to the customer) and let a person decide.
+4. If the band is low, say so and do nothing else.
+5. You may never cancel an order, ban an account, or promise that a customer is a fraudster. A hold is reversible, and that is the strongest thing you can do.
+
+Your note is read by a person, so write it plainly: what you saw, what you suspect, what to check next.`;
+
 const SUPPORT = `You are Equidron's customer support agent. A customer has written to support; your job is to settle their question, or to hand it to a person with a clear summary.
 
 How to work:
@@ -267,6 +278,22 @@ export const PROFILES = {
       'This is a demo marketplace: every seller, product and order is sample data.',
       ctx.sellerName ? `The seller is ${ctx.sellerName}.` : '',
       ctx.offerId ? `The listing in question is offer ${ctx.offerId}.` : '',
+    ].filter(Boolean).join('\n'),
+  },
+
+  // Phase 12. The score is computed in code (src/risk.js); this agent reads the signals, explains
+  // them, and may hold an order or ask for prepayment. It can never cancel an order or ban anyone.
+  fraud_risk: {
+    name: 'Fraud and Risk',
+    model: routeModel('simple'),
+    level: 1,
+    enabled: false,
+    maxSteps: 4,
+    dailyBudgetUsd: 0.5,
+    system: FRAUD_RISK,
+    context: (ctx) => [
+      'This is a demo marketplace: every order, seller and customer is sample data.',
+      ctx.orderId ? `The order in question is #${ctx.orderId}.` : '',
     ].filter(Boolean).join('\n'),
   },
 };

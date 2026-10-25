@@ -20,6 +20,7 @@ import * as listings from '../listings.js';
 import * as notify from '../notify.js';
 import * as orders from '../orders.js';
 import * as proposals from '../proposals.js';
+import * as risk from '../risk.js';
 
 export const RISKS = ['read', 'write', 'money', 'irreversible'];
 
@@ -105,6 +106,64 @@ export async function executeTool(db, agent, call, key, ctx = {}) {
     return { replayed: false, result };
   });
 }
+
+// ---------------------------------------------------------------- Phase 12: fraud and risk
+
+registerTool({
+  name: 'assess_order_risk',
+  description: 'Score one order against the rule table and return the signals and one sentence. Read-only: it changes nothing.',
+  risk: 'read',
+  agents: ['fraud_risk'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: { order_id: { type: 'integer', description: 'The order number.' } },
+    required: ['order_id'],
+  },
+  async run(db, ctx, input) {
+    const result = await risk.assess(db, input.order_id);
+    return { order_id: input.order_id, score: result.score, band: result.band, signals: result.signals, explanation: result.explanation };
+  },
+});
+
+registerTool({
+  name: 'hold_order',
+  description: 'Hold an order for a person to look at. Reversible, and it never cancels the order.',
+  risk: 'write',
+  agents: ['fraud_risk'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      order_id: { type: 'integer', description: 'The order number.' },
+      note: { type: 'string', minLength: 3, maxLength: 300, description: 'Why it is held, in a sentence a person can read.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why holding is right.' },
+    },
+    required: ['order_id', 'note', 'reason'],
+  },
+  async run(db, ctx, input) {
+    const out = await risk.hold(db, input.order_id, { reason: input.note, by: ctx.agent?.user_id ?? null });
+    return { ...out, reversible: 'A person can release it in Ops.' };
+  },
+});
+
+registerTool({
+  name: 'release_order_hold',
+  description: 'Release a hold that is still active, with a note. The hold record stays in the history.',
+  risk: 'write',
+  agents: ['fraud_risk'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      order_id: { type: 'integer', description: 'The order number.' },
+      note: { type: 'string', maxLength: 300, description: 'Why it can go ahead.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why releasing is right.' },
+    },
+    required: ['order_id', 'reason'],
+  },
+  async run(db, ctx, input) {
+    const out = await risk.release(db, input.order_id, { by: ctx.agent?.user_id ?? null, note: input.note ?? null });
+    return { ...out, note: 'The order was never cancelled by the hold.' };
+  },
+});
 
 // ---------------------------------------------------------------- Phase 7: seller agents
 

@@ -167,6 +167,16 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     $0.40 at Sonnet/Haiku rates) and records pass/fail in `eval_results`.
   - `node --test`: 264 of 264 pass (7 new: `tests/evals-support.test.js`, no model needed).
 
+- Phase 12 · Fraud and risk (slice 1):
+  - `src/risk.js`: eight rules in code (new account, high value, cash-on-delivery over ₹20,000, three-plus
+    cancellations a month, failed payments, order velocity, a new city, bulk quantity), each with its points and a
+    sentence a person reads. The same facts always give the same score; 60+ holds, 30–59 asks for prepayment.
+  - `order_holds` is a record, not a flag: who, why, the score at that moment, and the signals. One active hold per
+    order; releasing keeps the row, so the history survives. **A hold never cancels an order.**
+  - Tools for the agent: `assess_order_risk` (read), `hold_order`, `release_order_hold`. It has no way to cancel
+    or ban, and it starts off at L1 like every other agent.
+  - `node --test`: 272 of 272 pass (8 new: `tests/risk.test.js`).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,
