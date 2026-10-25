@@ -13,9 +13,12 @@
 //
 // ctx holds facts the model must not be able to forge, such as the customer in the case.
 import { addDays, all, changes, indiaDate, one, run, scalar, transaction } from '../db.js';
+import { actorUserId, audit } from '../audit.js';
 import { badRequest } from '../errors.js';
 import { emit } from '../events.js';
 import { CATEGORIES, productDetail, search } from '../catalog.js';
+import * as agents from './agents.js';
+import * as jobs from '../jobs.js';
 import * as listings from '../listings.js';
 import * as notify from '../notify.js';
 import * as orders from '../orders.js';
@@ -162,6 +165,98 @@ registerTool({
   async run(db, ctx, input) {
     const out = await risk.release(db, input.order_id, { by: ctx.agent?.user_id ?? null, note: input.note ?? null });
     return { ...out, note: 'The order was never cancelled by the hold.' };
+  },
+});
+
+// ---------------------------------------------------------------- Phase 13: Ops Manager
+//
+// It may retry, pause and escalate. It may NOT unpause anything, raise a limit or change a
+// permission: those tools simply do not exist, so the prompt is not the guard.
+
+registerTool({
+  name: 'ops_trouble',
+  description: 'What is wrong right now: dead or retrying jobs, failed agent runs, paused agents. Read-only.',
+  risk: 'read',
+  agents: ['ops_manager'],
+  input_schema: { type: 'object', additionalProperties: false, properties: {} },
+  async run(db) {
+    const jobs = await all(db, `SELECT id, kind, status, attempts, last_error, run_after FROM jobs
+                                WHERE status IN ('dead', 'failed') OR (status = 'queued' AND attempts > 0)
+                                ORDER BY id DESC LIMIT 20`);
+    const runs = await all(db, `SELECT id, agent_id, status, error, started_at FROM agent_runs
+                                WHERE status = 'failed' ORDER BY id DESC LIMIT 10`);
+    const agentRows = await all(db, 'SELECT id, name, enabled, autonomy_level FROM agents ORDER BY id');
+    return {
+      jobs: jobs.map((j) => ({ job_id: Number(j.id), kind: j.kind, status: j.status, attempts: Number(j.attempts), error: j.last_error })),
+      failed_runs: runs.map((r) => ({ run_id: Number(r.id), agent: r.agent_id, error: r.error })),
+      agents: agentRows.map((a) => ({ agent_id: a.id, enabled: Boolean(a.enabled), level: Number(a.autonomy_level) })),
+      paused_all: await agents.allPaused(db),
+    };
+  },
+});
+
+registerTool({
+  name: 'retry_job',
+  description: 'Put a dead or failed job back in the queue, once. It runs on the next tick.',
+  risk: 'write',
+  agents: ['ops_manager'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      job_id: { type: 'integer', description: 'The job id from ops_trouble.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why a retry is right.' },
+    },
+    required: ['job_id', 'reason'],
+  },
+  async run(db, ctx, input) {
+    const ok = await jobs.retry(db, input.job_id);
+    return { job_id: input.job_id, retried: ok, note: ok ? 'It runs on the next tick.' : 'That job is not dead or failed.' };
+  },
+});
+
+registerTool({
+  name: 'pause_agent',
+  description: 'Switch one agent off when it is behaving badly. This cannot be undone by you: only a person can switch it back on.',
+  risk: 'write',
+  agents: ['ops_manager'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      agent_id: { type: 'string', maxLength: 40, description: 'The agent id from ops_trouble.' },
+      note: { type: 'string', minLength: 3, maxLength: 300, description: 'Why it is being paused, for the person who reads it.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why pausing is right.' },
+    },
+    required: ['agent_id', 'note', 'reason'],
+  },
+  async run(db, ctx, input) {
+    if (input.agent_id === 'ops_manager') throw badRequest('You cannot pause yourself; a person decides that.');
+    const before = await agents.getAgent(db, input.agent_id);
+    if (!before) throw badRequest('There is no such agent.');
+    await agents.updateAgent(db, input.agent_id, { enabled: false });
+    await audit(db, 'agent.pause', 'agent', input.agent_id, { enabled: Boolean(before.enabled) }, { enabled: false, note: input.note });
+    return { agent_id: input.agent_id, enabled: false, note: 'A person must switch it back on in Ops → Agents.' };
+  },
+});
+
+registerTool({
+  name: 'escalate_to_person',
+  description: 'Write an Ops task with a summary a person can act on, for anything you should not fix yourself.',
+  risk: 'write',
+  agents: ['ops_manager'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: {
+      subject: { type: 'string', minLength: 3, maxLength: 120, description: 'One line: what needs a person.' },
+      body: { type: 'string', minLength: 3, maxLength: 800, description: 'What you saw, what you tried, what to do next.' },
+      reason: { type: 'string', maxLength: 200, description: 'One short sentence: why a person is needed.' },
+    },
+    required: ['subject', 'body', 'reason'],
+  },
+  async run(db, ctx, input) {
+    const key = `ops_manager:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+    await run(db, `INSERT INTO ops_tasks (kind, subject, body, dedupe_key) VALUES ('ops_escalation', ?, ?, ?)`,
+      input.subject, input.body, key);
+    return { escalated: true, subject: input.subject };
   },
 });
 

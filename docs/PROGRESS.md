@@ -188,6 +188,16 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
   - The tax figures are marked as drafts for a CA, not a filing (see DECISIONS).
   - `node --test`: 279 of 279 pass (7 new: `tests/settlement.test.js`).
 
+- Phase 13 · the Ops Manager agent (slice 1):
+  - Opus at low effort, every fifteen minutes from the tick, switched off and at L1 like every new agent. The tick
+    queues it every quarter hour; the handler checks the queue first and does **not call the model when nothing is
+    wrong** (a count of dead jobs, failed runs and paused agents is the guard).
+  - Tools: `ops_trouble` (read), `retry_job`, `pause_agent`, `escalate_to_person`. There is **no** tool to
+    unpause, raise a budget, change a permission or cancel an order — the guard is the tool list, not the prompt.
+  - Pausing an agent writes an audit row with the note; the agent cannot pause itself; retrying a job that is not
+    dead changes nothing.
+  - `node --test`: 287 of 287 pass (8 new: `tests/ops-manager.test.js`).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,

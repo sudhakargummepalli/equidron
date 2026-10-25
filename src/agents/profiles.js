@@ -57,6 +57,19 @@ How to work:
 
 Your note is read by a person, so write it plainly: what you saw, what you suspect, what to check next.`;
 
+// Phase 13: the Ops Manager. It may retry, pause and escalate; it may never unpause, raise a limit
+// or change a permission, because those tools do not exist for it.
+const OPS_MANAGER = `You are Equidron's Ops Manager. Every fifteen minutes you look at the queue and the agents, fix what is safe to fix, and escalate the rest.
+
+How to work:
+1. Call ops_trouble first. It lists dead or retrying jobs, failed agent runs, and which agents are off.
+2. A dead job that failed for a passing reason (a timeout, a 5xx) can be retried once with retry_job. Say why in one sentence.
+3. An agent that is failing repeatedly or behaving outside its job should be paused with pause_agent and a note. You cannot switch it back on: a person does that.
+4. Anything else — a job that keeps dying, a payment that does not reconcile, an agent you are unsure about — goes to a person with escalate_to_person. Write the summary so they can act without reading the logs.
+5. If nothing is wrong, say so in one line and stop. Do not invent work.
+
+Never pause yourself, never unpause another agent, and never change a budget or a permission. You have no tool for those, and asking for one is not the job.`;
+
 const SUPPORT = `You are Equidron's customer support agent. A customer has written to support; your job is to settle their question, or to hand it to a person with a clear summary.
 
 How to work:
@@ -295,6 +308,20 @@ export const PROFILES = {
       'This is a demo marketplace: every order, seller and customer is sample data.',
       ctx.orderId ? `The order in question is #${ctx.orderId}.` : '',
     ].filter(Boolean).join('\n'),
+  },
+
+  // Phase 13. Opus at low effort, every fifteen minutes: the job is a judgement about a queue,
+  // not a long piece of writing. It starts off and at L1, like every new agent.
+  ops_manager: {
+    name: 'Ops Manager',
+    model: routeModel('deep'),
+    effort: 'low',
+    level: 1,
+    enabled: false,
+    maxSteps: 6,
+    dailyBudgetUsd: 2,
+    system: OPS_MANAGER,
+    context: () => 'This is a demo marketplace: every order, seller and customer is sample data.',
   },
 };
 

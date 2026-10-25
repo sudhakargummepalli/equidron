@@ -201,6 +201,10 @@ export async function tick(db, { at = new Date() } = {}) {
     if (await needsDelivery(db)) {
       if (await enqueue(db, 'email:deliver', {}, { dedupeKey: `email:${minute}`, maxAttempts: 1 })) enqueued.push('email:deliver');
     }
+    // The Ops Manager looks at the queue every fifteen minutes. It is queued every quarter hour
+    // whatever the state: the handler itself decides cheaply whether there is anything to look at.
+    const quarter = Math.floor(at.getTime() / (15 * 60_000));
+    if (await enqueue(db, 'agent:ops_manager', {}, { dedupeKey: `ops_manager:${quarter}`, maxAttempts: 1 })) enqueued.push('agent:ops_manager');
     await setSetting(db, 'tick.last', at.toISOString());
   });
   if (dispatched || enqueued.length) log('info', 'tick', { dispatched, enqueued });

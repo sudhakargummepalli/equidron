@@ -146,7 +146,40 @@ export const AGENT_KINDS = {
 
   // A return was requested: decide it, and refund it if the policy allows.
   'agent:returns': (db, payload) => reviewReturn(db, payload.entity_id),
+
+  // Every fifteen minutes: look at the queue, retry what is safe, pause what is misbehaving, and
+  // escalate the rest. It runs only when there is something to look at.
+  'agent:ops_manager': (db) => runOpsManager(db),
 };
+
+// Phase 13. Cheap when nothing is wrong: the check is a count, and the model is not called unless
+// there is a dead job, a failed run or a paused agent to think about.
+export async function runOpsManager(db, options = {}) {
+  if (!(await ready(db, 'ops_manager'))) return;
+  const dead = await one(db, `SELECT COUNT(*) AS n FROM jobs WHERE status IN ('dead', 'failed')`);
+  const failed = await one(db, `SELECT COUNT(*) AS n FROM agent_runs WHERE status = 'failed'
+                                AND started_at > now() - interval '1 day'`);
+  const paused = await one(db, 'SELECT COUNT(*) AS n FROM agents WHERE enabled = false');
+  const total = Number(dead.n) + Number(failed.n);
+  if (!total) return { skipped: 'nothing wrong' };
+
+  // One run per quarter hour, so a retried job cannot start a second look at the same facts.
+  const slot = Math.floor(Date.now() / (15 * 60_000));
+  const subject = `ops_manager:${slot}`;
+  const earlier = await one(db, `SELECT 1 AS x FROM agent_runs WHERE agent_id = 'ops_manager' AND subject = ?
+                                AND (status IN ('done', 'waiting')
+                                     OR (status = 'running' AND started_at > now() - interval '20 minutes'))
+                                LIMIT 1`, subject);
+  if (earlier) return { skipped: 'already ran this quarter hour' };
+
+  return await runAgent(db, {
+    agentId: 'ops_manager',
+    trigger: 'schedule:15m',
+    subject,
+    task: `Look at the queue: ${Number(dead.n)} dead or failed job(s), ${Number(failed.n)} failed agent run(s) in the last day, `
+      + `${Number(paused.n)} switched-off agent(s). Retry what is safe, pause what is misbehaving, escalate the rest.`,
+  }, options);
+}
 
 // Phase 6: one run per return, while it is still waiting for a pickup. The guard is on the
 // return's status, so a retried job cannot decide the same return twice.
