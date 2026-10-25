@@ -1,5 +1,5 @@
 /* Equidron Ops: listing review, logistics simulator, returns, support, settlement. */
-angular.module('ops', ['eqCommon']).controller('OpsCtrl', ['$location', '$window', 'Api', 'Router', 'Toast', 'AuthForm', 'SecurityPanel',
+angular.module('ops', ['eqCommon', 'equidronI18n']).controller('OpsCtrl', ['$location', '$window', 'Api', 'Router', 'Toast', 'AuthForm', 'SecurityPanel',
   function ($location, $window, Api, Router, Toast, AuthForm, SecurityPanel) {
     var api = Api('ops');
     var vm = this;

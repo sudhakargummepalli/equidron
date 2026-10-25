@@ -6,6 +6,9 @@
   <title>Equidron Store</title>
   <link rel="stylesheet" href="/common/style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js" integrity="sha512-KZmyTq3PLx9EZl0RHShHQuXtrvdJ+m35tuOiwlcZfs/rE7NZv29ygNA8SFCkMXTnYZQK2OX0Gm2qKGfvWEtRXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="/i18n/en.js"></script>
+  <script src="/i18n/te.js"></script>
+  <script src="/common/i18n.js"></script>
   <script src="/common/common.js"></script>
   <script src="/shop/shop.js"></script>
 </head>
@@ -14,19 +17,20 @@
   <div class="inner">
     <a class="logo" href="#/">equi<span>dron</span></a>
     <div class="nav small">
-      <span>Deliver to</span>
-      <select ng-model="vm.city" ng-change="vm.setCity()" ng-options="c for c in vm.meta.cities" aria-label="Delivery city"></select>
+      <span>{{ 'shop.deliverTo' | t }}</span>
+      <select ng-model="vm.city" ng-change="vm.setCity()" ng-options="c for c in vm.meta.cities" aria-label="{{ 'shop.deliveryCity' | t }}"></select>
     </div>
     <form class="grow searchbar" ng-submit="vm.search()" role="search">
-      <input type="text" ng-model="vm.q" placeholder="Search Equidron (try “phone”)" aria-label="Search products">
-      <button type="submit">Search</button>
+      <input type="text" ng-model="vm.q" placeholder="{{'shop.searchPlaceholder' | t}}" aria-label="{{'shop.searchLabel' | t}}">
+      <button type="submit">{{ 'common.search' | t }}</button>
     </form>
     <nav class="nav">
-      <a href="#/orders">Orders</a>
-      <a href="#/notifications" ng-if="vm.user">Alerts<span ng-if="vm.unread"> ({{vm.unread}})</span></a>
-      <a href="#/cart"><strong>Cart ({{vm.cart.count || 0}})</strong></a>
+      <a href="#/orders">{{ 'shop.orders' | t }}</a>
+      <a href="#/notifications" ng-if="vm.user">{{ 'shop.alerts' | t }}<span ng-if="vm.unread"> ({{vm.unread}})</span></a>
+      <a href="#/cart"><strong>{{ 'shop.cart' | t }} ({{vm.cart.count || 0}})</strong></a>
       <span ng-if="vm.user">Hi, {{vm.user.name.split(' ')[0]}} · <button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logout()">Sign out</button> · <button class="linkbtn" style="color:#c9d3e3" ng-click="vm.logoutAll()" title="Ends your sessions on every device">Sign out everywhere</button></span>
-      <a ng-if="!vm.user" href="#/login">Sign in</a>
+      <a ng-if="!vm.user" href="#/login">{{ 'shop.signIn' | t }}</a>
+      <span eq-lang-switch></span>
     </nav>
   </div>
 </header>
@@ -35,7 +39,7 @@
   <a href="" ng-repeat="c in vm.meta.categories" ng-click="vm.pickCategory(c)" ng-class="{on: vm.category === c}">{{c}}</a>
   <a href="#/support" ng-class="{on: vm.route.name === 'support'}">Customer service</a>
 </div></div>
-<div class="sample" ng-if="vm.meta.sample_notice">{{vm.meta.sample_notice}}</div>
+<div class="sample" ng-if="vm.meta.sample_notice">{{ 'banner.sample' | t }}</div>
 
 <main>
   <div class="alert bad" ng-if="vm.err">{{vm.err}}</div>
@@ -224,8 +228,8 @@
 
   <!-- ============ ORDERS ============ -->
   <section ng-if="vm.route.name === 'orders' && !vm.route.id && vm.user">
-    <h1>Your orders</h1>
-    <div class="empty card" ng-if="vm.orders && !vm.orders.length">No orders yet.</div>
+    <h1>{{ 'shop.yourOrders' | t }}</h1>
+    <div class="empty card" ng-if="vm.orders && !vm.orders.length">{{ 'shop.noOrders' | t }}</div>
     <a class="card" style="display:block;color:inherit;text-decoration:none" ng-repeat="o in vm.orders" href="#/orders/{{o.id}}">
       <div class="row between"><strong>Order #{{o.id}}</strong><span class="small muted">{{o.created_at | when}}</span></div>
       <div class="small"><span ng-repeat="i in o.items">{{i.title}} × {{i.qty}}<span ng-if="!$last"> · </span></span></div>

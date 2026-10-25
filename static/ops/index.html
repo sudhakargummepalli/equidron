@@ -7,6 +7,9 @@
   <link rel="stylesheet" href="/common/style.css">
   <style>.topbar { background: #2a1838; } .subnav { background: #3b2350; }</style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js" integrity="sha512-KZmyTq3PLx9EZl0RHShHQuXtrvdJ+m35tuOiwlcZfs/rE7NZv29ygNA8SFCkMXTnYZQK2OX0Gm2qKGfvWEtRXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="/i18n/en.js"></script>
+  <script src="/i18n/te.js"></script>
+  <script src="/common/i18n.js"></script>
   <script src="/common/common.js"></script>
   <script src="/ops/ops.js"></script>
 </head>
@@ -36,7 +39,7 @@
   <a ng-if="vm.can('admin')" href="#/incidents" ng-class="{on: vm.route.name === 'incidents'}">Incidents<span ng-if="vm.incidents && vm.incidents.status !== 'ok'"> ●</span></a>
   <a ng-if="vm.can('admin')" href="#/analytics" ng-class="{on: vm.route.name === 'analytics'}">Analytics</a>
 </div></div>
-<div class="sample">Sample data: every seller, product, customer and order here is fictional. Payments are simulated.</div>
+<div class="sample">{{ 'banner.sample' | t }}</div>
 
 <main>
   <div class="alert bad" ng-if="vm.err">{{vm.err}}</div>

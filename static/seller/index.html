@@ -7,6 +7,9 @@
   <link rel="stylesheet" href="/common/style.css">
   <style>.topbar, .chat-head, .chat-fab { background: #0f2b2a; } .subnav, .chat-fab:hover { background: #174240; }</style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js" integrity="sha512-KZmyTq3PLx9EZl0RHShHQuXtrvdJ+m35tuOiwlcZfs/rE7NZv29ygNA8SFCkMXTnYZQK2OX0Gm2qKGfvWEtRXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="/i18n/en.js"></script>
+  <script src="/i18n/te.js"></script>
+  <script src="/common/i18n.js"></script>
   <script src="/common/common.js"></script>
   <script src="/seller/seller.js"></script>
 </head>
@@ -23,14 +26,15 @@
   </div>
 </header>
 <div class="subnav" ng-if="vm.user"><div class="inner">
-  <a href="#/" ng-class="{on: vm.route.name === ''}">Dashboard</a>
-  <a href="#/inventory" ng-class="{on: vm.route.name === 'inventory' || vm.route.name === 'edit'}">Inventory</a>
-  <a href="#/submissions" ng-class="{on: vm.route.name === 'submissions'}">Submissions</a>
-  <a href="#/orders" ng-class="{on: vm.route.name === 'orders'}">Orders</a>
-  <a href="#/payments" ng-class="{on: vm.route.name === 'payments'}">Payments</a>
-  <a href="#/security" ng-class="{on: vm.route.name === 'security'}">Security</a>
+  <a href="#/" ng-class="{on: vm.route.name === ''}">{{ 'seller.dashboard' | t }}</a>
+  <a href="#/inventory" ng-class="{on: vm.route.name === 'inventory' || vm.route.name === 'edit'}">{{ 'seller.inventory' | t }}</a>
+  <a href="#/submissions" ng-class="{on: vm.route.name === 'submissions'}">{{ 'seller.submissions' | t }}</a>
+  <a href="#/orders" ng-class="{on: vm.route.name === 'orders'}">{{ 'seller.orders' | t }}</a>
+  <a href="#/payments" ng-class="{on: vm.route.name === 'payments'}">{{ 'seller.payments' | t }}</a>
+  <a href="#/security" ng-class="{on: vm.route.name === 'security'}">{{ 'seller.security' | t }}</a>
+  <span eq-lang-switch></span>
 </div></div>
-<div class="sample">Sample data: every seller, product, customer and order here is fictional. Payments are simulated.</div>
+<div class="sample">{{ 'banner.sample' | t }}</div>
 
 <main>
   <div class="alert bad" ng-if="vm.err">{{vm.err}}</div>
@@ -47,20 +51,20 @@
 
   <!-- ============ DASHBOARD ============ -->
   <section ng-if="vm.route.name === '' && vm.dash">
-    <div class="row between"><h1>Welcome, {{vm.user.seller_name}}</h1><a class="btn primary" href="#/edit/new">+ Add a product</a></div>
+    <div class="row between"><h1>{{ 'seller.welcome' | t }}, {{vm.user.seller_name}}</h1><a class="btn primary" href="#/edit/new">{{ 'seller.addProduct' | t }}</a></div>
     <div class="stats">
-      <div class="stat"><div class="v">{{vm.dash.active_listings}}</div><div class="k">Active listings</div></div>
-      <div class="stat"><div class="v">{{vm.dash.pending_reviews}}</div><div class="k">Submissions in review</div></div>
-      <div class="stat"><div class="v">{{vm.dash.open_orders}}</div><div class="k">Open order lines</div></div>
-      <div class="stat"><div class="v">{{vm.dash.to_dispatch}}</div><div class="k">Waiting for you to dispatch</div></div>
-      <div class="stat"><div class="v">{{vm.dash.balance_paise | inr}}</div><div class="k">Unsettled balance</div></div>
+      <div class="stat"><div class="v">{{vm.dash.active_listings}}</div><div class="k">{{ 'seller.activeListings' | t }}</div></div>
+      <div class="stat"><div class="v">{{vm.dash.pending_reviews}}</div><div class="k">{{ 'seller.pendingReviews' | t }}</div></div>
+      <div class="stat"><div class="v">{{vm.dash.open_orders}}</div><div class="k">{{ 'seller.openOrders' | t }}</div></div>
+      <div class="stat"><div class="v">{{vm.dash.to_dispatch}}</div><div class="k">{{ 'seller.toDispatch' | t }}</div></div>
+      <div class="stat"><div class="v">{{vm.dash.balance_paise | inr}}</div><div class="k">{{ 'seller.balance' | t }}</div></div>
     </div>
     <div class="card" ng-if="vm.dash.low_stock.length">
-      <h2>Low stock</h2>
+      <h2>{{ 'seller.lowStock' | t }}</h2>
       <table><tr ng-repeat="o in vm.dash.low_stock"><td>{{o.title}}</td><td>{{o.available}} left</td><td class="right"><a href="#/edit/{{o.id}}">Restock</a></td></tr></table>
     </div>
     <div class="card">
-      <h2>Orders on Telegram</h2>
+      <h2>{{ 'seller.telegram' | t }}</h2>
       <p class="small muted">Connect this account to the Equidron bot and ask about the orders waiting for you, from a
         chat. The bot never asks for your password.</p>
       <div ng-if="!vm.tgCode">

@@ -1,5 +1,5 @@
 /* Equidron storefront (customers). */
-angular.module('shop', ['eqCommon']).controller('ShopCtrl', ['$scope', '$location', '$window', 'Api', 'Router', 'Toast', 'AssistantChat', 'AuthForm',
+angular.module('shop', ['eqCommon', 'equidronI18n']).controller('ShopCtrl', ['$scope', '$location', '$window', 'Api', 'Router', 'Toast', 'AssistantChat', 'AuthForm',
   function ($scope, $location, $window, Api, Router, Toast, AssistantChat, AuthForm) {
     var api = Api('shop');
     var vm = this;

@@ -1,5 +1,5 @@
 /* Equidron Seller Central. */
-angular.module('seller', ['eqCommon']).controller('SellerCtrl', ['$location', '$window', 'Api', 'Router', 'Toast', 'AssistantChat', 'AuthForm', 'SecurityPanel',
+angular.module('seller', ['eqCommon', 'equidronI18n']).controller('SellerCtrl', ['$location', '$window', 'Api', 'Router', 'Toast', 'AssistantChat', 'AuthForm', 'SecurityPanel',
   function ($location, $window, Api, Router, Toast, AssistantChat, AuthForm, SecurityPanel) {
     var api = Api('seller');
     var vm = this;

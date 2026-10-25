@@ -207,6 +207,18 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     audit row. A tool error comes back as tool output (`isError`), not a transport failure.
   - `node --test`: 294 of 294 pass (7 new: `tests/mcp.test.js`).
 
+- Phase 10 · two languages (i18n slice):
+  - `static/i18n/en.js` and `te.js` hold the same keys (48 each): the store and Seller Central chrome, the sample
+    banner, order statuses and the common buttons. They are plain scripts, so nothing fetches and the CSP stays as it
+    is. `static/common/i18n.js` adds a `t` filter, a `eqT()` helper and a language switch; the choice lives in
+    localStorage and a change reloads, so nothing is left half-translated.
+  - The switch is in the store and Seller Central headers. Ops stays English on purpose (staff-facing).
+  - `tests/i18n.test.js` fails on a key present in one file and not the other, an empty value, a Telugu value that is
+    still English (no Telugu script), and on any key a page uses that the dictionaries do not have.
+  - Not translated yet: the long-form page bodies, the seller assistants' prompts and the emails. Those are the next
+    pass, and the test makes each gap visible rather than silent.
+  - `node --test`: 298 of 298 pass (4 new: `tests/i18n.test.js`).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,
