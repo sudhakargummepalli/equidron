@@ -279,6 +279,18 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
   - **A third provider, `twilio`**, exists for the WhatsApp sandbox: no Meta app and no business verification, so a real message can be seen within minutes. Set `WHATSAPP_PROVIDER=twilio`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`. It fails closed like the others.
   - `node --test`: 327 of 327 pass (9 new: `tests/whatsapp.test.js`).
 
+- Phase 10 · SMS (integration, provider-ready):
+  - `src/sms.js`: `send()` writes the row first, then calls the provider; a refused send is recorded with its error.
+    Bodies are cut to one segment (160 characters) so a text is not silently split or charged twice.
+  - Providers: `simulated` (default), `twilio`, `msg91`. All fail closed: no keys means a refusal, and on any real
+    provider a **DLT template id** (`SMS_DLT_TEMPLATE_ID`) is required, because an Indian operator rejects a
+    commercial SMS without one.
+  - The number texted is the phone on the delivery address, not an account field. `sms_opt_out_at` stops everything
+    until the person opts back in.
+  - Order events (placed, shipped and each stage, cancelled) queue `sms:order_event`.
+  - Not built: the DLT registration itself and a sender ID — those are filings with the operator, not code.
+  - `node --test`: 332 of 332 pass (5 new: `tests/sms.test.js`).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,

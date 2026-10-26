@@ -9,6 +9,7 @@ import { all, changes, indiaDate, loads, one, run } from './db.js';
 import * as emails from './emails.js';
 import { deliverOutbox } from './mailer.js';
 import * as whatsapp from './whatsapp.js';
+import * as sms from './sms.js';
 import * as orders from './orders.js';
 import { sendEmail } from './outbox.js';
 
@@ -118,6 +119,8 @@ export const BUILT_IN = {
 export const EXTERNAL_KINDS = {
   // One WhatsApp message per order event, and only to a customer who opted in.
   'whatsapp:order_event': (db, payload) => sendWhatsApp(db, payload.type, payload.entity_id),
+  // One SMS per order event, to the phone on the delivery address, unless the person opted out.
+  'sms:order_event': (db, payload) => sendSms(db, payload.type, payload.entity_id),
   // Deliver what is waiting in the outbox. Enqueued by the tick once a minute, and only when
   // there is something pending, so Ops does not fill with jobs that have nothing to do.
   'email:deliver': (db) => deliverOutbox(db),
@@ -171,6 +174,24 @@ export async function sendWhatsApp(db, type, orderId) {
   const build = whatsapp.ORDER_TEMPLATES[type];
   if (!build) return { skipped: `no message for ${type}` };
   return await whatsapp.send(db, { userId: o.user_id, phone: o.whatsapp_phone, body: build(o), template: null });
+}
+
+// Phase 10: the same events, by SMS, for a customer who prefers a text.
+export async function sendSms(db, type, orderId) {
+  const o = await one(db, `SELECT o.id, o.status, o.payment_status, o.total_paise,
+                                  u.id AS user_id, u.sms_opt_out_at
+                           FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?`, orderId);
+  if (!o) return { skipped: 'no order' };
+  if (sms.optedOut(o)) return { skipped: 'opted out' };
+  if (type === 'shipment.status_changed') {
+    const s = await one(db, 'SELECT status FROM shipments WHERE order_id = ? ORDER BY id DESC LIMIT 1', o.id);
+    if (s) o.status = s.status;
+  }
+  const build = sms.ORDER_TEMPLATES[type];
+  if (!build) return { skipped: `no message for ${type}` };
+  const phone = await sms.phoneFor(db, o.user_id);
+  if (!phone) return { skipped: 'no phone on the address' };
+  return await sms.send(db, { userId: o.user_id, phone, body: build(o) });
 }
 
 export async function runOpsManager(db, options = {}) {
