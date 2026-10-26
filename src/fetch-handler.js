@@ -23,6 +23,9 @@ export async function handleRequest(db, request) {
     headers: Object.fromEntries(request.headers),
   });
 
+  if (out.text !== undefined && out.text !== null) {
+    return new Response(out.text, { status: out.status, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
+  }
   const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
     'X-Request-Id': out.requestId };
   if (out.setCookie) headers['Set-Cookie'] = `${out.setCookie}; Secure`;

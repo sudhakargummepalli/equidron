@@ -25,6 +25,7 @@ import * as settlement from './settlement.js';
 import * as sellerSignup from './seller-signup.js';
 import { emit } from './events.js';
 import * as shipping from './shipping.js';
+import * as whatsapp from './whatsapp.js';
 import crypto from 'node:crypto';
 
 const { STAGE_FROM_CARRIER } = shipping;
@@ -138,6 +139,10 @@ for (const area of ['shop', 'seller']) {
 
 // The language a person reads. The interface keeps it in localStorage; saving it here is what
 // lets emails be written in it.
+// Phase 10: WhatsApp is opt-in, and the session decides whose number is saved.
+route('POST', 'shop', '/whatsapp/opt-in', async (c) => await whatsapp.optIn(c.db, c.user.id, c.body.phone));
+route('POST', 'shop', '/whatsapp/opt-out', async (c) => await whatsapp.optOut(c.db, c.user.id));
+
 for (const area of ['shop', 'seller']) {
   route('POST', area, '/language', async (c) => {
     const language = String(c.body.language || '').trim();
@@ -574,6 +579,42 @@ async function shippingWebhook(db, body) {
   return { status: 200, payload: { ok: true, shipment_id: Number(shipment.id), stage }, setCookie: null };
 }
 
+
+// The WhatsApp webhook: every incoming message is kept, and a status question gets a status answer.
+// The shared-secret header is what authenticates it here; Meta's own signature is over the raw
+// body, which the JSON handlers do not keep (recorded in DECISIONS).
+async function whatsappWebhook(db, { headers = {}, body } = {}) {
+  const secret = process.env.WHATSAPP_WEBHOOK_SECRET;
+  if (!secret) return { status: 403, payload: { error: 'WhatsApp webhook is not configured.' }, setCookie: null };
+  const given = String(headers['x-whatsapp-secret'] ?? '');
+  if (!cryptoEqual(given, secret)) return { status: 403, payload: { error: 'Forbidden.' }, setCookie: null };
+
+  const messages = [];
+  for (const entry of body?.entry ?? []) {
+    for (const change of entry.changes ?? []) {
+      for (const m of change.value?.messages ?? []) messages.push(m);
+    }
+  }
+  let handled = 0;
+  for (const m of messages) {
+    const from = m.from;
+    const text = m.text?.body ?? '';
+    if (!from || !text) continue;
+    const inbound = await whatsapp.recordInbound(db, { phone: from, body: text, providerRef: m.id ?? null });
+    handled++;
+    const intent = whatsapp.replyFor(text);
+    if (intent.optOut) {
+      if (inbound.user_id) await whatsapp.optOut(db, inbound.user_id);
+      await whatsapp.send(db, { userId: inbound.user_id, phone: from, body: 'You will not get WhatsApp messages from Equidron again. Reply START if you change your mind.' });
+    } else if (intent.orderId && inbound.user_id) {
+      await whatsapp.send(db, { userId: inbound.user_id, phone: from, body: await whatsapp.orderStatusText(db, intent.orderId, inbound.user_id) });
+    } else {
+      await whatsapp.send(db, { userId: inbound.user_id, phone: from, body: 'Reply with an order number to get its status, STOP to opt out, or open a ticket in the store for anything else.' });
+    }
+  }
+  return { status: 200, payload: { ok: true, handled }, setCookie: null };
+}
+
 // ---------------------------------------------------------------- dispatch
 
 // Handle one API call. query is a URLSearchParams; cookies a plain object.
@@ -614,6 +655,21 @@ if (path === '/api/webhooks/shipping' && method === 'POST') {
   }
   return await shippingWebhook(db, body);
 }
+  // WhatsApp's webhook: a text challenge on GET, and signed messages on POST. Fail closed.
+  if (path === '/api/webhooks/whatsapp' && method === 'GET') {
+    const mode = query.get('hub.mode');
+    const token = query.get('hub.verify_token');
+    const challenge = query.get('hub.challenge');
+    const expected = process.env.WHATSAPP_VERIFY_TOKEN;
+    if (!expected) return { status: 403, payload: null, text: 'not configured', setCookie: null };
+    if (mode !== 'subscribe' || !token || !cryptoEqual(token, expected)) {
+      return { status: 403, payload: null, text: 'forbidden', setCookie: null };
+    }
+    return { status: 200, payload: null, text: String(challenge ?? ''), setCookie: null };
+  }
+  if (path === '/api/webhooks/whatsapp' && method === 'POST') {
+    return await whatsappWebhook(db, { headers, body, raw: false });
+  }
   if (path === '/api/mcp' && method === 'POST') return { ...(await mcp.handle(db, { headers, body })), setCookie: null };
   try {
     const m = /^\/api\/(shop|seller|ops)(\/.*)$/.exec(path);

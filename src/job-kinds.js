@@ -8,6 +8,7 @@ import { tool } from './agents/tools.js';
 import { all, changes, indiaDate, loads, one, run } from './db.js';
 import * as emails from './emails.js';
 import { deliverOutbox } from './mailer.js';
+import * as whatsapp from './whatsapp.js';
 import * as orders from './orders.js';
 import { sendEmail } from './outbox.js';
 
@@ -115,6 +116,8 @@ export const BUILT_IN = {
 // Kinds that call something outside the database. They run outside the job's transaction: an
 // SMTP conversation can take seconds, and holding a transaction open for it is wrong.
 export const EXTERNAL_KINDS = {
+  // One WhatsApp message per order event, and only to a customer who opted in.
+  'whatsapp:order_event': (db, payload) => sendWhatsApp(db, payload.type, payload.entity_id),
   // Deliver what is waiting in the outbox. Enqueued by the tick once a minute, and only when
   // there is something pending, so Ops does not fill with jobs that have nothing to do.
   'email:deliver': (db) => deliverOutbox(db),
@@ -155,6 +158,21 @@ export const AGENT_KINDS = {
 
 // Phase 13. Cheap when nothing is wrong: the check is a count, and the model is not called unless
 // there is a dead job, a failed run or a paused agent to think about.
+// Phase 10: the customer hears about the order on WhatsApp too, if they asked for it.
+export async function sendWhatsApp(db, type, orderId) {
+  const o = await one(db, `SELECT o.id, o.status, o.payment_status, o.total_paise,
+                                  u.id AS user_id, u.whatsapp_phone, u.whatsapp_opt_in_at
+                           FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?`, orderId);
+  if (!o || !whatsapp.optedIn(o)) return { skipped: 'not opted in' };
+  if (type === 'shipment.status_changed') {
+    const s = await one(db, 'SELECT status FROM shipments WHERE order_id = ? ORDER BY id DESC LIMIT 1', o.id);
+    if (s) o.status = s.status;
+  }
+  const build = whatsapp.ORDER_TEMPLATES[type];
+  if (!build) return { skipped: `no message for ${type}` };
+  return await whatsapp.send(db, { userId: o.user_id, phone: o.whatsapp_phone, body: build(o), template: null });
+}
+
 export async function runOpsManager(db, options = {}) {
   if (!(await ready(db, 'ops_manager'))) return;
   const dead = await one(db, `SELECT COUNT(*) AS n FROM jobs WHERE status IN ('dead', 'failed')`);

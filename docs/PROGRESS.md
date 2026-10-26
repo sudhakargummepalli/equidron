@@ -262,6 +262,22 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     stage mapping, and the label PDF (we keep the carrier's URL).
   - `node --test`: 318 of 318 pass (6 new: `tests/shipping.test.js`).
 
+- Phase 10 · WhatsApp (integration, provider-ready):
+  - `src/whatsapp.js`: opt-in per account (`whatsapp_phone`, `whatsapp_opt_in_at`) — a number on file is not
+    consent; `send()` writes the message row first and then calls the provider, so a failure is visible.
+  - Providers: `simulated` (default; records the message, adds the 91 country code) and `http` (Meta Cloud API
+    shape: `POST /{phone-number-id}/messages` with a bearer token). **Fails closed** without
+    `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_ID`.
+  - Order events (placed, paid, shipped and each stage, cancelled) are queued to `whatsapp:order_event`, which
+    sends only to someone who opted in. STORE's products are untouched: the message is text, not a template, until
+    Meta approves a template.
+  - Webhook: GET answers the `hub.challenge` as **plain text** (the server and the Netlify handler now pass a text
+    response through); POST requires `x-whatsapp-secret`, keeps every incoming message, answers an order number
+    with that order's status (scoped to the sender's account), and honours STOP as an opt-out.
+  - Not built: a Meta-approved message template, the BSP/DLT paperwork, and a real WhatsApp number. Those need the
+    owner's business verification.
+  - `node --test`: 326 of 326 pass (8 new: `tests/whatsapp.test.js`).
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,
