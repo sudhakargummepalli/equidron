@@ -12,10 +12,14 @@
 import { all, now, one, run } from './db.js';
 import { badRequest } from './errors.js';
 
-export const PROVIDERS = ['simulated', 'http'];
+export const PROVIDERS = ['simulated', 'http', 'twilio'];
 export const providerName = () => (process.env.WHATSAPP_PROVIDER || 'simulated').toLowerCase();
-export const configured = () => providerName() === 'simulated'
-  || Boolean(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID);
+export const configured = () => {
+  const provider = providerName();
+  if (provider === 'simulated') return true;
+  if (provider === 'twilio') return Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_FROM);
+  return Boolean(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID);
+};
 
 const normalise = (phone) => String(phone || '').replace(/[^0-9]/g, '');
 
@@ -48,7 +52,7 @@ export async function send(db, { userId = null, phone, body, template = null } =
   if (!validPhone(phone)) throw badRequest('A WhatsApp number is ten digits and starts with 6–9.');
   const text = String(body || '').trim();
   if (!text) throw badRequest('A WhatsApp message needs text.');
-  if (!configured()) throw badRequest('WhatsApp is not configured. Set WHATSAPP_TOKEN and WHATSAPP_PHONE_ID.');
+  if (!configured()) throw badRequest('WhatsApp is not configured for this provider. See .env.');
 
   const to = withCountry(phone);
   const id = await run(db, `INSERT INTO whatsapp_messages (user_id, phone, direction, template, body, status, created_at)
@@ -56,6 +60,7 @@ export async function send(db, { userId = null, phone, body, template = null } =
   try {
     let ref = null;
     if (providerName() === 'http') ref = await httpSend(to, text, template);
+    else if (providerName() === 'twilio') ref = await twilioSend(to, text);
     await run(db, "UPDATE whatsapp_messages SET status = 'sent', provider_ref = ? WHERE id = ?", ref, id);
     return { message_id: Number(id), status: 'sent', provider_ref: ref };
   } catch (e) {
@@ -100,6 +105,35 @@ export async function recordInbound(db, { phone, body, providerRef = null } = {}
 
 export async function conversation(db, phone, limit = 50) {
   return await all(db, 'SELECT * FROM whatsapp_messages WHERE phone = ? ORDER BY id DESC LIMIT ?', withCountry(phone), limit);
+}
+
+// Twilio's WhatsApp API. Form-encoded, basic auth, and the same fail-closed rule.
+async function twilioSend(to, text) {
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_WHATSAPP_FROM;
+  if (!sid || !token || !from) {
+    throw badRequest('Twilio WhatsApp is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_WHATSAPP_FROM.');
+  }
+  const form = new URLSearchParams({
+    To: `whatsapp:+${to}`,
+    From: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
+    Body: text,
+  });
+  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    method: 'POST',
+    headers: {
+      authorization: 'Basic ' + Buffer.from(`${sid}:${token}`).toString('base64'),
+      'content-type': 'application/x-www-form-urlencoded',
+    },
+    body: form.toString(),
+    signal: AbortSignal.timeout(10_000),
+  });
+  const body = await res.text();
+  let parsed;
+  try { parsed = JSON.parse(body); } catch { parsed = {}; }
+  if (!res.ok) throw badRequest(`Twilio refused the message (${res.status}). ${parsed.message ?? ''}`.trim());
+  return parsed.sid ?? null;
 }
 
 // Meta's Cloud API. Fail closed: no token or phone number id means no send.

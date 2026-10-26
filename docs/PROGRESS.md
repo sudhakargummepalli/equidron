@@ -276,7 +276,8 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     with that order's status (scoped to the sender's account), and honours STOP as an opt-out.
   - Not built: a Meta-approved message template, the BSP/DLT paperwork, and a real WhatsApp number. Those need the
     owner's business verification.
-  - `node --test`: 326 of 326 pass (8 new: `tests/whatsapp.test.js`).
+  - **A third provider, `twilio`**, exists for the WhatsApp sandbox: no Meta app and no business verification, so a real message can be seen within minutes. Set `WHATSAPP_PROVIDER=twilio`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`. It fails closed like the others.
+  - `node --test`: 327 of 327 pass (9 new: `tests/whatsapp.test.js`).
 
 ## How to check
 - `npm ci` then `node --test`: all tests pass.

@@ -64,6 +64,21 @@ test('the simulated provider records a message with its status', async () => {
   assert.equal(row.status, 'sent');
 });
 
+test('the twilio provider also fails closed, and is the no-Meta-app route', async () => {
+  process.env.WHATSAPP_PROVIDER = 'twilio';
+  assert.equal(whatsapp.configured(), false);
+  await assert.rejects(() => whatsapp.send(db, { phone: '9148315033', body: 'hi' }), /not configured/);
+  // With values present it is considered configured; the send itself is not made here.
+  process.env.TWILIO_ACCOUNT_SID = 'ACtest';
+  process.env.TWILIO_AUTH_TOKEN = 'token';
+  process.env.TWILIO_WHATSAPP_FROM = 'whatsapp:+14155238886';
+  assert.equal(whatsapp.configured(), true);
+  delete process.env.TWILIO_ACCOUNT_SID;
+  delete process.env.TWILIO_AUTH_TOKEN;
+  delete process.env.TWILIO_WHATSAPP_FROM;
+  process.env.WHATSAPP_PROVIDER = 'simulated';
+});
+
 test('the http provider fails closed without a token', async () => {
   process.env.WHATSAPP_PROVIDER = 'http';
   assert.equal(whatsapp.configured(), false);

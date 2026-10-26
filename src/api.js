@@ -359,6 +359,16 @@ route('GET', 'ops', '/submissions', async (c) => await listings.listSubmissions(
 route('POST', 'ops', '/submissions/(\\d+)/decide', async (c, sid) =>
   await listings.decide(c.db, int(sid), Boolean(c.body.approve), String(c.body.note || '').trim(), c.user.id));
 route('GET', 'ops', '/shipments', async (c) => await orders.listShipments(c.db, c.q('all') !== '1'));
+route('GET', 'ops', '/whatsapp/messages', async (c) => {
+  const limit = Math.min(100, Math.max(1, Number(c.q('limit', 30))));
+  const rows = await all(c.db, `SELECT id, phone, direction, template, body, status, created_at
+                                 FROM whatsapp_messages ORDER BY id DESC LIMIT ?`, limit);
+  return rows.map((m) => ({
+    id: Number(m.id), direction: m.direction, status: m.status, template: m.template,
+    phone: '••••' + String(m.phone).slice(-4),
+    body: String(m.body).slice(0, 160), created_at: m.created_at,
+  }));
+});
 route('POST', 'ops', '/shipments/(\\d+)/book', async (c, sid) => {
   const s = await orders.getShipment(c.db, int(sid));
   const address = await one(c.db, 'SELECT address FROM orders WHERE id = ?', s.order_id);
