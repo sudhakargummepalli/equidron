@@ -289,6 +289,8 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     until the person opts back in.
   - Order events (placed, shipped and each stage, cancelled) queue `sms:order_event`.
   - Not built: the DLT registration itself and a sender ID — those are filings with the operator, not code.
+  - **Ops**: `POST /ops/sms/test` sends one message and returns the provider's own words on failure;
+    `GET /ops/sms/messages` lists recent traffic with the number masked.
   - **More events**: a payment, an approved return, a refund and a rejected return now text the customer, and a
     morning job at 08:00 IST texts the people whose order is due that day — once per shipment per day, guarded by a
     settings key, so a retried job cannot send twice.

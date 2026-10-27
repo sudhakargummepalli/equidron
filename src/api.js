@@ -26,6 +26,7 @@ import * as sellerSignup from './seller-signup.js';
 import { emit } from './events.js';
 import * as shipping from './shipping.js';
 import * as whatsapp from './whatsapp.js';
+import * as sms from './sms.js';
 import crypto from 'node:crypto';
 
 const { STAGE_FROM_CARRIER } = shipping;
@@ -369,6 +370,22 @@ route('POST', 'ops', '/whatsapp/test', async (c) => {
     // The provider's own words are the useful part of a failure here.
     return new Reply(400, { ok: false, error: e.message });
   }
+});
+route('POST', 'ops', '/sms/test', async (c) => {
+  const phone = String(c.body.phone || '').trim();
+  const body = String(c.body.body || 'Equidron test SMS. If you can read this, SMS is connected.').slice(0, 300);
+  try {
+    const out = await sms.send(c.db, { userId: c.user.id, phone, body });
+    return { ok: true, ...out };
+  } catch (e) {
+    return new Reply(400, { ok: false, error: e.message });
+  }
+});
+route('GET', 'ops', '/sms/messages', async (c) => {
+  const limit = Math.min(100, Math.max(1, Number(c.q('limit', 30))));
+  const rows = await sms.recent(c.db, limit);
+  return rows.map((m) => ({ id: Number(m.id), phone: '\u2022\u2022\u2022\u2022' + String(m.phone).slice(-4), body: m.body,
+    template_id: m.template_id, status: m.status, error: m.error, created_at: m.created_at }));
 });
 route('GET', 'ops', '/whatsapp/messages', async (c) => {
   const limit = Math.min(100, Math.max(1, Number(c.q('limit', 30))));
