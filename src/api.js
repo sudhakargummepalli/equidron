@@ -359,6 +359,17 @@ route('GET', 'ops', '/submissions', async (c) => await listings.listSubmissions(
 route('POST', 'ops', '/submissions/(\\d+)/decide', async (c, sid) =>
   await listings.decide(c.db, int(sid), Boolean(c.body.approve), String(c.body.note || '').trim(), c.user.id));
 route('GET', 'ops', '/shipments', async (c) => await orders.listShipments(c.db, c.q('all') !== '1'));
+route('POST', 'ops', '/whatsapp/test', async (c) => {
+  const phone = String(c.body.phone || '').trim();
+  const body = String(c.body.body || 'Equidron test message. If you can read this, WhatsApp is connected.').slice(0, 500);
+  try {
+    const out = await whatsapp.send(c.db, { userId: c.user.id, phone, body });
+    return { ok: true, ...out };
+  } catch (e) {
+    // The provider's own words are the useful part of a failure here.
+    return new Reply(400, { ok: false, error: e.message });
+  }
+});
 route('GET', 'ops', '/whatsapp/messages', async (c) => {
   const limit = Math.min(100, Math.max(1, Number(c.q('limit', 30))));
   const rows = await all(c.db, `SELECT id, phone, direction, template, body, status, created_at
