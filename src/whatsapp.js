@@ -118,8 +118,16 @@ async function twilioSend(to, text) {
   const form = new URLSearchParams({
     To: `whatsapp:+${to}`,
     From: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
-    Body: text,
   });
+  // Outside a 24-hour session Twilio rejects free text with "ContentSid Required". A template id
+  // plus its variables is the only way through, so it is configuration rather than a code change.
+  const contentSid = process.env.TWILIO_CONTENT_SID;
+  if (contentSid) {
+    form.set('ContentSid', contentSid);
+    form.set('ContentVariables', process.env.TWILIO_CONTENT_VARS || '{}');
+  } else {
+    form.set('Body', text);
+  }
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
     method: 'POST',
     headers: {
