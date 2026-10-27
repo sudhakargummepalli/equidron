@@ -294,6 +294,11 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     settings key, so a retried job cannot send twice.
   - `node --test`: 334 of 334 pass.
 
+## A rule for every change
+
+Every update adds a line to `docs/DECISIONS.md` in the same commit, dated, with the reason. The
+file is sorted oldest first; the newest entry is at the bottom.
+
 ## How to check
 - `npm ci` then `node --test`: all tests pass.
 - `node app.js --reset`, then follow DEMO.md Part 5 (sign-up code, reset, lockout, staff permissions, who decided,
