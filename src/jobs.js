@@ -11,7 +11,7 @@
 // it is dead: it stays in Ops → System until a person retries it.
 // A handler runs in one transaction with marking its job done, so a finished job never runs again.
 import { actingAs } from './audit.js';
-import { all, indiaDate, now, one, run, transaction } from './db.js';
+import { all, changes, indiaDate, indiaHour, now, one, run, scalar, transaction } from './db.js';
 import { AGENT_KINDS, BUILT_IN, EXTERNAL_KINDS } from './job-kinds.js';
 import { log, reportError, withRequestId } from './log.js';
 import { mask } from './mask.js';
@@ -40,12 +40,12 @@ export const LISTENERS = {
   'order.placed': ['email:order_confirmation', 'whatsapp:order_event', 'sms:order_event'],
   // Every later state of an order also emails the customer: the payment, each courier stage, a
   // cancellation, and the return that may follow a delivery.
-  'payment.captured': ['email:order_event', 'whatsapp:order_event'],
+  'payment.captured': ['email:order_event', 'whatsapp:order_event', 'sms:order_event'],
   'shipment.status_changed': ['email:order_event', 'whatsapp:order_event', 'sms:order_event'],
   'order.cancelled': ['email:order_event', 'whatsapp:order_event', 'sms:order_event'],
-  'return.requested': ['email:order_event', 'agent:returns'],
-  'return.received': ['email:order_event'],
-  'return.rejected': ['email:order_event'],
+  'return.requested': ['email:order_event', 'agent:returns', 'sms:order_event'],
+  'return.received': ['email:order_event', 'sms:order_event'],
+  'return.rejected': ['email:order_event', 'sms:order_event'],
   // A seller hears about their own listing: when it is added or edited, and when it is decided.
   'submission.created': ['agent:listing_review', 'email:seller_listing'],
   'submission.decided': ['email:seller_listing'],
@@ -201,6 +201,8 @@ export async function tick(db, { at = new Date() } = {}) {
     if (await needsDelivery(db)) {
       if (await enqueue(db, 'email:deliver', {}, { dedupeKey: `email:${minute}`, maxAttempts: 1 })) enqueued.push('email:deliver');
     }
+    // 08:00 IST: text the people whose order is due today. The dedupe key is the day itself.
+    if (indiaHour(at) === 8 && (await enqueue(db, 'sms:arriving_today', {}, { dedupeKey: `sms:arriving:${indiaDate(at)}`, maxAttempts: 1 }))) enqueued.push('sms:arriving_today');
     // The Ops Manager looks at the queue every fifteen minutes. It is queued every quarter hour
     // whatever the state: the handler itself decides cheaply whether there is anything to look at.
     const quarter = Math.floor(at.getTime() / (15 * 60_000));

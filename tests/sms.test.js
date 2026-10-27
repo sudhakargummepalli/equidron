@@ -2,10 +2,10 @@
 // refused send is recorded rather than dropped.
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
-import { all, one } from '../src/db.js';
+import { all, now, one, run } from '../src/db.js';
 import { dispatch, work } from '../src/jobs.js';
 import { emit } from '../src/events.js';
-import { sendSms } from '../src/job-kinds.js';
+import { sendSms, smsArrivingToday } from '../src/job-kinds.js';
 import * as sms from '../src/sms.js';
 import { openDatabase } from '../src/server.js';
 
@@ -85,4 +85,38 @@ test('a placed order texts the phone on its delivery address', async () => {
   assert.equal(row.phone, phone.length === 10 ? `91${phone}` : phone);
   assert.match(row.body, new RegExp(`order #${order.id} confirmed`));
   assert.ok(row.body.length <= 160, 'one segment');
+});
+
+test('a payment, an approved return and a refund each send their own text', async () => {
+  const orderId = order.id;
+  await emit(db, 'payment.captured', 'order', orderId, { amount_paise: order.total_paise, method: 'upi' });
+  await dispatch(db);
+  await work(db, { seconds: 20 });
+  const paid = await one(db, "SELECT * FROM sms_messages WHERE body LIKE '%payment received%' ORDER BY id DESC LIMIT 1");
+  assert.ok(paid, 'the payment text went out');
+  assert.match(paid.body, new RegExp(`order #${orderId}`));
+
+  // A return: the template needs the return id and the refund, which come from separate tables.
+  const item = await one(db, 'SELECT id, unit_price_paise FROM order_items WHERE order_id = ? LIMIT 1', orderId);
+  const returnId = await run(db, "INSERT INTO returns (order_id, order_item_id, user_id, qty, reason, status, created_at, updated_at) VALUES (?,?,?,1,'changed mind','requested', now(), now())",
+    orderId, item.id, asha.id);
+  await emit(db, 'return.requested', 'return', returnId, { order_id: orderId, order_item_id: item.id, qty: 1 });
+  await dispatch(db);
+  await work(db, { seconds: 20 });
+  // The newest message is the one this test caused: the job before it was the payment text.
+  const approved = await one(db, 'SELECT * FROM sms_messages ORDER BY id DESC LIMIT 1');
+  assert.match(approved.body, new RegExp(`return #${returnId}`));
+});
+
+test('the morning reminder texts only orders due today, once', async () => {
+  const shipment = await one(db, "SELECT id, order_id FROM shipments WHERE status NOT IN ('delivered','cancelled','returned') ORDER BY id LIMIT 1");
+  const today = new Date().toISOString().slice(0, 10);
+  await run(db, 'UPDATE shipments SET eta = ? WHERE id = ?', today, shipment.id);
+  const first = await smsArrivingToday(db, { at: new Date() });
+  assert.ok(first.sent >= 1, 'at least the shipment due today was texted: ' + JSON.stringify(first));
+  const reminder = await one(db, "SELECT * FROM sms_messages WHERE body LIKE '%arrives today%' ORDER BY id DESC LIMIT 1");
+  assert.match(reminder.body, new RegExp(`order #${shipment.order_id}`));
+  // Running again on the same day sends nothing.
+  const second = await smsArrivingToday(db, { at: new Date() });
+  assert.equal(second.sent, 0);
 });

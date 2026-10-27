@@ -289,7 +289,10 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
     until the person opts back in.
   - Order events (placed, shipped and each stage, cancelled) queue `sms:order_event`.
   - Not built: the DLT registration itself and a sender ID — those are filings with the operator, not code.
-  - `node --test`: 332 of 332 pass (5 new: `tests/sms.test.js`).
+  - **More events**: a payment, an approved return, a refund and a rejected return now text the customer, and a
+    morning job at 08:00 IST texts the people whose order is due that day — once per shipment per day, guarded by a
+    settings key, so a retried job cannot send twice.
+  - `node --test`: 334 of 334 pass.
 
 ## How to check
 - `npm ci` then `node --test`: all tests pass.

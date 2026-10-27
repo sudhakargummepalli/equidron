@@ -78,6 +78,11 @@ export const ORDER_TEMPLATES = {
   'order.placed': (o) => `Equidron: order #${o.id} confirmed, Rs ${(o.total_paise / 100).toFixed(2)}. We will SMS you when it ships.`,
   'shipment.status_changed': (o) => `Equidron: order #${o.id} is ${String(o.status).replace(/_/g, ' ')}.`,
   'order.cancelled': (o) => `Equidron: order #${o.id} cancelled. Any payment is returned to the same method.`,
+  'payment.captured': (o) => `Equidron: payment received for order #${o.id}. No action needed.`,
+  'return.requested': (o) => `Equidron: return #${o.return_id} approved for order #${o.id}. A courier will collect it.`,
+  'return.received': (o) => `Equidron: refund of Rs ${(Number(o.refund_paise || 0) / 100).toFixed(2)} issued for order #${o.id}.`,
+  'return.rejected': (o) => `Equidron: return #${o.return_id} for order #${o.id} was not approved. Reply here for help.`,
+  'arriving_today': (o) => `Equidron: order #${o.id} arrives today. Please keep your phone reachable for the courier.`,
 };
 
 // The number we SMS: the phone on the order's delivery address, not an account field.

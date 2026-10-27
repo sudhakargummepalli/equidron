@@ -5,7 +5,7 @@ import { saveBackup } from './backup.js';
 import { getAgent, allPaused } from './agents/agents.js';
 import { runAgent } from './agents/runtime.js';
 import { tool } from './agents/tools.js';
-import { all, changes, indiaDate, loads, one, run } from './db.js';
+import { all, changes, indiaDate, loads, now, one, run } from './db.js';
 import * as emails from './emails.js';
 import { deliverOutbox } from './mailer.js';
 import * as whatsapp from './whatsapp.js';
@@ -121,6 +121,7 @@ export const EXTERNAL_KINDS = {
   'whatsapp:order_event': (db, payload) => sendWhatsApp(db, payload.type, payload.entity_id),
   // One SMS per order event, to the phone on the delivery address, unless the person opted out.
   'sms:order_event': (db, payload) => sendSms(db, payload.type, payload.entity_id),
+  'sms:arriving_today': (db, payload) => smsArrivingToday(db, payload),
   // Deliver what is waiting in the outbox. Enqueued by the tick once a minute, and only when
   // there is something pending, so Ops does not fill with jobs that have nothing to do.
   'email:deliver': (db) => deliverOutbox(db),
@@ -177,21 +178,49 @@ export async function sendWhatsApp(db, type, orderId) {
 }
 
 // Phase 10: the same events, by SMS, for a customer who prefers a text.
-export async function sendSms(db, type, orderId) {
-  const o = await one(db, `SELECT o.id, o.status, o.payment_status, o.total_paise,
-                                  u.id AS user_id, u.sms_opt_out_at
-                           FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?`, orderId);
-  if (!o) return { skipped: 'no order' };
-  if (sms.optedOut(o)) return { skipped: 'opted out' };
+export async function sendSms(db, type, entityId) {
+  // A return event carries a return id; everything else carries an order id.
+  const isReturn = type.startsWith('return.');
+  const facts = isReturn
+    ? await one(db, `SELECT o.id, o.status, o.total_paise, r.id AS return_id, oi.unit_price_paise * r.qty AS refund_paise,
+                            u.id AS user_id, u.sms_opt_out_at
+                     FROM returns r JOIN order_items oi ON oi.id = r.order_item_id
+                     JOIN orders o ON o.id = r.order_id JOIN users u ON u.id = r.user_id WHERE r.id = ?`, entityId)
+    : await one(db, `SELECT o.id, o.status, o.payment_status, o.total_paise,
+                            u.id AS user_id, u.sms_opt_out_at
+                     FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?`, entityId);
+  if (!facts) return { skipped: 'not found' };
+  if (sms.optedOut(facts)) return { skipped: 'opted out' };
   if (type === 'shipment.status_changed') {
-    const s = await one(db, 'SELECT status FROM shipments WHERE order_id = ? ORDER BY id DESC LIMIT 1', o.id);
-    if (s) o.status = s.status;
+    const s = await one(db, 'SELECT status FROM shipments WHERE order_id = ? ORDER BY id DESC LIMIT 1', facts.id);
+    if (s) facts.status = s.status;
   }
   const build = sms.ORDER_TEMPLATES[type];
   if (!build) return { skipped: `no message for ${type}` };
-  const phone = await sms.phoneFor(db, o.user_id);
+  const phone = await sms.phoneFor(db, facts.user_id);
   if (!phone) return { skipped: 'no phone on the address' };
-  return await sms.send(db, { userId: o.user_id, phone, body: build(o) });
+  return await sms.send(db, { userId: facts.user_id, phone, body: build(facts) });
+}
+
+// Phase 10: one reminder on the morning an order is due, per shipment per day. The dedupe key is
+// the day and the shipment, so a retried job cannot text the same person twice.
+export async function smsArrivingToday(db, { at = new Date() } = {}) {
+  const day = indiaDate(at);
+  const due = await all(db, `SELECT s.id AS shipment_id, s.order_id, s.eta, u.id AS user_id, u.sms_opt_out_at
+                             FROM shipments s JOIN orders o ON o.id = s.order_id JOIN users u ON u.id = o.user_id
+                             WHERE s.eta::date = ?::date AND s.status NOT IN ('delivered', 'cancelled', 'returned')`, day);
+  let sent = 0;
+  for (const s of due) {
+    if (sms.optedOut(s)) continue;
+    const already = await one(db, 'SELECT 1 AS x FROM settings WHERE key = ?', `sms:arriving:${day}:${s.shipment_id}`);
+    if (already) continue;
+    const phone = await sms.phoneFor(db, s.user_id);
+    if (!phone) continue;
+    await sms.send(db, { userId: s.user_id, phone, body: sms.ORDER_TEMPLATES.arriving_today({ id: s.order_id }) });
+    await run(db, 'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)', `sms:arriving:${day}:${s.shipment_id}`, JSON.stringify({ order_id: Number(s.order_id) }), now());
+    sent += 1;
+  }
+  return { due: due.length, sent };
 }
 
 export async function runOpsManager(db, options = {}) {

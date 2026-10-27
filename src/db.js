@@ -649,6 +649,9 @@ CREATE INDEX IF NOT EXISTS sms_messages_phone ON sms_messages (phone, created_at
 
 const pad = (n) => String(n).padStart(2, '0');
 
+// The hour of the day in India (0-23), for a job that runs at a local time.
+export const indiaHour = (d = new Date()) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }).format(d)) % 24;
+
 // The moment, for TIMESTAMPTZ columns. Stored in UTC; pages show it in India time.
 export const now = (d = new Date()) => d.toISOString();
 
