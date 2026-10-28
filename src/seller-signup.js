@@ -187,6 +187,53 @@ export async function submit(db, user, { agreement = false } = {}) {
   return { application: await applicationFor(db, user.id), seller_id: sellerId };
 }
 
+export const DOC_KINDS = ['pan_card', 'gst_certificate', 'bank_proof', 'cheque', 'other'];
+const DOC_URL = /^https:\/\/[^\s]{8,500}$/i;
+const DOC_EXT = /\.(pdf|jpg|jpeg|png|webp)(\?.*)?$/i;
+
+export function checkDocument({ kind, url } = {}) {
+  if (!DOC_KINDS.includes(kind)) throw badRequest('Choose what the document is.');
+  const text = String(url || '').trim();
+  if (!DOC_URL.test(text) || !DOC_EXT.test(text)) {
+    throw badRequest('Give an https link to a PDF or image (jpg, png, webp).');
+  }
+  return { kind, url: text };
+}
+
+// One document per kind: a re-upload replaces the previous one rather than piling up versions.
+export async function saveDocument(db, user, input = {}) {
+  if (!['customer', 'seller'].includes(user.role)) throw forbidden('Only a seller account can submit documents.');
+  const app = await applicationFor(db, user.id);
+  if (!app) throw badRequest('Start the seller application first.');
+  const { kind, url } = checkDocument(input);
+  await run(db, `INSERT INTO seller_documents (application_id, kind, url, note, created_at)
+                  VALUES (?, ?, ?, ?, ?)
+                  ON CONFLICT (application_id, kind) DO UPDATE
+                    SET url = EXCLUDED.url, note = EXCLUDED.note, status = 'submitted',
+                        reviewed_by = NULL, reviewed_at = NULL`,
+  app.id, kind, url, String(input.note || '').slice(0, 200) || null, now());
+  await audit(db, 'seller.document', 'seller_application', app.id, null, { kind, url_host: safeHost(url) });
+  return await listDocuments(db, app.id);
+}
+
+// The query string can hold a token from the storage provider; only the host and path are shown.
+export const safeHost = (url) => {
+  try { return new URL(url).host; } catch { return 'unknown'; }
+};
+export const publicUrl = (url) => {
+  try { const u = new URL(url); u.search = ''; return u.toString(); } catch { return String(url); }
+};
+
+export async function listDocuments(db, applicationId) {
+  const rows = await all(db, 'SELECT * FROM seller_documents WHERE application_id = ? ORDER BY kind', applicationId);
+  return rows.map((d) => ({ kind: d.kind, url: publicUrl(d.url), note: d.note, status: d.status }));
+}
+
+export async function documentsFor(db, userId) {
+  const app = await applicationFor(db, userId);
+  return app ? await listDocuments(db, app.id) : [];
+}
+
 export async function listApplications(db, status = null) {
   return await all(db, `SELECT a.*, u.email, u.name FROM seller_applications a JOIN users u ON u.id = a.user_id
                         WHERE (?::text IS NULL OR a.status = ?::text) ORDER BY a.id DESC`, status, status);

@@ -288,6 +288,10 @@ route('GET', 'shop', '/seller-application', async (c) => {
   return { application, missing: application ? sellerSignup.missingFor(application) : null };
 });
 route('POST', 'shop', '/seller-application', async (c) => ({ application: await sellerSignup.saveDraft(c.db, c.user, c.body) }));
+route('GET', 'shop', '/seller-application/documents', async (c) => await sellerSignup.documentsFor(c.db, c.user.id));
+route('POST', 'shop', '/seller-application/documents', async (c) => await sellerSignup.saveDocument(c.db, c.user, c.body));
+route('GET', 'ops', '/seller-applications', async () => await sellerSignup.listApplications(c.db));
+route('GET', 'ops', '/seller-applications/(\\d+)/documents', async (c, id) => await sellerSignup.listDocuments(c.db, int(id)));
 route('POST', 'shop', '/seller-application/submit', async (c) => await sellerSignup.submit(c.db, c.user, { agreement: c.body.agreement === true }));
 
 route('GET', 'shop', '/proposals', async (c) => await proposals.listOpen(c.db, c.user.id));

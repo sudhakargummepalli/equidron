@@ -5,7 +5,7 @@ import { after, before, test } from 'node:test';
 import { handleApi } from '../src/api.js';
 import { settings } from '../src/auth.js';
 import { all, one } from '../src/db.js';
-import { missingFor, RE, saveDraft, submit, validate } from '../src/seller-signup.js';
+import { checkDocument, documentsFor, missingFor, RE, safeHost, saveDocument, saveDraft, submit, validate } from '../src/seller-signup.js';
 import { openDatabase } from '../src/server.js';
 
 settings.fastHashing = true;
@@ -145,4 +145,27 @@ test('the API saves a draft and submits it, scoped to the session', async () => 
   const again = await call('POST', '/api/shop/seller-application', { business_name: 'Another' });
   assert.equal(again.status, 401);
   assert.equal((await all(db, 'SELECT id FROM sellers WHERE user_id = ?', rahul.id)).length, 1);
+});
+
+test('a document must be an https link to a PDF or an image', () => {
+  assert.deepEqual(checkDocument({ kind: 'pan_card', url: 'https://drive.google.com/pan.pdf' }), { kind: 'pan_card', url: 'https://drive.google.com/pan.pdf' });
+  assert.throws(() => checkDocument({ kind: 'pan_card', url: 'http://example.com/pan.pdf' }), /https/);
+  assert.throws(() => checkDocument({ kind: 'pan_card', url: 'https://example.com/pan.exe' }), /https/);
+  assert.throws(() => checkDocument({ kind: 'pan_card', url: 'data:image/png;base64,AAAA' }), /https/);
+  assert.throws(() => checkDocument({ kind: 'selfie', url: 'https://example.com/a.png' }), /what the document is/);
+  assert.equal(safeHost('https://bucket.s3.amazonaws.com/pan.pdf?token=secret'), 'bucket.s3.amazonaws.com');
+});
+
+test('a document is stored once per kind, and the token in the link is hidden', async () => {
+  const user = await one(db, "SELECT * FROM users WHERE email = 'asha@example.com'");
+  await saveDocument(db, user, { kind: 'pan_card', url: 'https://example.com/docs/pan.pdf?X-Amz-Signature=abc123' });
+  const again = await saveDocument(db, user, { kind: 'pan_card', url: 'https://example.com/docs/pan-v2.pdf' });
+  const pans = again.filter((d) => d.kind === 'pan_card');
+  assert.equal(pans.length, 1, 'one row per kind');
+  assert.equal(pans[0].url, 'https://example.com/docs/pan-v2.pdf', 'the newer link replaced the older one');
+  // A token in a link is never handed back.
+  await saveDocument(db, user, { kind: 'bank_proof', url: 'https://example.com/bank.pdf?signature=secret' });
+  const docs = await documentsFor(db, user.id);
+  assert.ok(docs.every((d) => !d.url.includes('signature')), 'query strings are stripped');
+  assert.equal(docs.find((d) => d.kind === 'bank_proof').status, 'submitted');
 });
