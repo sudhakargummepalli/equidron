@@ -1,5 +1,28 @@
 # Progress
 
+## Phase status (2026-10-28)
+
+| Phase | State |
+|---|---|
+| 0 · setup, checks | done |
+| 1 · accounts, roles, audit | done |
+| 2 · data for real traffic | done |
+| 3 · events, jobs, monitoring | done |
+| 4 · agent runtime | done |
+| 5 · first Ops agents | done (all ship switched off, at L1, waiting for shadow data) |
+| 6 · customer agents | done for tickets, returns and the console; the **proposal cards in the store chat are not built** (the API is) |
+| 7 · seller agents | done |
+| 8 · real payments | **not started** — needs gateway test keys; `SimulatedProvider` stands in |
+| 9 · real shipping | provider layer, deterministic simulator and webhook done; **a real carrier's field mapping needs a sandbox account** |
+| 10 · messages, invoices, languages | email ✅, i18n ✅ (en + te, UI and emails), WhatsApp and SMS provider-ready (**both refused by providers until a paid account / DLT**), **invoices not built** |
+| 11 · seller sign-up, KYC, images | sign-up backend + store form ✅, KYC task ✅ (a person checks documents); **KYC provider, document uploads and seller details on listings are not built** |
+| 12 · money and risk agents | done (risk holds, settlement batches, TCS/TDS drafts) |
+| 13 · Ops Manager and MCP | done |
+| 14 · engineering agents | **not started** — needs a GitHub App and repo settings |
+| 15 · compliance, hardening, go-live | **not started** — GST, legal pages, domain, load test, sign-off |
+
+Nothing has been pushed since `bca2261`; the local `main` is ahead by the Phase 9–13 work.
+
 ## Current phase
 Phase 5 · First Ops agents, on branch `phase-5-first-ops-agents`. Built and tested; the phase's own "done when" is
 two weeks (or 100 cases) of shadow data in production, which needs the owner to switch the agents on after a deploy.
@@ -326,19 +349,17 @@ file is sorted oldest first; the newest entry is at the bottom.
   and the click is refused.
 
 ## Still open (needs the owner)
-- Email delivery: set the five SMTP variables in Netlify (Gmail needs an **App Password**, not the account
-  password), then watch the messages already in Ops → Outbox turn `sent` on the next tick.
-- Phase 5: deploy, switch Listing Review, Fulfilment Watch and the Daily Brief on (they ship switched off and at L1),
-  and let two weeks or 100 cases collect before promoting any of them.
-- Review the branch and open the pull request into `main` when ready.
-- Decide each agent's daily budget (defaults: $2/day for `listing_review`, $1/day for `fulfilment_watch`, $0.50/day
-  for `daily_brief`, $1/day for `ops_helper`, $2/day for `store_assistant`).
-- Owner settings from earlier phases still stand: `EQUIDRON_SEED_DEMO=1` and `WORKER_SECRET` in Netlify, a database
-  backup before the Phase 2b migration reaches production, optionally `SENTRY_DSN` and an uptime check on `/api/health`.
+- Phase 8: Razorpay or Cashfree **test keys**. No gateway code exists yet; `src/payments.js` is the simulation.
+- Phase 9: a carrier sandbox account (Shiprocket is the usual first choice). The mapping is one file, `src/shipping.js`.
+- Phase 10 WhatsApp: a **paid** Twilio account (a trial answers code 21654 and cannot create the template it demands) or Meta's free test number.
+- Phase 10 SMS: a sender number and a **DLT** template id from https://sms.dlt.gov.in.
+- Phase 10 invoices: not built (needs a GST invoice format and a number series).
+- Phase 11: a KYC sandbox; document uploads; showing seller details on listings.
+- Phase 14: a GitHub App with repo access, and a separate repository for the agents to work in.
+- Phase 15: GST registration, legal pages, a domain, a load test, and your sign-off.
+- Deploy: nothing pushed since `bca2261`. Say the word and the branch goes up.
 
 ## Next
-Phase 6: the customer agents (the Shopping Concierge on chat, Support on tickets, Returns), with a versioned
-`policies` table. Phase 5's shadow data should be collecting in production by then.
+Phase 11's leftovers, which need no account: document uploads and seller details on listings. After
+that, the next phase to move is whichever credential arrives first.
 
-## Open questions
-- Should two-step sign-in become required for admin staff now, or at go-live (Phase 15)? Recommended: Phase 15.
