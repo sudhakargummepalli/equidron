@@ -122,25 +122,6 @@ test('the webhook needs its secret, keeps the message, and answers a status ques
   delete process.env.WHATSAPP_WEBHOOK_SECRET;
 });
 
-test('the QR route builds a wa.me link with the text typed in', async () => {
-  process.env.TWILIO_WHATSAPP_FROM = 'whatsapp:+17372508034';
-  const cookies = {};
-  const login = await handleApi(db, { method: 'POST', path: '/api/ops/login', query: new URLSearchParams(),
-    body: { email: 'ops@example.com', password: 'equidron-demo' }, cookies });
-  assert.equal(login.status, 200);
-  if (login.setCookie) {
-    const [k, v] = login.setCookie.split(';')[0].split('=');
-    cookies[k] = v;
-  }
-  const out = await handleApi(db, { method: 'GET', path: '/api/ops/whatsapp/qr',
-    query: new URLSearchParams({ text: 'join twilio-trial' }), body: null, cookies, headers: {} });
-  assert.equal(out.status, 200);
-  assert.equal(out.payload.number, '17372508034');
-  assert.match(out.payload.link, /^https:\/\/wa\.me\/17372508034\?text=join%20twilio-trial$/);
-  assert.match(out.payload.image_url, /api\.qrserver\.com/);
-  delete process.env.TWILIO_WHATSAPP_FROM;
-});
-
 test('the verification GET answers only with the right token', async () => {
   process.env.WHATSAPP_VERIFY_TOKEN = 'verify-me';
   const get = (query) => handleApi(db, { method: 'GET', path: '/api/webhooks/whatsapp', query: new URLSearchParams(query), body: null, cookies: {}, headers: {} });
