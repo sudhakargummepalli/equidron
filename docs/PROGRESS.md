@@ -15,7 +15,7 @@
 | 8 · real payments | **not started** — needs gateway test keys; `SimulatedProvider` stands in |
 | 9 · real shipping | provider layer, deterministic simulator and webhook done; **a real carrier's field mapping needs a sandbox account** |
 | 10 · messages, invoices, languages | email ✅, i18n ✅ (en + te, UI and emails), WhatsApp and SMS provider-ready (**both refused by providers until a paid account / DLT**), **invoices not built** |
-| 11 · seller sign-up, KYC, images | sign-up backend + store form ✅, KYC task ✅, **documents by https link ✅** (one per kind, tokens stripped, Ops reads them); **KYC provider and seller details on listings are not built** |
+| 11 · seller sign-up, KYC, images | sign-up backend + store form ✅, KYC task ✅, **documents by link or real upload ✅** (base64 in, magic-byte checked, 2 MB cap, stored once per hash, owner or staff only); **KYC provider and seller details on listings are not built** |
 | 12 · money and risk agents | done (risk holds, settlement batches, TCS/TDS drafts) |
 | 13 · Ops Manager and MCP | done |
 | 14 · engineering agents | **not started** — needs a GitHub App and repo settings |

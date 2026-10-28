@@ -194,6 +194,8 @@ const DOC_EXT = /\.(pdf|jpg|jpeg|png|webp)(\?.*)?$/i;
 export function checkDocument({ kind, url } = {}) {
   if (!DOC_KINDS.includes(kind)) throw badRequest('Choose what the document is.');
   const text = String(url || '').trim();
+  // Our own upload path is allowed as well as an outside https link.
+  if (/^\/api\/uploads\/\d+$/.test(text)) return { kind, url: text };
   if (!DOC_URL.test(text) || !DOC_EXT.test(text)) {
     throw badRequest('Give an https link to a PDF or image (jpg, png, webp).');
   }
@@ -206,12 +208,13 @@ export async function saveDocument(db, user, input = {}) {
   const app = await applicationFor(db, user.id);
   if (!app) throw badRequest('Start the seller application first.');
   const { kind, url } = checkDocument(input);
-  await run(db, `INSERT INTO seller_documents (application_id, kind, url, note, created_at)
-                  VALUES (?, ?, ?, ?, ?)
+  const uploadId = /^\/api\/uploads\/(\d+)$/.exec(url)?.[1] ?? null;
+  await run(db, `INSERT INTO seller_documents (application_id, kind, url, note, upload_id, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?)
                   ON CONFLICT (application_id, kind) DO UPDATE
-                    SET url = EXCLUDED.url, note = EXCLUDED.note, status = 'submitted',
-                        reviewed_by = NULL, reviewed_at = NULL`,
-  app.id, kind, url, String(input.note || '').slice(0, 200) || null, now());
+                    SET url = EXCLUDED.url, note = EXCLUDED.note, upload_id = EXCLUDED.upload_id,
+                        status = 'submitted', reviewed_by = NULL, reviewed_at = NULL`,
+  app.id, kind, url, String(input.note || '').slice(0, 200) || null, uploadId ? Number(uploadId) : null, now());
   await audit(db, 'seller.document', 'seller_application', app.id, null, { kind, url_host: safeHost(url) });
   return await listDocuments(db, app.id);
 }

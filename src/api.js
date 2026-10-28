@@ -27,6 +27,7 @@ import { emit } from './events.js';
 import * as shipping from './shipping.js';
 import * as whatsapp from './whatsapp.js';
 import * as sms from './sms.js';
+import * as uploads from './uploads.js';
 import crypto from 'node:crypto';
 
 const { STAGE_FROM_CARRIER } = shipping;
@@ -288,6 +289,17 @@ route('GET', 'shop', '/seller-application', async (c) => {
   return { application, missing: application ? sellerSignup.missingFor(application) : null };
 });
 route('POST', 'shop', '/seller-application', async (c) => ({ application: await sellerSignup.saveDraft(c.db, c.user, c.body) }));
+route('POST', 'shop', '/uploads', async (c) => {
+  const out = await uploads.save(c.db, c.user, c.body);
+  // The document links to the file, so one upload is one document.
+  if (c.body.document_kind) {
+    await sellerSignup.saveDocument(c.db, c.user, { kind: c.body.document_kind, url: out.url, upload_id: out.upload_id });
+  }
+  return out;
+});
+route('GET', 'shop', '/uploads/(\\d+)', async (c, id) => await uploads.read(c.db, int(id), c.user));
+route('GET', 'ops', '/uploads/(\\d+)', async (c, id) => await uploads.read(c.db, int(id), c.user));
+route('GET', 'shop', '/uploads/(\\d+)/meta', async (c, id) => await uploads.describe(c.db, int(id), c.user));
 route('GET', 'shop', '/seller-application/documents', async (c) => await sellerSignup.documentsFor(c.db, c.user.id));
 route('POST', 'shop', '/seller-application/documents', async (c) => await sellerSignup.saveDocument(c.db, c.user, c.body));
 route('GET', 'ops', '/seller-applications', async () => await sellerSignup.listApplications(c.db));

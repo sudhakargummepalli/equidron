@@ -6,6 +6,7 @@ import { handleApi } from '../src/api.js';
 import { settings } from '../src/auth.js';
 import { all, one } from '../src/db.js';
 import { checkDocument, documentsFor, missingFor, RE, safeHost, saveDocument, saveDraft, submit, validate } from '../src/seller-signup.js';
+import { MAX_BYTES, read, save, sniff } from '../src/uploads.js';
 import { openDatabase } from '../src/server.js';
 
 settings.fastHashing = true;
@@ -168,4 +169,50 @@ test('a document is stored once per kind, and the token in the link is hidden', 
   const docs = await documentsFor(db, user.id);
   assert.ok(docs.every((d) => !d.url.includes('signature')), 'query strings are stripped');
   assert.equal(docs.find((d) => d.kind === 'bank_proof').status, 'submitted');
+});
+
+// A one-pixel PNG: enough to prove the magic-byte check and the round trip.
+const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+test('a file is accepted by its bytes, not by its name', async () => {
+  const user = await one(db, "SELECT * FROM users WHERE email = 'asha@example.com'");
+  const png = Buffer.from(PNG, 'base64');
+  assert.equal(sniff(png), 'image/png');
+  assert.equal(sniff(Buffer.from('%PDF-1.7 test')), 'application/pdf');
+  assert.equal(sniff(Buffer.from('MZ\x90\x00executable')), null, 'an exe is not a document');
+
+  const saved = await save(db, user, { kind: 'pan_card', filename: 'pan.png', data: PNG });
+  assert.equal(saved.content_type, 'image/png');
+  assert.equal(saved.bytes, png.length);
+  assert.match(saved.url, /^\/api\/uploads\/\d+$/);
+
+  // The same bytes for the same person are stored once.
+  const again = await save(db, user, { kind: 'pan_card', filename: 'pan-copy.png', data: PNG });
+  assert.equal(again.upload_id, saved.upload_id);
+
+  // Reading it back gives the same bytes; a stranger gets nothing.
+  const back = await read(db, saved.upload_id, user);
+  assert.equal(back.base64, PNG);
+  const stranger = await one(db, "SELECT * FROM users WHERE email = 'rahul@example.com'");
+  await assert.rejects(() => read(db, saved.upload_id, stranger), /not found/);
+});
+
+test('a file larger than 2 MB, an unknown kind or an empty payload is refused', async () => {
+  const user = await one(db, "SELECT * FROM users WHERE email = 'asha@example.com'");
+  const big = Buffer.alloc(MAX_BYTES + 1, 0x89).toString('base64');
+  await assert.rejects(() => save(db, user, { kind: 'pan_card', filename: 'big.png', data: big }), /limit is 2 MB/);
+  await assert.rejects(() => save(db, user, { kind: 'selfie', filename: 'a.png', data: PNG }), /what the file is/);
+  await assert.rejects(() => save(db, user, { kind: 'pan_card', filename: 'a.png', data: '' }), /base64/);
+});
+
+test('an uploaded file becomes the document, and Ops can read it', async () => {
+  const user = await one(db, "SELECT * FROM users WHERE email = 'asha@example.com'");
+  const saved = await save(db, user, { kind: 'bank_proof', filename: 'bank.png', data: PNG });
+  const docs = await saveDocument(db, user, { kind: 'bank_proof', url: saved.url });
+  assert.ok(docs.some((d) => d.kind === 'bank_proof' && d.url === saved.url));
+  const row = await one(db, 'SELECT upload_id FROM seller_documents WHERE kind = ? AND url = ?', 'bank_proof', saved.url);
+  assert.equal(Number(row.upload_id), saved.upload_id, 'the document points at the file');
+  const staff = await one(db, "SELECT * FROM users WHERE email = 'ops@example.com'");
+  const seen = await read(db, saved.upload_id, staff);
+  assert.equal(seen.base64, PNG);
 });
