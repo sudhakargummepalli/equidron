@@ -274,6 +274,8 @@ Phase 4 is in `main` (pull request #6, merge commit `48ee1d4`, CI run 3929180034
   - Webhook: GET answers the `hub.challenge` as **plain text** (the server and the Netlify handler now pass a text
     response through); POST requires `x-whatsapp-secret`, keeps every incoming message, answers an order number
     with that order's status (scoped to the sender's account), and honours STOP as an opt-out.
+  - **Twilio trial is a dead end for real sends**: code 21654 requires a ContentSid template, and the template API is
+    paid-only. `scripts/twilio-whatsapp-template.mjs` does the creation and submission in one command after an upgrade.
   - Not built: a Meta-approved message template, the BSP/DLT paperwork, and a real WhatsApp number. Those need the
     owner's business verification.
   - **A third provider, `twilio`**, exists for the WhatsApp sandbox: no Meta app and no business verification, so a real message can be seen within minutes. Set `WHATSAPP_PROVIDER=twilio`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`. It fails closed like the others.
