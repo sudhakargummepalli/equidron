@@ -376,6 +376,22 @@ route('GET', 'ops', '/submissions', async (c) => await listings.listSubmissions(
 route('POST', 'ops', '/submissions/(\\d+)/decide', async (c, sid) =>
   await listings.decide(c.db, int(sid), Boolean(c.body.approve), String(c.body.note || '').trim(), c.user.id));
 route('GET', 'ops', '/shipments', async (c) => await orders.listShipments(c.db, c.q('all') !== '1'));
+// A QR a person can scan with their phone: it opens WhatsApp on the business number with the join
+// text (or a plain "hi") already typed. Nothing about the account is linked by this; it is the
+// same click-to-chat link WhatsApp publishes, only rendered as a square.
+route('GET', 'ops', '/whatsapp/qr', async (c) => {
+  const from = String(process.env.TWILIO_WHATSAPP_FROM || process.env.WHATSAPP_BUSINESS_NUMBER || '').replace(/[^0-9]/g, '');
+  if (!from) throw new AppError(400, 'Set TWILIO_WHATSAPP_FROM (or WHATSAPP_BUSINESS_NUMBER) first.');
+  const text = String(c.q('text', process.env.WHATSAPP_JOIN_TEXT || 'hi')).slice(0, 100);
+  const link = `https://wa.me/${from}?text=${encodeURIComponent(text)}`;
+  return {
+    number: from,
+    text,
+    link,
+    image_url: `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(link)}`,
+    hint: 'Scan with a phone camera: WhatsApp opens on this chat with the text ready to send.',
+  };
+});
 route('POST', 'ops', '/whatsapp/test', async (c) => {
   const phone = String(c.body.phone || '').trim();
   const body = String(c.body.body || 'Equidron test message. If you can read this, WhatsApp is connected.').slice(0, 500);
