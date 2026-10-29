@@ -12,3 +12,9 @@ spring:
     # The migrations the Node app already uses, so both read the same schema of record.
     locations: filesystem:../netlify/database/migrations
     baseline-on-migrate: true
+    # The migrations are named 20261017000000_initial_schema.sql (no V prefix, one underscore), which
+    # is what the Node/Netlify tooling expects; Flyway is told to read the same convention rather
+    # than renaming files that have already been applied elsewhere.
+    sql-migration-prefix: ""
+    sql-migration-separator: "_"
+    out-of-order: true
