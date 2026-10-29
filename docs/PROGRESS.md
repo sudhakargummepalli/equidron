@@ -18,7 +18,7 @@
 | 11 · seller sign-up, KYC, images | sign-up backend + store form ✅, KYC task ✅, **documents by link or real upload ✅** (base64 in, magic-byte checked, 2 MB cap, stored once per hash, owner or staff only); **KYC provider is not built**; seller details on listings are now shown (name, rating and count, city, dispatch days) |
 | 12 · money and risk agents | done (risk holds, settlement batches, TCS/TDS drafts) |
 | 13 · Ops Manager and MCP | done |
-| 14 · engineering agents | **not started** — needs a GitHub App and repo settings |
+| 14 · engineering agents | **agent + tools done** — reads issues, pull requests and CI runs, may write one comment; needs `GITHUB_APP_ID`, `GITHUB_INSTALLATION_ID` and `GITHUB_PRIVATE_KEY` in `.env` to reach GitHub |
 | 15 · compliance, hardening, go-live | **not started** — GST, legal pages, domain, load test, sign-off |
 
 Nothing has been pushed since `bca2261`; the local `main` is ahead by the Phase 9–13 work.

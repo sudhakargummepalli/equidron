@@ -18,6 +18,7 @@ import { badRequest } from '../errors.js';
 import { emit } from '../events.js';
 import { CATEGORIES, productDetail, search } from '../catalog.js';
 import * as agents from './agents.js';
+import * as github from '../github.js';
 import * as listings from '../listings.js';
 import * as notify from '../notify.js';
 import * as orders from '../orders.js';
@@ -111,6 +112,55 @@ export async function executeTool(db, agent, call, key, ctx = {}) {
 
 // ---------------------------------------------------------------- Phase 12: fraud and risk
 
+registerTool({
+  name: 'github_issues',
+  description: 'List the open issues in the repository, with their labels. Read-only.',
+  risk: 'read',
+  agents: ['engineer'],
+  input_schema: { type: 'object', additionalProperties: false, properties: { limit: { type: 'integer', minimum: 1, maximum: 50 } } },
+  async run(db, ctx, input) {
+    return { issues: await github.openIssues(input.limit ?? 20) };
+  },
+});
+
+registerTool({
+  name: 'github_pull_request',
+  description: 'One pull request: state, mergeability, changed files and every check on it. Read-only.',
+  risk: 'read',
+  agents: ['engineer'],
+  input_schema: { type: 'object', additionalProperties: false, properties: { number: { type: 'integer', minimum: 1 } }, required: ['number'] },
+  async run(db, ctx, input) {
+    return await github.pullRequest(input.number);
+  },
+});
+
+registerTool({
+  name: 'github_failed_runs',
+  description: 'Recent failed CI runs, with the branch and a link. Read-only.',
+  risk: 'read',
+  agents: ['engineer'],
+  input_schema: { type: 'object', additionalProperties: false, properties: { limit: { type: 'integer', minimum: 1, maximum: 20 } } },
+  async run(db, ctx, input) {
+    return { runs: await github.failedRuns(input.limit ?? 5) };
+  },
+});
+
+registerTool({
+  name: 'github_comment',
+  description: 'Write one comment on an issue or pull request. A write: it needs a reason, and it is audited.',
+  risk: 'write',
+  agents: ['engineer'],
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    properties: { number: { type: 'integer', minimum: 1 }, body: { type: 'string', minLength: 5, maxLength: 2000 }, reason: { type: 'string', minLength: 10 } },
+    required: ['number', 'body', 'reason'],
+  },
+  async run(db, ctx, input) {
+    const out = await github.commentOnIssue(input.number, input.body);
+    await audit(db, 'github.comment', 'issue', input.number, null, { url: out.url });
+    return out;
+  },
+});
 registerTool({
   name: 'assess_order_risk',
   description: 'Score one order against the rule table and return the signals and one sentence. Read-only: it changes nothing.',

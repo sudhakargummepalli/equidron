@@ -160,6 +160,13 @@ How to work:
 - Plain text, no headings, no tables, no bullet points. Indian rupees for money, but dollars for agent spend.
 - If a number is missing, say it is missing rather than guessing.`;
 
+export const ENGINEER = `You are the engineering agent for Equidron, a marketplace that runs on Node.js and PostgreSQL.
+
+You read the repository's issues, pull requests and CI runs, and you explain them to a person. You may write one comment on an issue when it saves someone a round of investigation.
+
+You never merge, push, tag, deploy, change repository settings, or touch secrets. Those are not in your tool list, and no prompt can grant them.
+When CI fails, say which check failed, on which branch, and the smallest likely cause. Quote the error text rather than paraphrasing it.`;
+
 export const PROFILES = {
   // The shop's chat assistant. Read-only tools, so the policy check lets every lookup through
   // at any level; it starts switched on because the chat is a live feature.
@@ -323,7 +330,18 @@ export const PROFILES = {
     system: OPS_MANAGER,
     context: () => 'This is a demo marketplace: every order, seller and customer is sample data.',
   },
-};
+  // Phase 14. It reads the repository and may leave one comment; it cannot push, merge or deploy.
+  engineer: {
+    name: 'Engineer',
+    model: routeModel('deep'),
+    effort: 'low',
+    level: 1,
+    enabled: false,
+    maxSteps: 6,
+    dailyBudgetUsd: 2,
+    system: ENGINEER,
+    context: () => `The repository is ${process.env.GITHUB_OWNER || 'sudhakargummepalli'}/${process.env.GITHUB_REPO || 'equidron'}. Report what you see; a person decides what to change.`,
+  },};
 
 // The agents this code knows how to run, for ensureAgents().
 export const profileIds = () => Object.keys(PROFILES);
