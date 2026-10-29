@@ -1,0 +1,9 @@
+﻿Pin migration line endings to LF so the database tool sees stable bytes
+
+A deploy failed with: migration 20261017000000_initial_schema has been modified after
+being applied. The files were committed with CRLF while the database recorded LF, and
+Netlify Database hashes the file it applies.
+
+- Every .sql migration is LF now, and .gitattributes pins *.sql text eol=lf so a Windows
+  checkout cannot change the bytes again.
+- The schema test normalises line endings on both sides, so it stays meaningful.
