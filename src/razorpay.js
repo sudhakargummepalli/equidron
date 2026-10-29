@@ -13,6 +13,12 @@ import { badRequest } from './errors.js';
 const API = 'https://api.razorpay.com/v1';
 export const MIN_PAISE = 100; // ₹1: Razorpay's floor
 
+// A third mode, for demonstrating the live path without a live account: every gateway call is answered
+// locally, with ids that say what they are. Real money still needs Razorpay's own KYC.
+export const simulateLive = () => process.env.RAZORPAY_SIMULATE_LIVE === '1';
+export const mode = () => (simulateLive() ? 'live-simulated' : 'test');
+const simId = (prefix) => `${prefix}_simlive_${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}`;
+
 export const keyId = () => process.env.RAZORPAY_KEY_ID || null;
 export const enabled = () => Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
 
@@ -51,6 +57,10 @@ export async function createOrder({ amountPaise, receipt, notes = {} } = {}) {
     payment_capture: 1,
     notes,
   };
+  if (simulateLive()) {
+    const order = { id: simId('order'), amount, currency: 'INR', receipt: body.receipt, status: 'created' };
+    return { order_id: order.id, amount, currency: 'INR', receipt: order.receipt };
+  }
   const order = await call('POST', '/orders', body);
   return { order_id: order.id, amount: Number(order.amount), currency: order.currency, receipt: order.receipt };
 }
@@ -70,6 +80,10 @@ export function verifySignature({ orderId, paymentId, signature } = {}) {
 // The authoritative amount: what Razorpay says it captured, never what a request body claims.
 export async function fetchPayment(paymentId) {
   if (!paymentId) throw badRequest('A payment id is required.');
+  if (simulateLive() && String(paymentId).includes('_simlive_')) {
+    const amount = Number(process.env.RAZORPAY_SIMULATE_LIVE_AMOUNT || 0);
+    return { id: paymentId, order_id: null, amount, currency: 'INR', status: 'captured', method: 'card' };
+  }
   const payment = await call('GET', `/payments/${encodeURIComponent(paymentId)}`);
   return {
     id: payment.id,
@@ -100,6 +114,9 @@ export async function listPaymentsForOrder(orderId) {
 }
 
 export async function refund(paymentId, amountPaise) {
+  if (simulateLive() && String(paymentId).includes('_simlive_')) {
+    return { refund_id: simId('rfnd'), amount: Number(amountPaise) || 0, status: 'processed' };
+  }
   const body = Number.isInteger(Number(amountPaise)) ? { amount: Number(amountPaise) } : {};
   const out = await call('POST', `/payments/${encodeURIComponent(paymentId)}/refund`, body);
   return { refund_id: out.id, amount: Number(out.amount), status: out.status };

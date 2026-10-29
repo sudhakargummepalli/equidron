@@ -302,7 +302,7 @@ route('GET', 'shop', '/seller-application', async (c) => {
 });
 route('POST', 'shop', '/seller-application', async (c) => ({ application: await sellerSignup.saveDraft(c.db, c.user, c.body) }));
 // Razorpay: the key id is public by design; the secret never leaves the server.
-route('GET', 'shop', '/payments/razorpay/key', async () => ({ enabled: razorpay.enabled(), key_id: razorpay.keyId() }), true);
+route('GET', 'shop', '/payments/razorpay/key', async () => ({ enabled: razorpay.enabled(), key_id: razorpay.keyId(), mode: razorpay.mode(), simulated: razorpay.simulateLive() }), true);
 route('POST', 'shop', '/payments/razorpay/order', async (c) =>
   await gateway.startForOrder(c.db, c.user.id, int(c.body.order_id)));
 route('POST', 'shop', '/payments/razorpay/verify', async (c) => await gateway.capture(c.db, {

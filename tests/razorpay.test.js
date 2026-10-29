@@ -133,3 +133,27 @@ test('the reconciler captures a payment whose webhook never arrived, and does it
   assert.equal(second.captured, 0, 'nothing left to capture');
   await db.close();
 });
+
+test('the simulated live mode runs the whole money path without a network call', async () => {
+  process.env.RAZORPAY_SIMULATE_LIVE = '1';
+  const db = await openDatabase('memory');
+  const user = await one(db, "SELECT id FROM users WHERE email = 'asha@example.com'");
+  const order = await run(db, "INSERT INTO orders (user_id, address, status, payment_status, fulfilment_status, payment_method, subtotal_paise, shipping_paise, total_paise, created_at, updated_at) VALUES (?, '{}', 'confirmed', 'pending', 'unfulfilled', 'razorpay', 7000, 0, 7000, now(), now())", user.id);
+  await run(db, "INSERT INTO payments (order_id, method, instrument, status, created_at, updated_at) VALUES (?, 'razorpay', 'razorpay', 'created', now(), now())", order);
+  globalThis.fetch = async () => { throw new Error('the simulated mode must not touch the network'); };
+
+  const started = await gateway.startForOrder(db, user.id, order);
+  assert.match(started.order_id, /_simlive_/);
+  assert.equal(started.amount, 7000);
+  const captured = await gateway.capture(db, { orderId: order, paymentId: 'pay_simlive_test', orderRef: started.order_id, source: 'browser' });
+  assert.equal(captured.captured, true);
+  assert.equal(captured.amount_paise, 7000);
+  assert.equal(Number((await one(db, 'SELECT captured_paise FROM payments WHERE order_id = ?', order)).captured_paise), 7000);
+  // The refund path also answers locally.
+  const refund = await orders.refundOrder(db, order, 2500, 'Simulated live refund.');
+  assert.equal(refund[0], 2500);
+  assert.equal(razorpay.mode(), 'live-simulated');
+  delete process.env.RAZORPAY_SIMULATE_LIVE;
+  window: assert.equal(razorpay.mode(), 'test');
+  await db.close();
+});

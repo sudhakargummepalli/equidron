@@ -28,13 +28,16 @@ export async function startForOrder(db, userId, orderId) {
 
 // Called by the browser after the modal succeeds, and by the webhook when it arrives first.
 export async function capture(db, { orderId, paymentId, signature, orderRef = null, source = 'browser' } = {}) {
-  const payment = await razorpay.fetchPayment(paymentId);
+  const payment = razorpay.simulateLive()
+    ? { id: paymentId, order_id: orderRef || null, amount: null, currency: 'INR', status: 'captured' }
+    : await razorpay.fetchPayment(paymentId);
   const gatewayOrderId = orderRef || payment.order_id;
   if (!payment.order_id) throw badRequest('Razorpay did not report an order for this payment.');
   if (gatewayOrderId && payment.order_id !== gatewayOrderId) throw badRequest('That payment belongs to a different Razorpay order.');
 
   // The signature is only checked when the browser sends one; the webhook is signed as a whole.
-  if (source === 'browser' && !razorpay.verifySignature({ orderId: gatewayOrderId, paymentId, signature })) {
+  // A simulated live capture has no real signature to check; a real one always does.
+  if (source === 'browser' && !razorpay.simulateLive() && !razorpay.verifySignature({ orderId: gatewayOrderId, paymentId, signature })) {
     throw badRequest('The payment signature did not match.');
   }
   if (payment.status !== 'captured' && payment.status !== 'authorized') {
@@ -43,24 +46,27 @@ export async function capture(db, { orderId, paymentId, signature, orderRef = nu
 
   const order = await one(db, 'SELECT * FROM orders WHERE id = ?', orderId);
   if (!order) throw notFound('Order');
-  if (Number(payment.amount) !== Number(order.total_paise)) {
+  // A real gateway reports the amount, and a mismatch stops the capture. The simulated live mode has
+  // no gateway to ask, so it uses the order's own amount: honest for a demo, never for real money.
+  const paidPaise = payment.amount == null ? Number(order.total_paise) : Number(payment.amount);
+  if (paidPaise !== Number(order.total_paise)) {
     throw badRequest('The amount paid does not match the order.');
   }
 
   // Exactly once: the guarded UPDATE is the lock, so a webhook and a browser cannot both capture.
   const won = await changes(db, `UPDATE payments SET status = 'captured', captured_paise = ?, provider_ref = ?, updated_at = ?
                                  WHERE order_id = ? AND captured_paise = 0`,
-  Number(payment.amount), payment.id, now(), order.id);
+  paidPaise, payment.id, now(), order.id);
   if (!won) return { already: true, order_id: Number(order.id) };
 
   await run(db, `INSERT INTO payment_events (payment_id, kind, amount_paise, note, at)
                   SELECT id, 'capture', ?, ?, ? FROM payments WHERE order_id = ?`,
-  Number(payment.amount), `Razorpay ${payment.id} captured.`, now(), order.id);
+  paidPaise, `Razorpay ${payment.id} captured.`, now(), order.id);
   await run(db, "UPDATE orders SET status = 'confirmed' WHERE id = ? AND status IN ('payment_pending', 'payment_failed')", order.id);
   await syncPaymentStatus(db, order.id);
-  await emit(db, 'payment.captured', 'order', order.id, { amount_paise: Number(payment.amount), method: 'razorpay' });
-  await audit(db, 'payment.captured', 'order', order.id, null, { provider: 'razorpay', payment_id: payment.id, paise: Number(payment.amount), source });
-  return { captured: true, order_id: Number(order.id), amount_paise: Number(payment.amount) };
+  await emit(db, 'payment.captured', 'order', order.id, { amount_paise: paidPaise, method: 'razorpay' });
+  await audit(db, 'payment.captured', 'order', order.id, null, { provider: 'razorpay', mode: razorpay.mode(), payment_id: payment.id, paise: paidPaise, source });
+  return { captured: true, order_id: Number(order.id), amount_paise: paidPaise };
 }
 
 // The safety net. Webhooks get lost, and a browser can die after paying. Every so often we ask the
