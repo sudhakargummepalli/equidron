@@ -208,7 +208,7 @@ export async function userForToken(db, token, role) {
   if (!token) return null;
   const s = await one(db, 'SELECT * FROM sessions WHERE token = ?', tokenHash(token));
   if (!s || s.role !== role || s.expires_at < Date.now() / 1000) return null;
-  const user = await one(db, 'SELECT id, email, name, role, is_sample, permissions, language, whatsapp_phone, whatsapp_opt_in_at FROM users WHERE id = ?', s.user_id);
+  const user = await one(db, 'SELECT id, email, name, role, is_sample, permissions, language FROM users WHERE id = ?', s.user_id);
   if (!user || user.role !== role || user.role === 'agent') return null;
   user.permissions = role === 'ops' ? loads(user.permissions, []) : undefined;
   if (role === 'seller') {

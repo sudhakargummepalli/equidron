@@ -14,7 +14,7 @@
 | 7 · seller agents | done |
 | 8 · real payments | **Razorpay test mode ✅** — gateway order, signature verification, authoritative amount, webhook, capture exactly once, and a **Pay securely with Razorpay** button in checkout (script loaded on demand, CSP updated) |
 | 9 · real shipping | provider layer, deterministic simulator and webhook done; **a real carrier's field mapping needs a sandbox account** |
-| 10 · messages, invoices, languages | email ✅, i18n ✅ (en + te, UI and emails), WhatsApp and SMS provider-ready (**both refused by providers until a paid account / DLT**), **invoices not built** |
+| 10 · messages, invoices, languages | email ✅, i18n ✅ (en + te, UI and emails), **invoices not built**; **WhatsApp and SMS were removed on 2026-10-29 at the owner's request** (Instagram is the messaging channel now) |
 | 11 · seller sign-up, KYC, images | sign-up backend + store form ✅, KYC task ✅, **documents by link or real upload ✅** (base64 in, magic-byte checked, 2 MB cap, stored once per hash, owner or staff only); **KYC provider and seller details on listings are not built** |
 | 12 · money and risk agents | done (risk holds, settlement batches, TCS/TDS drafts) |
 | 13 · Ops Manager and MCP | done |
@@ -351,7 +351,7 @@ file is sorted oldest first; the newest entry is at the bottom.
 ## Still open (needs the owner)
 - Phase 8: Razorpay or Cashfree **test keys**. No gateway code exists yet; `src/payments.js` is the simulation.
 - Phase 9: a carrier sandbox account (Shiprocket is the usual first choice). The mapping is one file, `src/shipping.js`.
-- Phase 10 WhatsApp: a **paid** Twilio account (a trial answers code 21654 and cannot create the template it demands) or Meta's free test number.
+
 - Phase 10 SMS: a sender number and a **DLT** template id from https://sms.dlt.gov.in.
 - Phase 10 invoices: not built (needs a GST invoice format and a number series).
 - Phase 11: a KYC sandbox; document uploads; showing seller details on listings.

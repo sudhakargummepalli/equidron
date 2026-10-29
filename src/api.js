@@ -25,8 +25,6 @@ import * as settlement from './settlement.js';
 import * as sellerSignup from './seller-signup.js';
 import { emit } from './events.js';
 import * as shipping from './shipping.js';
-import * as whatsapp from './whatsapp.js';
-import * as sms from './sms.js';
 import * as uploads from './uploads.js';
 import * as gateway from './payments-gateway.js';
 import * as razorpay from './razorpay.js';
@@ -143,9 +141,6 @@ for (const area of ['shop', 'seller']) {
 
 // The language a person reads. The interface keeps it in localStorage; saving it here is what
 // lets emails be written in it.
-// Phase 10: WhatsApp is opt-in, and the session decides whose number is saved.
-route('POST', 'shop', '/whatsapp/opt-in', async (c) => await whatsapp.optIn(c.db, c.user.id, c.body.phone));
-route('POST', 'shop', '/whatsapp/opt-out', async (c) => await whatsapp.optOut(c.db, c.user.id));
 
 for (const area of ['shop', 'seller']) {
   route('POST', area, '/language', async (c) => {
@@ -389,43 +384,6 @@ route('GET', 'ops', '/submissions', async (c) => await listings.listSubmissions(
 route('POST', 'ops', '/submissions/(\\d+)/decide', async (c, sid) =>
   await listings.decide(c.db, int(sid), Boolean(c.body.approve), String(c.body.note || '').trim(), c.user.id));
 route('GET', 'ops', '/shipments', async (c) => await orders.listShipments(c.db, c.q('all') !== '1'));
-route('POST', 'ops', '/whatsapp/test', async (c) => {
-  const phone = String(c.body.phone || '').trim();
-  const body = String(c.body.body || 'Equidron test message. If you can read this, WhatsApp is connected.').slice(0, 500);
-  try {
-    const out = await whatsapp.send(c.db, { userId: c.user.id, phone, body });
-    return { ok: true, ...out };
-  } catch (e) {
-    // The provider's own words are the useful part of a failure here.
-    return new Reply(400, { ok: false, error: e.message });
-  }
-});
-route('POST', 'ops', '/sms/test', async (c) => {
-  const phone = String(c.body.phone || '').trim();
-  const body = String(c.body.body || 'Equidron test SMS. If you can read this, SMS is connected.').slice(0, 300);
-  try {
-    const out = await sms.send(c.db, { userId: c.user.id, phone, body });
-    return { ok: true, ...out };
-  } catch (e) {
-    return new Reply(400, { ok: false, error: e.message });
-  }
-});
-route('GET', 'ops', '/sms/messages', async (c) => {
-  const limit = Math.min(100, Math.max(1, Number(c.q('limit', 30))));
-  const rows = await sms.recent(c.db, limit);
-  return rows.map((m) => ({ id: Number(m.id), phone: '\u2022\u2022\u2022\u2022' + String(m.phone).slice(-4), body: m.body,
-    template_id: m.template_id, status: m.status, error: m.error, created_at: m.created_at }));
-});
-route('GET', 'ops', '/whatsapp/messages', async (c) => {
-  const limit = Math.min(100, Math.max(1, Number(c.q('limit', 30))));
-  const rows = await all(c.db, `SELECT id, phone, direction, template, body, status, created_at
-                                 FROM whatsapp_messages ORDER BY id DESC LIMIT ?`, limit);
-  return rows.map((m) => ({
-    id: Number(m.id), direction: m.direction, status: m.status, template: m.template,
-    phone: '••••' + String(m.phone).slice(-4),
-    body: String(m.body).slice(0, 160), created_at: m.created_at,
-  }));
-});
 route('POST', 'ops', '/shipments/(\\d+)/book', async (c, sid) => {
   const s = await orders.getShipment(c.db, int(sid));
   const address = await one(c.db, 'SELECT address FROM orders WHERE id = ?', s.order_id);
@@ -647,41 +605,6 @@ async function shippingWebhook(db, body) {
 }
 
 
-// The WhatsApp webhook: every incoming message is kept, and a status question gets a status answer.
-// The shared-secret header is what authenticates it here; Meta's own signature is over the raw
-// body, which the JSON handlers do not keep (recorded in DECISIONS).
-async function whatsappWebhook(db, { headers = {}, body } = {}) {
-  const secret = process.env.WHATSAPP_WEBHOOK_SECRET;
-  if (!secret) return { status: 403, payload: { error: 'WhatsApp webhook is not configured.' }, setCookie: null };
-  const given = String(headers['x-whatsapp-secret'] ?? '');
-  if (!cryptoEqual(given, secret)) return { status: 403, payload: { error: 'Forbidden.' }, setCookie: null };
-
-  const messages = [];
-  for (const entry of body?.entry ?? []) {
-    for (const change of entry.changes ?? []) {
-      for (const m of change.value?.messages ?? []) messages.push(m);
-    }
-  }
-  let handled = 0;
-  for (const m of messages) {
-    const from = m.from;
-    const text = m.text?.body ?? '';
-    if (!from || !text) continue;
-    const inbound = await whatsapp.recordInbound(db, { phone: from, body: text, providerRef: m.id ?? null });
-    handled++;
-    const intent = whatsapp.replyFor(text);
-    if (intent.optOut) {
-      if (inbound.user_id) await whatsapp.optOut(db, inbound.user_id);
-      await whatsapp.send(db, { userId: inbound.user_id, phone: from, body: 'You will not get WhatsApp messages from Equidron again. Reply START if you change your mind.' });
-    } else if (intent.orderId && inbound.user_id) {
-      await whatsapp.send(db, { userId: inbound.user_id, phone: from, body: await whatsapp.orderStatusText(db, intent.orderId, inbound.user_id) });
-    } else {
-      await whatsapp.send(db, { userId: inbound.user_id, phone: from, body: 'Reply with an order number to get its status, STOP to opt out, or open a ticket in the store for anything else.' });
-    }
-  }
-  return { status: 200, payload: { ok: true, handled }, setCookie: null };
-}
-
 // ---------------------------------------------------------------- dispatch
 
 // Handle one API call. query is a URLSearchParams; cookies a plain object.
@@ -723,21 +646,6 @@ if (path === '/api/webhooks/shipping' && method === 'POST') {
   }
   return await shippingWebhook(db, body);
 }
-  // WhatsApp's webhook: a text challenge on GET, and signed messages on POST. Fail closed.
-  if (path === '/api/webhooks/whatsapp' && method === 'GET') {
-    const mode = query.get('hub.mode');
-    const token = query.get('hub.verify_token');
-    const challenge = query.get('hub.challenge');
-    const expected = process.env.WHATSAPP_VERIFY_TOKEN;
-    if (!expected) return { status: 403, payload: null, text: 'not configured', setCookie: null };
-    if (mode !== 'subscribe' || !token || !cryptoEqual(token, expected)) {
-      return { status: 403, payload: null, text: 'forbidden', setCookie: null };
-    }
-    return { status: 200, payload: null, text: String(challenge ?? ''), setCookie: null };
-  }
-  if (path === '/api/webhooks/whatsapp' && method === 'POST') {
-    return await whatsappWebhook(db, { headers, body, raw: false });
-  }
   // Razorpay's webhook. It is signed over the raw body with the webhook secret, so it verifies
   // before anything is parsed, and it fails closed when no secret is configured.
   if (path === '/api/webhooks/payments' && method === 'POST') {

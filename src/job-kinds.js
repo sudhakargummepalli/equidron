@@ -8,8 +8,6 @@ import { tool } from './agents/tools.js';
 import { all, changes, indiaDate, loads, now, one, run } from './db.js';
 import * as emails from './emails.js';
 import { deliverOutbox } from './mailer.js';
-import * as whatsapp from './whatsapp.js';
-import * as sms from './sms.js';
 import * as orders from './orders.js';
 import { sendEmail } from './outbox.js';
 
@@ -117,11 +115,6 @@ export const BUILT_IN = {
 // Kinds that call something outside the database. They run outside the job's transaction: an
 // SMTP conversation can take seconds, and holding a transaction open for it is wrong.
 export const EXTERNAL_KINDS = {
-  // One WhatsApp message per order event, and only to a customer who opted in.
-  'whatsapp:order_event': (db, payload) => sendWhatsApp(db, payload.type, payload.entity_id),
-  // One SMS per order event, to the phone on the delivery address, unless the person opted out.
-  'sms:order_event': (db, payload) => sendSms(db, payload.type, payload.entity_id),
-  'sms:arriving_today': (db, payload) => smsArrivingToday(db, payload),
   // Deliver what is waiting in the outbox. Enqueued by the tick once a minute, and only when
   // there is something pending, so Ops does not fill with jobs that have nothing to do.
   'email:deliver': (db) => deliverOutbox(db),
@@ -162,67 +155,6 @@ export const AGENT_KINDS = {
 
 // Phase 13. Cheap when nothing is wrong: the check is a count, and the model is not called unless
 // there is a dead job, a failed run or a paused agent to think about.
-// Phase 10: the customer hears about the order on WhatsApp too, if they asked for it.
-export async function sendWhatsApp(db, type, orderId) {
-  const o = await one(db, `SELECT o.id, o.status, o.payment_status, o.total_paise,
-                                  u.id AS user_id, u.whatsapp_phone, u.whatsapp_opt_in_at
-                           FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?`, orderId);
-  if (!o || !whatsapp.optedIn(o)) return { skipped: 'not opted in' };
-  if (type === 'shipment.status_changed') {
-    const s = await one(db, 'SELECT status FROM shipments WHERE order_id = ? ORDER BY id DESC LIMIT 1', o.id);
-    if (s) o.status = s.status;
-  }
-  const build = whatsapp.ORDER_TEMPLATES[type];
-  if (!build) return { skipped: `no message for ${type}` };
-  return await whatsapp.send(db, { userId: o.user_id, phone: o.whatsapp_phone, body: build(o), template: null });
-}
-
-// Phase 10: the same events, by SMS, for a customer who prefers a text.
-export async function sendSms(db, type, entityId) {
-  // A return event carries a return id; everything else carries an order id.
-  const isReturn = type.startsWith('return.');
-  const facts = isReturn
-    ? await one(db, `SELECT o.id, o.status, o.total_paise, r.id AS return_id, oi.unit_price_paise * r.qty AS refund_paise,
-                            u.id AS user_id, u.sms_opt_out_at
-                     FROM returns r JOIN order_items oi ON oi.id = r.order_item_id
-                     JOIN orders o ON o.id = r.order_id JOIN users u ON u.id = r.user_id WHERE r.id = ?`, entityId)
-    : await one(db, `SELECT o.id, o.status, o.payment_status, o.total_paise,
-                            u.id AS user_id, u.sms_opt_out_at
-                     FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?`, entityId);
-  if (!facts) return { skipped: 'not found' };
-  if (sms.optedOut(facts)) return { skipped: 'opted out' };
-  if (type === 'shipment.status_changed') {
-    const s = await one(db, 'SELECT status FROM shipments WHERE order_id = ? ORDER BY id DESC LIMIT 1', facts.id);
-    if (s) facts.status = s.status;
-  }
-  const build = sms.ORDER_TEMPLATES[type];
-  if (!build) return { skipped: `no message for ${type}` };
-  const phone = await sms.phoneFor(db, facts.user_id);
-  if (!phone) return { skipped: 'no phone on the address' };
-  return await sms.send(db, { userId: facts.user_id, phone, body: build(facts) });
-}
-
-// Phase 10: one reminder on the morning an order is due, per shipment per day. The dedupe key is
-// the day and the shipment, so a retried job cannot text the same person twice.
-export async function smsArrivingToday(db, { at = new Date() } = {}) {
-  const day = indiaDate(at);
-  const due = await all(db, `SELECT s.id AS shipment_id, s.order_id, s.eta, u.id AS user_id, u.sms_opt_out_at
-                             FROM shipments s JOIN orders o ON o.id = s.order_id JOIN users u ON u.id = o.user_id
-                             WHERE s.eta::date = ?::date AND s.status NOT IN ('delivered', 'cancelled', 'returned')`, day);
-  let sent = 0;
-  for (const s of due) {
-    if (sms.optedOut(s)) continue;
-    const already = await one(db, 'SELECT 1 AS x FROM settings WHERE key = ?', `sms:arriving:${day}:${s.shipment_id}`);
-    if (already) continue;
-    const phone = await sms.phoneFor(db, s.user_id);
-    if (!phone) continue;
-    await sms.send(db, { userId: s.user_id, phone, body: sms.ORDER_TEMPLATES.arriving_today({ id: s.order_id }) });
-    await run(db, 'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)', `sms:arriving:${day}:${s.shipment_id}`, JSON.stringify({ order_id: Number(s.order_id) }), now());
-    sent += 1;
-  }
-  return { due: due.length, sent };
-}
-
 export async function runOpsManager(db, options = {}) {
   if (!(await ready(db, 'ops_manager'))) return;
   const dead = await one(db, `SELECT COUNT(*) AS n FROM jobs WHERE status IN ('dead', 'failed')`);
