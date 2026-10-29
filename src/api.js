@@ -29,6 +29,7 @@ import * as uploads from './uploads.js';
 import * as gateway from './payments-gateway.js';
 import * as invoices from './invoices.js';
 import * as dataRights from './data-rights.js';
+import * as kyc from './kyc.js';
 import * as razorpay from './razorpay.js';
 import crypto from 'node:crypto';
 
@@ -683,6 +684,14 @@ if (path === '/api/webhooks/shipping' && method === 'POST') {
       'INSERT INTO github_events (delivery_id, event, action, repo, payload, created_at) VALUES (?,?,?,?,?,?) ON CONFLICT (delivery_id) DO NOTHING',
       delivery, event, body.action ?? null, body.repository?.full_name ?? null, JSON.stringify(body), now());
     return { status: 200, payload: { ok: true, duplicate: !fresh, event }, setCookie: null };
+  }
+  // A fake KYC vendor, for exercising the http provider without an account. Off unless
+  // KYC_DEV_VENDOR=1, and it answers the shape a real vendor does: status, reason, score, reference.
+  if (path === '/api/dev/kyc' && method === 'POST') {
+    if (process.env.KYC_DEV_VENDOR !== '1') return { status: 404, payload: { error: 'Not here.' }, setCookie: null };
+    const pan = String(body?.pan || '').toUpperCase();
+    const answer = kyc.decide(pan);
+    return { status: 200, payload: { status: answer.status, reason: answer.reason, score: answer.score, reference: 'dev_' + pan.slice(-4) }, setCookie: null };
   }
   // Razorpay's webhook. It is signed over the raw body with the webhook secret, so it verifies
   // before anything is parsed, and it fails closed when no secret is configured.
