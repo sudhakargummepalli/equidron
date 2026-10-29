@@ -216,6 +216,72 @@ angular.module('shop', ['eqCommon', 'equidronI18n']).controller('ShopCtrl', ['$s
       });
     };
 
+    // ---------------------------------------------------------------- Razorpay (Phase 8)
+    // The order is created first (payment_method razorpay), then a gateway order, then the modal.
+    // The browser only ever sees the key id; the server holds the secret and verifies the signature.
+    vm.razorpay = { enabled: false };
+    // Razorpay's script is loaded on demand: one extra external script at first use, not on every
+    // page view, and the security test keeps its "one pinned script" rule intact.
+    let razorpayLoading = null;
+    function ensureRazorpay() {
+      if (window.Razorpay) return Promise.resolve();
+      if (razorpayLoading) return razorpayLoading;
+      razorpayLoading = new Promise(function (resolve, reject) {
+        const s = document.createElement('script');
+        s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        s.async = true;
+        s.onload = function () { resolve(); };
+        s.onerror = function () { razorpayLoading = null; reject(new Error('Could not load Razorpay checkout.')); };
+        document.head.appendChild(s);
+      });
+      return razorpayLoading;
+    }
+    vm.payError = null;
+    api.get('/payments/razorpay/key').then(function (k) { vm.razorpay = k; }, function () { /* not configured */ });
+    vm.payWithRazorpay = function () {
+      if (!vm.user) { $location.path('/login'); return; }
+      if (!vm.co.preview || !vm.co.preview.ok) { Toast.show('Review the cart before paying.'); return; }
+      vm.paying = true;
+      vm.payError = null;
+      api.post('/orders', {
+        address_id: vm.co.address_id, payment_method: 'razorpay',
+        fingerprint: vm.co.preview.fingerprint, cart_version: vm.cart.version,
+      }).then(function (placed) {
+        const order = placed.order || placed;
+        return api.post('/payments/razorpay/order', { order_id: order.id }).then(function (gw) {
+          return ensureRazorpay().then(function () { return gw; });
+        }).then(function (gw) {
+          return new Promise(function (resolve, reject) {
+            if (!window.Razorpay) { reject(new Error('Razorpay checkout did not load.')); return; }
+            const checkout = new window.Razorpay({
+              key: gw.key_id, order_id: gw.order_id, amount: gw.amount, currency: gw.currency || 'INR',
+              name: 'Equidron', description: 'Order #' + order.id,
+              theme: { color: '#1f6feb' },
+              handler: function (response) {
+                api.post('/payments/razorpay/verify', {
+                  order_id: order.id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }).then(function () { resolve(order); }, reject);
+              },
+              modal: { ondismiss: function () { reject(new Error('Payment cancelled.')); } },
+            });
+            // A failure inside the modal is a message, not a redirect.
+            checkout.on('payment.failed', function (resp) {
+              reject(new Error((resp.error && resp.error.description) || 'Payment failed.'));
+            });
+            checkout.open();
+          });
+        });
+      }).then(function (order) {
+        Toast.show('Payment received. Thank you.');
+        $location.path('/orders/' + order.id).search({ placed: 1 });
+      }, function (e) {
+        vm.payError = e.message || 'Payment could not be completed.';
+      }).finally(function () { vm.paying = false; });
+    };
+
     // ---------------------------------------------------------------- sell on Equidron (Phase 11)
     // The form saves a step at a time; nothing becomes a seller until the last step is submitted.
     vm.app = {};

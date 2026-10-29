@@ -125,4 +125,7 @@ window.EQ_STRINGS.en = {
   'sell.submitted': 'Application submitted.',
   'sell.submittedHint': 'A person checks your documents; you will hear from us here and by email.',
   'sell.openSellerCentral': 'Open Seller Central',
+  'shop.payRazorpay': 'Pay securely with Razorpay',
+  'shop.paying': 'Opening Razorpay…',
+  'shop.payRazorpayHint': 'Card, UPI or netbanking. Test mode: no real money moves.',
 };

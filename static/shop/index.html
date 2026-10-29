@@ -285,6 +285,13 @@
           <label class="radio" ng-repeat="p in vm.meta.payment_options" ng-class="{on: vm.co.payment === p}">
             <input type="radio" ng-model="vm.co.payment" ng-value="p"> <span>{{p.label}} <span class="muted small">({{p.method | uppercase}})</span></span>
           </label>
+          <div class="card" ng-if="vm.razorpay.enabled" style="margin-top:10px">
+            <p class="small muted">{{ 'shop.payRazorpayHint' | t }}</p>
+            <button class="btn primary" type="button" ng-click="vm.payWithRazorpay()" ng-disabled="vm.paying">
+              {{ vm.paying ? ('shop.paying' | t) : ('shop.payRazorpay' | t) }}
+            </button>
+            <div class="small bad" ng-if="vm.payError">{{vm.payError}}</div>
+          </div>
           <div class="field" ng-if="vm.co.payment.reference" style="margin-top:8px">
             <label for="pay-ref">Payment reference (UTR / RRN)</label>
             <input id="pay-ref" type="text" ng-model="vm.co.reference" maxlength="30" autocomplete="off" placeholder="e.g. 629104857312">

@@ -12,7 +12,7 @@
 | 5 · first Ops agents | done (all ship switched off, at L1, waiting for shadow data) |
 | 6 · customer agents | done for tickets, returns and the console; the **proposal cards in the store chat are not built** (the API is) |
 | 7 · seller agents | done |
-| 8 · real payments | **Razorpay test mode ✅** — create gateway order, verify signature, authoritative amount, webhook, capture exactly once; test keys in `.env` |
+| 8 · real payments | **Razorpay test mode ✅** — gateway order, signature verification, authoritative amount, webhook, capture exactly once, and a **Pay securely with Razorpay** button in checkout (script loaded on demand, CSP updated) |
 | 9 · real shipping | provider layer, deterministic simulator and webhook done; **a real carrier's field mapping needs a sandbox account** |
 | 10 · messages, invoices, languages | email ✅, i18n ✅ (en + te, UI and emails), WhatsApp and SMS provider-ready (**both refused by providers until a paid account / DLT**), **invoices not built** |
 | 11 · seller sign-up, KYC, images | sign-up backend + store form ✅, KYC task ✅, **documents by link or real upload ✅** (base64 in, magic-byte checked, 2 MB cap, stored once per hash, owner or staff only); **KYC provider and seller details on listings are not built** |

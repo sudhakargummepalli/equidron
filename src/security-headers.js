@@ -6,8 +6,8 @@
 // inline (style="" attributes and AngularJS's own); images from any https site, because
 // sellers link product photos until Phase 11; nobody may frame the pages.
 export const SECURITY_HEADERS = {
-  'Content-Security-Policy': "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; "
-    + "img-src 'self' https: data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; "
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://checkout.razorpay.com; style-src 'self' 'unsafe-inline'; "
+    + "img-src 'self' https: data:; connect-src 'self' https://api.razorpay.com https://checkout.razorpay.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; font-src 'self'; object-src 'none'; base-uri 'self'; "
     + "form-action 'self'; frame-ancestors 'none'",
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'X-Content-Type-Options': 'nosniff',
