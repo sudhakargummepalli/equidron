@@ -127,6 +127,7 @@ tests/                       node:test suites (order flow, PostgreSQL, assistant
 
 ## Working rules
 
+- **Never deploy to Netlify. Deploy locally only.** The owner said so on 2026-10-29: every change is verified on `http://localhost:8010`, and pushing to GitHub is the only remote step. Do not run `netlify deploy`, do not add deploy hooks, and treat a Netlify build triggered by a push as something to report, not to rely on.
 - **Every update adds a line to `docs/DECISIONS.md` in the same commit**, dated, with the reason. The owner asked for this on 2026-10-28. A change with no entry is not finished.
 - One phase at a time, in the PDF's order unless the owner chooses otherwise. Never skip the "done when"
   checks. For each phase: explain it, show a plan (files, migrations, tests, risks, what the owner must do),

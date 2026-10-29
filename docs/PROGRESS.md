@@ -357,7 +357,7 @@ file is sorted oldest first; the newest entry is at the bottom.
 - Phase 11: a KYC sandbox; document uploads; showing seller details on listings.
 - Phase 14: a GitHub App with repo access, and a separate repository for the agents to work in.
 - Phase 15: GST registration, legal pages, a domain, a load test, and your sign-off.
-- Deploy: nothing pushed since `bca2261`. Say the word and the branch goes up.
+- Deployment: **local only, by the owner's decision**. GitHub holds the code; nothing is deployed to Netlify.
 
 ## Next
 Phase 11's leftovers, which need no account: document uploads and seller details on listings. After
