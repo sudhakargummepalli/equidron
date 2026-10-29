@@ -131,4 +131,7 @@ window.EQ_STRINGS.en = {
   'shop.dispatchedIn': 'Dispatched in {days} day(s)',
   'shop.proposalYes': 'Yes, do it',
   'shop.proposalNo': 'No thanks',
+  'shop.legalPrivacy': 'Privacy',
+  'shop.legalTerms': 'Terms',
+  'shop.legalRefunds': 'Refunds',
 };

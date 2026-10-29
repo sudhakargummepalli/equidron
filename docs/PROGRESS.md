@@ -19,7 +19,7 @@
 | 12 · money and risk agents | done (risk holds, settlement batches, TCS/TDS drafts) |
 | 13 · Ops Manager and MCP | done |
 | 14 · engineering agents | **agent + tools done** — reads issues, pull requests and CI runs, may write one comment; needs `GITHUB_APP_ID`, `GITHUB_INSTALLATION_ID` and `GITHUB_PRIVATE_KEY` in `.env` to reach GitHub |
-| 15 · compliance, hardening, go-live | **data rights done** (`GET /shop/my-data`, `POST /shop/delete-account`, anonymising deletion with an audit row); still owner's: GST registration, legal pages, domain, load test, sign-off, Netlify credits |
+| 15 · compliance, hardening, go-live | **data rights done** (`GET /shop/my-data`, `POST /shop/delete-account`, anonymising deletion with an audit row); **legal page templates done** (`/legal/privacy.html`, `/terms.html`, `/refunds.html` with placeholders and footer links); still owner's: GST registration, real legal review, domain, load test, sign-off, Netlify credits |
 
 Nothing has been pushed since `bca2261`; the local `main` is ahead by the Phase 9–13 work.
 

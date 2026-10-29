@@ -131,4 +131,7 @@ window.EQ_STRINGS.te = {
   'shop.dispatchedIn': 'విక్రేత {days} రోజుల్లో పంపుతారు',
   'shop.proposalYes': 'అవును, చేయండి',
   'shop.proposalNo': 'వద్దు',
+  'shop.legalPrivacy': 'గోప్యత',
+  'shop.legalTerms': 'నిబంధనలు',
+  'shop.legalRefunds': 'రీఫండ్లు',
 };
