@@ -27,6 +27,7 @@ import { emit } from './events.js';
 import * as shipping from './shipping.js';
 import * as uploads from './uploads.js';
 import * as gateway from './payments-gateway.js';
+import * as invoices from './invoices.js';
 import * as razorpay from './razorpay.js';
 import crypto from 'node:crypto';
 
@@ -267,6 +268,16 @@ async function placeOrderReply(c) {
   return new Reply(201, res.order);
 }
 route('GET', 'shop', '/orders', async (c) => await orders.listOrders(c.db, c.user.id));
+route('GET', 'shop', '/orders/(\\d+)/invoice', async (c, oid) => {
+  const { invoice, pdf } = await invoices.invoicePdf(c.db, int(oid), c.user.id);
+  return {
+    number: invoice.number, issued_at: invoice.issued_at, total_paise: Number(invoice.total_paise),
+    taxable_paise: Number(invoice.taxable_paise), cgst_paise: Number(invoice.cgst_paise),
+    sgst_paise: Number(invoice.sgst_paise), igst_paise: Number(invoice.igst_paise),
+    filename: `${invoice.number}.pdf`, pdf_base64: pdf.toString('base64'),
+  };
+});
+route('GET', 'ops', '/invoices', async (c) => await invoices.listInvoices(c.db, Number(c.q('limit', 50))));
 route('GET', 'shop', '/orders/(\\d+)', async (c, oid) => await orders.getOrder(c.db, int(oid), c.user.id));
 route('POST', 'shop', '/orders/(\\d+)/cancel', async (c, oid) => await orders.cancelOrder(c.db, c.user.id, int(oid)));
 route('POST', 'shop', '/orders/(\\d+)/returns', async (c, oid) => {
