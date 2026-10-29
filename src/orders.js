@@ -229,7 +229,8 @@ async function authorizeBankTransfer(db, ref, total, statement) {
 // "issues" (nothing created), "payment_failed" (order recorded, stock released,
 // cart kept) or "placed". statement: bank statement rows for method 'bank' (loaded here if not given).
 export async function placeOrder(db, userId, addressId, method, token, { statement = null } = {}) {
-  token = provider.checkToken(method, token);
+  // A gateway method has no token yet: the signature arrives after the customer pays.
+  if (method !== 'razorpay') token = provider.checkToken(method, token);
   const check = await revalidate(db, userId, addressId);
   if (!check.ok) return { result: 'issues', issues: check.issues, totals: check.totals };
   const { address: addr, totals: t } = check;

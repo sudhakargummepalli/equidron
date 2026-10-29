@@ -1,12 +1,11 @@
-﻿Fix the broken buttons: the i18n pass swallowed the angle brackets
+﻿Let Razorpay orders skip the token check that the simulated provider needs
 
-Replacing ">Proceed to checkout<" with an interpolation removed both the '>' that opened the tag
-body and the '<' that closed the text, so the deployed page served
-  <a href="#/checkout"{{ 'shop.cart.checkout' | t }}/a>
-and every translated button rendered as an empty coloured bar.
+placeOrder validated a payment token before doing anything, which is right for card, UPI, COD and
+bank - each carries a token the provider can check. A gateway payment has no token at that moment:
+its proof arrives later as a signed (order, payment) pair. The check rejected the order with
+"Unknown payment option" before the modal could open, which is the error seen on checkout.
 
-- Repaired every such case on the store and Seller Central pages (camelCase keys were missed by the
-  first repair pass, which only matched lowercase).
-- tests/i18n.test.js now fails on both broken shapes: "}}/tag>" and an interpolation glued to an
-  attribute value.
-- node --test: 346 of 346 pass.
+Verified against the real Razorpay test API: POST /shop/orders with payment_method razorpay creates
+order #34, and POST /shop/payments/razorpay/order returns order_TtfqG7jijSgqEl for 22900 paise.
+
+- node --test (order flow and razorpay): 33 of 33.
