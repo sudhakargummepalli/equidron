@@ -30,7 +30,7 @@ test("the key id is public, the secret never is", () => {
   assert.equal(razorpay.enabled(), true);
   const src = readFileSync(new URL("../src/razorpay.js", import.meta.url), "utf8");
   assert.ok(!src.includes("secret_headless"), "no secret is written into the code");
-  assert.ok(!src.includes("rzp_test_TteAr9vxegiCqz"), "no real key id is written into the code");
+  assert.ok(!/rzp_(test|live)_[A-Za-z0-9]{10,}/.test(src), "no real key id is written into the code");
 });
 
 test("a signature covers the order and the payment, and nothing else", () => {
