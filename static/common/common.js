@@ -269,6 +269,25 @@ angular.module('eqCommon', [])
       chat.canChat = function () { return chat.signedIn() && chat.available; };
       chat.linkFor = opts.linkFor;
       chat.hasVoice = function () { return Voice.hasVoice(chat.lang); };
+      // Phase 6: proposals the assistant made. Only the customer can confirm one, and the card
+      // disappears as soon as it is decided, so a stale suggestion cannot be tapped twice.
+      chat.proposals = [];
+      chat.proposalBusy = false;
+      chat.loadProposals = function () {
+        if (!chat.signedIn()) return;
+        opts.api.get('/proposals').then(function (rows) {
+          chat.proposals = Array.isArray(rows) ? rows : (rows.proposals || []);
+        }, function () { chat.proposals = []; });
+      };
+      chat.decideProposal = function (proposal, accept) {
+        chat.proposalBusy = true;
+        opts.api.post('/proposals/' + proposal.id + (accept ? '/confirm' : '/dismiss'), {}).then(function () {
+          chat.proposals = chat.proposals.filter(function (x) { return x.id !== proposal.id; });
+          if (accept && opts.onProposalDone) opts.onProposalDone();
+        }, function (e) { chat.error = e.message || 'That did not work.'; })
+          .finally(function () { chat.proposalBusy = false; });
+      };
+      chat.loadProposals();
       chat.load = function () { opts.api.get('/assistant').then(function (r) { chat.available = r.available; }); };
 
       function scroll() {

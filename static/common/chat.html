@@ -10,7 +10,16 @@
     <button class="linkbtn" ng-click="vm.chat.close()" aria-label="{{vm.chat.t.close}}">✕</button>
   </div>
   <div class="chat-log" id="chat-log" aria-live="polite">
-    <div class="chat-msg bot" ng-if="!vm.chat.messages.length">
+    <div class="proposal-card" ng-if="vm.chat.proposals.length">
+  <div class="proposal" ng-repeat="p in vm.chat.proposals track by p.id">
+    <div class="small">{{p.summary}}</div>
+    <div class="row" style="margin-top:6px">
+      <button class="btn small primary" ng-click="vm.chat.decideProposal(p, true)" ng-disabled="vm.chat.proposalBusy">{{ 'shop.proposalYes' | t }}</button>
+      <button class="btn small" ng-click="vm.chat.decideProposal(p, false)" ng-disabled="vm.chat.proposalBusy">{{ 'shop.proposalNo' | t }}</button>
+    </div>
+  </div>
+</div>
+<div class="chat-msg bot" ng-if="!vm.chat.messages.length">
       {{vm.chat.t.hello}}
       <div class="chat-chips" ng-if="vm.chat.canChat()">
         <button class="btn small" ng-repeat="s in vm.chat.t.suggestions" ng-click="vm.chat.send(s)">{{s}}</button>

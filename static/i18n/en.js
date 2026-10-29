@@ -129,4 +129,6 @@ window.EQ_STRINGS.en = {
   'shop.paying': 'Opening Razorpay…',
   'shop.payRazorpayHint': 'Card, UPI or netbanking. Test mode: no real money moves.',
   'shop.dispatchedIn': 'Dispatched in {days} day(s)',
+  'shop.proposalYes': 'Yes, do it',
+  'shop.proposalNo': 'No thanks',
 };

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 // Proposals: the assistant suggests a change, the customer confirms it, and only then does the
 // service function run. These tests hold the two halves that matter: proposing changes nothing,
 // and confirming runs exactly once and only for the person who owns the proposal.
@@ -119,4 +120,14 @@ test('the routes list, confirm and dismiss, scoped to the session', async () => 
   const theirs = await proposals.create(db, rahul.id, 'cancel_order', { order_id: open.id });
   assert.equal((await call('POST', `/api/shop/proposals/${theirs}/confirm`)).status, 404);
   assert.equal((await one(db, 'SELECT status FROM proposals WHERE id = ?', theirs)).status, 'pending');
+});
+
+test('the chat shows a proposal card wired to confirm and dismiss', () => {
+  const html = readFileSync(new URL('../static/common/chat.html', import.meta.url), 'utf8');
+  const js = readFileSync(new URL('../static/common/common.js', import.meta.url), 'utf8');
+  assert.match(html, /proposal-card/, 'the card is in the chat');
+  assert.match(html, /decideProposal\(p, true\)/);
+  assert.match(html, /decideProposal\(p, false\)/);
+  assert.match(js, /decideProposal = function/, 'the behaviour exists');
+  assert.match(js, /\/proposals\/' \+ proposal\.id \+ \(accept \? '\/confirm' : '\/dismiss'\)/);
 });
