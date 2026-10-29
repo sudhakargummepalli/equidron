@@ -1,9 +1,12 @@
-﻿Pin migration line endings to LF so the database tool sees stable bytes
+﻿Fix the broken buttons: the i18n pass swallowed the angle brackets
 
-A deploy failed with: migration 20261017000000_initial_schema has been modified after
-being applied. The files were committed with CRLF while the database recorded LF, and
-Netlify Database hashes the file it applies.
+Replacing ">Proceed to checkout<" with an interpolation removed both the '>' that opened the tag
+body and the '<' that closed the text, so the deployed page served
+  <a href="#/checkout"{{ 'shop.cart.checkout' | t }}/a>
+and every translated button rendered as an empty coloured bar.
 
-- Every .sql migration is LF now, and .gitattributes pins *.sql text eol=lf so a Windows
-  checkout cannot change the bytes again.
-- The schema test normalises line endings on both sides, so it stays meaningful.
+- Repaired every such case on the store and Seller Central pages (camelCase keys were missed by the
+  first repair pass, which only matched lowercase).
+- tests/i18n.test.js now fails on both broken shapes: "}}/tag>" and an interpolation glued to an
+  attribute value.
+- node --test: 346 of 346 pass.

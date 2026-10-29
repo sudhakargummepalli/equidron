@@ -84,9 +84,9 @@
       </a>
     </div>
     <nav class="row" style="justify-content:center;margin-top:16px" ng-if="!vm.loading && vm.paging.pages > 1" aria-label="Pages">
-      <button class="btn small" ng-disabled="vm.paging.page <= 1" ng-click="vm.search(vm.paging.page - 1)"{{ 'shop.paging.previous' | t }}/button>
+      <button class="btn small" ng-disabled="vm.paging.page <= 1" ng-click="vm.search(vm.paging.page - 1)">{{ 'shop.paging.previous' | t }}</button>
       <span class="small muted">Page {{vm.paging.page}} of {{vm.paging.pages}} · {{vm.paging.total}} products</span>
-      <button class="btn small" ng-disabled="vm.paging.page >= vm.paging.pages" ng-click="vm.search(vm.paging.page + 1)"{{ 'shop.paging.next' | t }}/button>
+      <button class="btn small" ng-disabled="vm.paging.page >= vm.paging.pages" ng-click="vm.search(vm.paging.page + 1)">{{ 'shop.paging.next' | t }}</button>
     </nav>
   </section>
 
@@ -125,7 +125,7 @@
           </div>
           <div class="actions" ng-if="o.available && o.deliverable">
             <select ng-model="o.qty" ng-options="n for n in vm.qtyOptions(o)" aria-label="Quantity"></select>
-            <button class="btn primary" ng-click="vm.addToCart(o)"{{ 'shop.addToCart' | t }}/button>
+            <button class="btn primary" ng-click="vm.addToCart(o)">{{ 'shop.addToCart' | t }}</button>
           </div>
         </div>
 
@@ -239,7 +239,7 @@
         <div class="line"><span>Delivery</span><span>{{vm.cart.estimate.shipping_paise ? (vm.cart.estimate.shipping_paise | inr) : 'Free'}}</span></div>
         <div class="line total"><span>Estimated total</span><span>{{vm.cart.estimate.total_paise | inr}}</span></div>
         <p class="small muted">Free delivery on orders over {{vm.cart.estimate.free_shipping_from_paise | inr}}. Prices, stock and delivery are checked again at checkout.</p>
-        <a class="btn primary" style="width:100%" href="#/checkout"{{ 'shop.cart.checkout' | t }}/a>
+        <a class="btn primary" style="width:100%" href="#/checkout">{{ 'shop.cart.checkout' | t }}</a>
       </div>
     </div>
   </section>
@@ -262,7 +262,7 @@
             <div class="field" ng-class="{invalid: vm.co.addrErrors.city}"><label>City</label><select ng-model="vm.co.newAddr.city" ng-options="c for c in vm.meta.cities"></select><div class="err">{{vm.co.addrErrors.city}}</div></div>
             <div class="field" ng-class="{invalid: vm.co.addrErrors.pincode}"><label>PIN code</label><input type="text" ng-model="vm.co.newAddr.pincode" inputmode="numeric"><div class="err">{{vm.co.addrErrors.pincode}}</div></div>
             <div class="field" ng-class="{invalid: vm.co.addrErrors.phone}"><label>Phone</label><input type="text" ng-model="vm.co.newAddr.phone" inputmode="numeric"><div class="err">{{vm.co.addrErrors.phone}}</div></div>
-            <div class="field" style="align-self:end"><button class="btn dark" type="submit"{{ 'shop.checkout.useAddress' | t }}/button></div>
+            <div class="field" style="align-self:end"><button class="btn dark" type="submit">{{ 'shop.checkout.useAddress' | t }}</button></div>
           </form>
         </div>
 
@@ -272,7 +272,7 @@
             <strong>{{vm.co.changedMessage || 'We re-checked your cart:'}}</strong>
             <ul><li ng-repeat="i in vm.co.issues">{{i.message}}</li></ul>
             <div class="small" style="margin-top:6px">Price changes have been applied to your cart. Fix stock or delivery problems in your <a href="#/cart">cart</a>, then review again.</div>
-            <button class="btn small" style="margin-top:8px" ng-click="vm.co.changedMessage = null; vm.review()"{{ 'shop.checkout.reviewAgain' | t }}/button>
+            <button class="btn small" style="margin-top:8px" ng-click="vm.co.changedMessage = null; vm.review()">{{ 'shop.checkout.reviewAgain' | t }}</button>
           </div>
           <table ng-if="vm.co.preview">
             <tr ng-repeat="i in vm.co.preview.items"><td>{{i.title}}<div class="small muted">{{i.seller_name}} · arrives {{i.eta | day}}</div></td><td class="right">× {{i.qty}}</td><td class="right">{{i.price_paise * i.qty | inr}}</td></tr>
@@ -330,7 +330,7 @@
       <p class="small muted">Connect this account to the Equidron bot and ask about your orders and products from a chat.
         The bot never asks for your password.</p>
       <div ng-if="!vm.tgCode">
-        <button class="btn small" ng-click="vm.telegramCode()" ng-disabled="vm.tgBusy"{{ 'shop.getCode' | t }}/button>
+        <button class="btn small" ng-click="vm.telegramCode()" ng-disabled="vm.tgBusy">{{ 'shop.getCode' | t }}</button>
       </div>
       <div ng-if="vm.tgCode">
         <p>Send this to the bot{{vm.tgBot ? ' @' + vm.tgBot : ''}} within 10 minutes:</p>
@@ -345,8 +345,8 @@
     <div class="row between">
       <h1 style="margin:0">Order #{{vm.order.id}}</h1>
       <div class="row">
-        <a class="btn small" href="#/support?order={{vm.order.id}}"{{ 'shop.order.help' | t }}/a>
-        <button class="btn small danger" ng-if="vm.order.cancellable" ng-click="vm.cancelOrder()"{{ 'shop.order.cancel' | t }}/button>
+        <a class="btn small" href="#/support?order={{vm.order.id}}">{{ 'shop.order.help' | t }}</a>
+        <button class="btn small danger" ng-if="vm.order.cancellable" ng-click="vm.cancelOrder()">{{ 'shop.order.cancel' | t }}</button>
       </div>
     </div>
     <p class="small muted">Placed {{vm.order.created_at | when}} · Deliver to {{vm.order.address.name}}, {{vm.order.address.line1}}, {{vm.order.address.city}}</p>
@@ -380,14 +380,14 @@
                 <select ng-model="vm.returnForm[it.id].reason">
                   <option value="">Choose a reason</option><option>Damaged or defective</option><option>Wrong item delivered</option>
                   <option>No longer needed</option><option>Better price elsewhere</option></select></div>
-              <button class="btn small primary" type="submit"{{ 'shop.order.requestReturn' | t }}/button>
-              <button class="btn small" type="button" ng-click="vm.returnForm[it.id] = null"{{ 'common.cancel' | t }}/button>
+              <button class="btn small primary" type="submit">{{ 'shop.order.requestReturn' | t }}</button>
+              <button class="btn small" type="button" ng-click="vm.returnForm[it.id] = null">{{ 'common.cancel' | t }}</button>
               <div class="err small" style="color:var(--bad);width:100%" ng-if="vm.returnForm[it.id].error">{{vm.returnForm[it.id].error}}</div>
             </form>
           </div>
           <div ng-if="sh.status === 'delivered'" class="small" style="margin-top:8px">
             <span ng-if="sh.receipt_confirmed" class="badge good">You confirmed receipt</span>
-            <button class="btn small" ng-if="!sh.receipt_confirmed" ng-click="vm.confirmReceipt(sh)"{{ 'shop.order.confirmReceipt' | t }}/button>
+            <button class="btn small" ng-if="!sh.receipt_confirmed" ng-click="vm.confirmReceipt(sh)">{{ 'shop.order.confirmReceipt' | t }}</button>
           </div>
           <details style="margin-top:10px"><summary class="small">Tracking history</summary>
             <ul class="timeline"><li ng-repeat="e in sh.events"><strong>{{e.status | label}}</strong> · {{e.note}} <span class="muted">{{e.at | when}}</span></li></ul>
@@ -443,14 +443,14 @@
         <div class="field">{{ '<label>{{ 'shop.support.subject' | t }}</label>' | t }}<input type="text" ng-model="vm.ticket.subject" placeholder="e.g. Package arrived damaged"></div>
         <div class="field"><label>Message</label><textarea ng-model="vm.ticket.message"></textarea></div>
         <div class="alert bad" ng-if="vm.ticket.error">{{vm.ticket.error}}</div>
-        <button class="btn primary" type="submit"{{ 'shop.support.send' | t }}/button>
+        <button class="btn primary" type="submit">{{ 'shop.support.send' | t }}</button>
       </form>
       <div>
         <div class="card" ng-repeat="t in vm.tickets">
           <div class="row between"><strong>#{{t.id}} {{t.subject}}</strong><span class="badge {{t.status | tone}}">{{t.status | label}}</span></div>
           <div class="small muted" ng-if="t.order_id">Order #{{t.order_id}}</div>
           <ul class="timeline" style="margin-top:6px"><li ng-repeat="m in t.messages"><strong>{{m.author_role === 'ops' ? 'Equidron Support' : 'You'}}:</strong> {{m.body}} <span class="muted small">{{m.at | when}}</span></li></ul>
-          <form class="row" ng-submit="vm.replyTicket(t)" ng-if="t.status !== 'closed'" style="margin-top:6px"><input type="text" ng-model="t.reply" {{ 'placeholder="{{ 'shop.support.reply' | t }}"' | t }} style="flex:1"><button class="btn small"{{ 'shop.support.send' | t }}/button></form>
+          <form class="row" ng-submit="vm.replyTicket(t)" ng-if="t.status !== 'closed'" style="margin-top:6px"><input type="text" ng-model="t.reply" {{ 'placeholder="{{ 'shop.support.reply' | t }}"' | t }} style="flex:1"><button class="btn small">{{ 'shop.support.send' | t }}</button></form>
         </div>
         <div class="empty card" ng-if="vm.tickets && !vm.tickets.length">No support requests.</div>
       </div>

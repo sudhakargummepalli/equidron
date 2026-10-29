@@ -68,7 +68,7 @@
       <p class="small muted">Connect this account to the Equidron bot and ask about the orders waiting for you, from a
         chat. The bot never asks for your password.</p>
       <div ng-if="!vm.tgCode">
-        <button class="btn small" ng-click="vm.telegramCode()" ng-disabled="vm.tgBusy"{{ 'shop.getCode' | t }}/button>
+        <button class="btn small" ng-click="vm.telegramCode()" ng-disabled="vm.tgBusy">{{ 'shop.getCode' | t }}</button>
       </div>
       <div ng-if="vm.tgCode">
         <p>Send this to the bot{{vm.tgBot ? ' @' + vm.tgBot : ''}} within 10 minutes:</p>
@@ -97,7 +97,7 @@
           <td class="small">{{o.fulfilment === 'equidron' ? 'Equidron FC' : 'Self-ship'}}<div class="muted">{{o.handling_days}}-day handling</div></td>
           <td><span class="badge {{o.status | tone}}">{{o.status | label}}</span>
             <div ng-if="o.pending_submission_id"><span class="badge warn">Change in review</span></div></td>
-          <td class="right"><a class="btn small" href="#/edit/{{o.id}}"{{ 'seller.edit' | t }}/a></td>
+          <td class="right"><a class="btn small" href="#/edit/{{o.id}}">{{ 'seller.edit' | t }}</a></td>
         </tr>
       </table>
       <div class="empty" ng-if="!vm.listings.offers.length">No listings yet.</div>
@@ -111,7 +111,7 @@
       <strong ng-if="vm.result.status === 'approved'">Saved and live. Customers see the update now.</strong>
       <strong ng-if="vm.result.status === 'pending'">Submitted for review (submission #{{vm.result.id}}). Your live listing stays unchanged until it's approved.</strong>
       <ul ng-if="vm.result.review_reasons.length"><li ng-repeat="r in vm.result.review_reasons">{{r}}</li></ul>
-      <div style="margin-top:8px"><a class="btn small" href="#/inventory"{{ 'seller.backToInventory' | t }}/a> <a class="btn small" href="#/submissions">View submissions</a></div>
+      <div style="margin-top:8px"><a class="btn small" href="#/inventory">{{ 'seller.backToInventory' | t }}</a> <a class="btn small" href="#/submissions">View submissions</a></div>
     </div>
 
     <div ng-if="!vm.result">
@@ -121,13 +121,13 @@
       <div class="card" ng-if="!vm.f.mode">
         {{ 'seller.alreadySold' | t }}
         <p class="small muted">If it is, add your offer to the existing product page so customers can compare sellers.</p>
-        <form class="row" ng-submit="vm.searchCatalog()"><input type="text" ng-model="vm.lookup.q" placeholder="Search the catalogue, e.g. Orbit Nova" style="flex:1"><button class="btn dark" type="submit"{{ 'common.search' | t }}/button></form>
+        <form class="row" ng-submit="vm.searchCatalog()"><input type="text" ng-model="vm.lookup.q" placeholder="Search the catalogue, e.g. Orbit Nova" style="flex:1"><button class="btn dark" type="submit">{{ 'common.search' | t }}</button></form>
         <table ng-if="vm.lookup.results" style="margin-top:10px">
-          <tr ng-repeat="p in vm.lookup.results"><td>{{p.title}}<div class="small muted">{{p.brand}} · {{p.category}}</div></td><td class="right"><button class="btn small" ng-click="vm.pickProduct(p)"{{ 'seller.sellThis' | t }}/button></td></tr>
+          <tr ng-repeat="p in vm.lookup.results"><td>{{p.title}}<div class="small muted">{{p.brand}} · {{p.category}}</div></td><td class="right"><button class="btn small" ng-click="vm.pickProduct(p)">{{ 'seller.sellThis' | t }}</button></td></tr>
           <tr ng-if="!vm.lookup.results.length"><td class="muted">No matches.</td></tr>
         </table>
         <hr>
-        <button class="btn" ng-click="vm.newProduct()"{{ 'seller.createNew' | t }}/button>
+        <button class="btn" ng-click="vm.newProduct()">{{ 'seller.createNew' | t }}</button>
       </div>
 
       <form ng-if="vm.f.mode" ng-submit="vm.submit()" novalidate>

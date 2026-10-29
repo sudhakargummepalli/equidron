@@ -85,3 +85,12 @@ test('the language switch and the t() helper exist, and the pages load them', ()
     assert.match(html, /eq-lang-switch/, `${page} has a language switch`);
   }
 });
+
+test('markup around an interpolation is intact on every page', () => {
+  for (const page of ['shop', 'seller', 'ops']) {
+    const html = readFileSync(join(ROOT, page, 'index.html'), 'utf8');
+    // A swallowed '>' or '<' shows up as an interpolation glued to a closing tag or to an attribute.
+    const swallowed = [...html.matchAll(/\}\}\/[A-Za-z0-9]+>|="[^"]*"\{\{/g)].map((m) => m[0]);
+    assert.deepEqual(swallowed, [], page + ' has broken markup: ' + swallowed.slice(0, 3).join(' | '));
+  }
+});
