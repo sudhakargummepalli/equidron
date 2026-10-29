@@ -10,6 +10,7 @@
 // point is real, and the approval is an Ops decision recorded in the audit trail.
 import { audit } from './audit.js';
 import { all, loads, now, one, run } from './db.js';
+import * as kyc from './kyc.js';
 import { badRequest, conflict, forbidden, notFound } from './errors.js';
 
 export const STEPS = ['business', 'tax', 'bank', 'pickup', 'agreement'];
@@ -235,6 +236,27 @@ export async function listDocuments(db, applicationId) {
 export async function documentsFor(db, userId) {
   const app = await applicationFor(db, userId);
   return app ? await listDocuments(db, app.id) : [];
+}
+
+// Phase 11: run the KYC provider on a submitted application and record its answer. A rejection
+// keeps the seller out of the marketplace; a verification approves the application.
+export async function runKyc(db, applicationId, staffId = null) {
+  const app = await one(db, 'SELECT * FROM seller_applications WHERE id = ?', applicationId);
+  if (!app) throw notFound('Application');
+  if (app.status !== 'submitted') throw conflict(`This application is ${app.status}, not waiting for KYC.`);
+  if (app.kyc_status) throw conflict(`KYC already answered: ${app.kyc_status}.`);
+
+  const answer = await kyc.verify({ pan: app.pan, name: app.bank_account_name, businessName: app.business_name });
+  const status = answer.status === 'verified' ? 'approved' : 'rejected';
+  await run(db, 'UPDATE seller_applications SET kyc_status = ?, kyc_ref = ?, kyc_at = ?, status = ?, updated_at = ? WHERE id = ?',
+    answer.status, answer.ref, now(), status, now(), applicationId);
+  if (status === 'rejected') {
+    await run(db, "UPDATE users SET role = 'customer' WHERE id = ?", app.user_id);
+    await run(db, 'UPDATE sellers SET name = name WHERE user_id = ?', app.user_id);
+  }
+  await audit(db, 'seller.kyc', 'seller_application', applicationId, { status: 'submitted' },
+    { status, kyc_status: answer.status, reason: answer.reason, ref: answer.ref, by: staffId });
+  return { application_id: Number(applicationId), status, kyc_status: answer.status, reason: answer.reason, ref: answer.ref };
 }
 
 export async function listApplications(db, status = null) {

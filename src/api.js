@@ -326,6 +326,7 @@ route('GET', 'shop', '/uploads/(\\d+)/meta', async (c, id) => await uploads.desc
 route('GET', 'shop', '/seller-application/documents', async (c) => await sellerSignup.documentsFor(c.db, c.user.id));
 route('POST', 'shop', '/seller-application/documents', async (c) => await sellerSignup.saveDocument(c.db, c.user, c.body));
 route('GET', 'ops', '/seller-applications', async () => await sellerSignup.listApplications(c.db));
+route('POST', 'ops', '/seller-applications/(\\d+)/kyc', async (c, id) => await sellerSignup.runKyc(c.db, int(id), c.user.id));
 route('GET', 'ops', '/seller-applications/(\\d+)/documents', async (c, id) => await sellerSignup.listDocuments(c.db, int(id)));
 route('POST', 'shop', '/seller-application/submit', async (c) => await sellerSignup.submit(c.db, c.user, { agreement: c.body.agreement === true }));
 
