@@ -28,6 +28,8 @@ import * as shipping from './shipping.js';
 import * as whatsapp from './whatsapp.js';
 import * as sms from './sms.js';
 import * as uploads from './uploads.js';
+import * as gateway from './payments-gateway.js';
+import * as razorpay from './razorpay.js';
 import crypto from 'node:crypto';
 
 const { STAGE_FROM_CARRIER } = shipping;
@@ -289,6 +291,17 @@ route('GET', 'shop', '/seller-application', async (c) => {
   return { application, missing: application ? sellerSignup.missingFor(application) : null };
 });
 route('POST', 'shop', '/seller-application', async (c) => ({ application: await sellerSignup.saveDraft(c.db, c.user, c.body) }));
+// Razorpay: the key id is public by design; the secret never leaves the server.
+route('GET', 'shop', '/payments/razorpay/key', async () => ({ enabled: razorpay.enabled(), key_id: razorpay.keyId() }), true);
+route('POST', 'shop', '/payments/razorpay/order', async (c) =>
+  await gateway.startForOrder(c.db, c.user.id, int(c.body.order_id)));
+route('POST', 'shop', '/payments/razorpay/verify', async (c) => await gateway.capture(c.db, {
+  orderId: int(c.body.order_id),
+  paymentId: c.body.razorpay_payment_id,
+  orderRef: c.body.razorpay_order_id,
+  signature: c.body.razorpay_signature,
+  source: 'browser',
+}));
 route('POST', 'shop', '/uploads', async (c) => {
   const out = await uploads.save(c.db, c.user, c.body);
   // The document links to the file, so one upload is one document.
@@ -675,6 +688,7 @@ async function whatsappWebhook(db, { headers = {}, body } = {}) {
 // Returns {status, payload, setCookie} where setCookie is a Set-Cookie header value or null.
 // Every answer carries a request id (X-Request-Id), which is also on every log line for it.
 export async function handleApi(db, request) {
+  const rawBody = request.raw ?? null;
   const requestId = newRequestId();
   const out = await withRequestId(requestId, () => answer(db, request));
   return { ...out, requestId };
@@ -692,7 +706,7 @@ async function health(db) {
   }
 }
 
-async function answer(db, { method, path, query, body, cookies, headers = {} }) {
+async function answer(db, { method, path, query, body, cookies, headers = {}, raw = null }) {
   if (path === '/api/health' && method === 'GET') return await health(db);
   // Telegram's webhook: not an area route, and it authenticates with its own secret header.
   if (path === '/api/telegram' && method === 'POST') return await telegram.webhookReply(db, { headers, body });
@@ -724,6 +738,29 @@ if (path === '/api/webhooks/shipping' && method === 'POST') {
   if (path === '/api/webhooks/whatsapp' && method === 'POST') {
     return await whatsappWebhook(db, { headers, body, raw: false });
   }
+  // Razorpay's webhook. It is signed over the raw body with the webhook secret, so it verifies
+  // before anything is parsed, and it fails closed when no secret is configured.
+  if (path === '/api/webhooks/payments' && method === 'POST') {
+    const signature = String(headers['x-razorpay-signature'] ?? '');
+    if (!razorpay.verifyWebhook(raw, signature)) {
+      return { status: 403, payload: { error: 'Bad signature.' }, setCookie: null };
+    }
+    let event;
+    try { event = JSON.parse(raw || '{}'); } catch { return { status: 400, payload: { error: 'Invalid JSON.' }, setCookie: null }; }
+    const entity = event.payload?.payment?.entity;
+    if (!entity?.id) return { status: 200, payload: { ok: true, ignored: 'no payment in the event' }, setCookie: null };
+    const orderId = event.payload?.order?.entity?.receipt
+      ? Number(String(event.payload.order.entity.receipt).replace(/^order_/, ''))
+      : await gateway.orderIdForGatewayOrder(db, entity.order_id);
+    if (!orderId) return { status: 200, payload: { ok: true, ignored: 'unknown gateway order' }, setCookie: null };
+    try {
+      const out = await gateway.capture(db, { orderId, paymentId: entity.id, orderRef: entity.order_id, source: 'webhook' });
+      return { status: 200, payload: { ok: true, ...out }, setCookie: null };
+    } catch (e) {
+      // A failure here makes Razorpay retry, which is what we want while the cause is fixed.
+      return { status: 500, payload: { error: e.message }, setCookie: null };
+    }
+  }
   if (path === '/api/mcp' && method === 'POST') return { ...(await mcp.handle(db, { headers, body })), setCookie: null };
   try {
     const m = /^\/api\/(shop|seller|ops)(\/.*)$/.exec(path);
@@ -747,6 +784,7 @@ if (path === '/api/webhooks/shipping' && method === 'POST') {
         }
         const ctx = {
           db, user, body: body || {}, token, prepared,
+          raw,
           q: (name, fallback = null) => (query.has(name) ? query.get(name) : fallback),
           async city() {
             const city = this.q('city');

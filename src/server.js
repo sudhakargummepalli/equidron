@@ -94,7 +94,8 @@ export function createServer(db, { quiet = false } = {}) {
         }
         const parsed = parseJsonBody(req.method, req.headers['content-type'], raw);
         if (parsed.error) return sendJson(res, parsed.error[0], { error: parsed.error[1] });
-        const out = await handleApi(db, { method: req.method, path: p, query: url.searchParams, body: parsed.body,
+        const rawText = raw.toString('utf8');
+        const out = await handleApi(db, { raw: rawText, method: req.method, path: p, query: url.searchParams, body: parsed.body,
           cookies: parseCookies(req.headers.cookie), headers: req.headers });
         if (out.text !== undefined && out.text !== null) return send(res, out.status, out.text, 'text/plain; charset=utf-8');
         return sendJson(res, out.status, out.payload, { 'X-Request-Id': out.requestId, ...(out.setCookie ? { 'Set-Cookie': out.setCookie } : {}) });

@@ -17,6 +17,7 @@ export async function handleRequest(db, request) {
   if (parsed.error) return Response.json({ error: parsed.error[1] }, { status: parsed.error[0] });
 
   const out = await handleApi(db, {
+    raw: raw.toString('utf8'),
     method: request.method, path: url.pathname, query: url.searchParams, body: parsed.body,
     cookies: parseCookies(request.headers.get('cookie')),
     // Lower-cased, like Node's own headers, so a handler can look them up the same way.

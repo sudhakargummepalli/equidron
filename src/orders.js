@@ -280,7 +280,9 @@ export async function placeOrder(db, userId, addressId, method, token, { stateme
     await run(db, 'UPDATE shipments SET amount_paise = ?, eta = ? WHERE id = ?', amount, etaDate(ship.days), ship.id);
   }
 
-  const auth = method === 'bank'
+  const auth = method === 'razorpay'
+    ? { approved: true, instrument: 'razorpay', ref: null, declineReason: null }
+    : method === 'bank'
     ? await authorizeBankTransfer(db, token, t.total_paise, statement || await loadStatement())
     : provider.authorize(method, token, t.total_paise);
   const payId = await run(db, `INSERT INTO payments (order_id, method, instrument, provider_ref, status, decline_reason, created_at, updated_at)
@@ -298,9 +300,10 @@ export async function placeOrder(db, userId, addressId, method, token, { stateme
   }
 
   const total = t.total_paise;
-  if (method === 'card') {
+  if (method === 'card' || method === 'razorpay') {
     await run(db, 'UPDATE payments SET authorized_paise = ? WHERE id = ?', total, payId);
-    await paymentEvent(db, payId, 'authorize', total, 'Authorized; captured as items ship.');
+    await paymentEvent(db, payId, 'authorize', total,
+      method === 'razorpay' ? 'Authorised at Razorpay; captured when the signature is verified.' : 'Authorized; captured as items ship.');
   } else if (method === 'upi') {
     await run(db, 'UPDATE payments SET authorized_paise = ?, captured_paise = ? WHERE id = ?', total, total, payId);
     await paymentEvent(db, payId, 'authorize', total, 'Authorized.');
@@ -338,7 +341,7 @@ async function paymentEvent(db, paymentId, kind, amount, note) {
   await run(db, 'INSERT INTO payment_events (payment_id, kind, amount_paise, note, at) VALUES (?,?,?,?,?)', paymentId, kind, amount, note, now());
 }
 
-async function syncPaymentStatus(db, orderId) {
+export async function syncPaymentStatus(db, orderId) {
   const p = await one(db, 'SELECT * FROM payments WHERE order_id = ?', orderId);
   let status;
   if (['declined', 'voided', 'cancelled'].includes(p.status)) status = p.status;
