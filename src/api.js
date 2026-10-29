@@ -657,6 +657,28 @@ if (path === '/api/webhooks/shipping' && method === 'POST') {
   }
   return await shippingWebhook(db, body);
 }
+  // GitHub's webhook, for a local tunnel. It is signed over the raw body with the app's secret and
+  // fails closed without one; a repeated delivery id changes nothing.
+  if (path === '/api/webhooks/github' && method === 'POST') {
+    const secret = process.env.GITHUB_WEBHOOK_SECRET;
+    if (!secret) return { status: 403, payload: { error: 'The GitHub webhook is not configured.' }, setCookie: null };
+    const given = String(headers['x-hub-signature-256'] ?? '');
+    const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(raw ?? '').digest('hex');
+    const a = Buffer.from(expected);
+    const b = Buffer.from(given);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+      return { status: 403, payload: { error: 'Bad signature.' }, setCookie: null };
+    }
+    const delivery = String(headers['x-github-delivery'] ?? '').trim();
+    const event = String(headers['x-github-event'] ?? 'unknown');
+    let body;
+    try { body = JSON.parse(raw || '{}'); } catch { return { status: 400, payload: { error: 'Invalid JSON.' }, setCookie: null }; }
+    if (!delivery) return { status: 400, payload: { error: 'Missing X-GitHub-Delivery.' }, setCookie: null };
+    const fresh = await changes(db,
+      'INSERT INTO github_events (delivery_id, event, action, repo, payload, created_at) VALUES (?,?,?,?,?,?) ON CONFLICT (delivery_id) DO NOTHING',
+      delivery, event, body.action ?? null, body.repository?.full_name ?? null, JSON.stringify(body), now());
+    return { status: 200, payload: { ok: true, duplicate: !fresh, event }, setCookie: null };
+  }
   // Razorpay's webhook. It is signed over the raw body with the webhook secret, so it verifies
   // before anything is parsed, and it fails closed when no secret is configured.
   if (path === '/api/webhooks/payments' && method === 'POST') {
