@@ -15,7 +15,7 @@
 | 8 · real payments | **Razorpay test mode ✅** — gateway order, signature verification, authoritative amount, webhook, capture exactly once, and a **Pay securely with Razorpay** button in checkout (script loaded on demand, CSP updated) |
 | 9 · real shipping | provider layer, deterministic simulator and webhook done; **a real carrier's field mapping needs a sandbox account** |
 | 10 · messages, invoices, languages | email ✅, i18n ✅ (en + te, UI and emails), **invoices not built**; **WhatsApp and SMS were removed on 2026-10-29 at the owner's request** (Instagram is the messaging channel now) |
-| 11 · seller sign-up, KYC, images | sign-up backend + store form ✅, KYC task ✅, **documents by link or real upload ✅** (base64 in, magic-byte checked, 2 MB cap, stored once per hash, owner or staff only); **KYC provider and seller details on listings are not built** |
+| 11 · seller sign-up, KYC, images | sign-up backend + store form ✅, KYC task ✅, **documents by link or real upload ✅** (base64 in, magic-byte checked, 2 MB cap, stored once per hash, owner or staff only); **KYC provider is not built**; seller details on listings are now shown (name, rating and count, city, dispatch days) |
 | 12 · money and risk agents | done (risk holds, settlement batches, TCS/TDS drafts) |
 | 13 · Ops Manager and MCP | done |
 | 14 · engineering agents | **not started** — needs a GitHub App and repo settings |

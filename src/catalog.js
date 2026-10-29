@@ -63,7 +63,8 @@ export function etaDate(days, today = new Date()) {
 async function loadOffers(db, productIds, includeInactive = false) {
   const byProduct = new Map(productIds.map((id) => [id, []]));
   if (!productIds.length) return byProduct;
-  let sql = `SELECT o.*, s.name AS seller_name, s.rating AS seller_rating, s.rating_count AS seller_rating_count
+  let sql = `SELECT o.*, s.name AS seller_name, s.rating AS seller_rating, s.rating_count AS seller_rating_count,
+                   s.city AS seller_city, s.is_sample AS seller_is_sample
              FROM offers o JOIN sellers s ON s.id = o.seller_id WHERE o.product_id = ANY(?)`;
   if (!includeInactive) sql += " AND o.status = 'active'";
   const offers = await all(db, sql + ' ORDER BY o.price_paise, o.id', productIds);
@@ -97,6 +98,9 @@ function summarizeOffers(offers, city) {
     o.eta = etaDate(o.delivery_days);
     o.ships_to = shipsTo(o);
     o.fulfilment_label = o.fulfilment === 'equidron' ? 'Fulfilled by Equidron' : 'Dispatched by seller';
+    // Who is selling it, in one object, so a page does not have to know column names.
+    o.seller = { name: o.seller_name, rating: o.seller_rating, rating_count: o.seller_rating_count, city: o.seller_city };
+    o.dispatch_days = o.handling_days == null ? null : Number(o.handling_days);
     o.is_featured = false;
   }
   let buyable = offers.filter((o) => o.available > 0 && o.deliverable);

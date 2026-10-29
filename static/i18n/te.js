@@ -128,4 +128,5 @@ window.EQ_STRINGS.te = {
   'shop.payRazorpay': 'రేజర్పేతో సురక్షితంగా చెల్లించండి',
   'shop.paying': 'రేజర్పే తెరుస్తోంది…',
   'shop.payRazorpayHint': 'కార్డ్, UPI లేదా నెట్బ్యాంకింగ్. టెస్ట్ మోడ్: నిజమైన డబ్బు వెళ్లదు.',
+  'shop.dispatchedIn': 'విక్రేత {days} రోజుల్లో పంపుతారు',
 };

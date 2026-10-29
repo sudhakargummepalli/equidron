@@ -142,3 +142,17 @@ test('paging returns every one of the 102 laptops, once', async () => {
   const tooBig = await handleApi(db, { method: 'GET', path: '/api/shop/search', query: new URLSearchParams({ page_size: '500' }), cookies: {} });
   assert.equal(tooBig.payload.page_size, 60); // capped
 });
+
+test('a product detail names the seller, their city, their rating and their dispatch time', async () => {
+  const db = await openDatabase('memory');
+  const product = await one(db, "SELECT id FROM products WHERE status = 'live' ORDER BY id LIMIT 1");
+  const detail = await catalog.productDetail(db, product.id, 'Bengaluru');
+  const offer = detail.offers[0];
+  assert.ok(offer.seller, 'the offer carries a seller block');
+  assert.equal(typeof offer.seller.name, 'string');
+  assert.ok(offer.seller.city, 'the seller city is known');
+  assert.equal(typeof offer.seller.rating, 'number');
+  assert.equal(offer.seller.name, offer.seller_name, 'the flat field and the block agree');
+  assert.ok(offer.dispatch_days === null || Number.isInteger(offer.dispatch_days));
+  await db.close();
+});

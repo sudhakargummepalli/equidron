@@ -118,7 +118,8 @@
             <div class="row"><span class="price">{{o.price_paise | inr}}</span>
               <span class="badge good" ng-if="o.is_featured">Featured offer</span>
               <span class="badge info" ng-if="o.condition !== 'new'">{{o.condition | label}}</span></div>
-            <div class="small">Sold by <strong>{{o.seller_name}}</strong> <span class="stars">{{o.seller_rating | stars}}</span> {{o.seller_rating}} ({{o.seller_rating_count | number}}) · {{o.fulfilment_label}}</div>
+            <div class="small">Sold by <strong>{{o.seller_name}}</strong> <span class="stars">{{o.seller_rating | stars}}</span> {{o.seller_rating}} ({{o.seller_rating_count | number}}) · {{o.seller_city}} · {{o.fulfilment_label}}</div>
+            <div class="small muted" ng-if="o.dispatch_days != null">{{ 'shop.dispatchedIn' | t:{days: o.dispatch_days} }}</div>
             <div class="small" ng-if="o.available && o.deliverable">Delivery by <strong>{{o.eta | day}}</strong> to {{vm.city}} · <span ng-if="o.available < 10" class="oos">Only {{o.available}} left</span><span ng-if="o.available >= 10">In stock</span></div>
             <div class="small oos" ng-if="!o.available">Out of stock</div>
             <div class="small oos" ng-if="o.available && !o.deliverable">Ships only to {{o.ships_to.join(', ')}}</div>
