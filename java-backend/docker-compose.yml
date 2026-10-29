@@ -1,0 +1,15 @@
+# A real PostgreSQL for the Java backend. The Node app keeps using PGlite on its own, so the two can
+# run at the same time only if each points at its own database.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: equidron
+      POSTGRES_USER: equidron
+      POSTGRES_PASSWORD: equidron
+    ports:
+      - "5432:5432"
+    volumes:
+      - equidron-java-pg:/var/lib/postgresql/data
+volumes:
+  equidron-java-pg:
