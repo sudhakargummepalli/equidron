@@ -18,6 +18,7 @@ import { addDays, all, changes, dumps, indiaDate, loads, lockNamed, now, one, ru
 import { badRequest, conflict, forbidden, notFound } from './errors.js';
 import { notify } from './notify.js';
 import { provider } from './payments.js';
+import * as razorpay from './razorpay.js';
 import { checkReference, loadStatement } from './statement.js';
 
 export const FREE_SHIPPING_FROM = 49_900;
@@ -371,12 +372,25 @@ async function refund(db, orderId, amount, note) {
   const p = await one(db, 'SELECT * FROM payments WHERE order_id = ?', orderId);
   amount = Math.min(amount, p.captured_paise - p.refunded_paise);
   if (amount <= 0) return [0, ''];
+  // A gateway payment is refunded by the gateway. The amount guard above is what makes it once,
+  // and Razorpay's refund id is kept so support can trace the money.
+  if (p.method === 'razorpay' && p.provider_ref) {
+    const out = await razorpay.refund(p.provider_ref, amount);
+    await run(db, 'UPDATE payments SET refunded_paise = refunded_paise + ? WHERE id = ?', amount, p.id);
+    await paymentEvent(db, p.id, 'refund', amount, `${note} Refunded through Razorpay (${out.refund_id}).`);
+    await syncPaymentStatus(db, orderId);
+    return [amount, 'your original payment method'];
+  }
   provider.refund(p.provider_ref, amount);
   const destination = p.method === 'cod' ? 'your Equidron balance (simulated)' : p.instrument;
   await run(db, 'UPDATE payments SET refunded_paise = refunded_paise + ? WHERE id = ?', amount, p.id);
   await paymentEvent(db, p.id, 'refund', amount, `${note} Refunded to ${destination}.`);
   await syncPaymentStatus(db, orderId);
   return [amount, destination];
+}
+
+export async function refundOrder(db, orderId, amountPaise, note = 'Refunded.') {
+  return await refund(db, orderId, amountPaise, note);
 }
 
 // ---------------------------------------------------------------- fulfilment

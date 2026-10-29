@@ -6,7 +6,9 @@ import { readFileSync } from "node:fs";
 import { after, before, test } from "node:test";
 import { handleApi } from "../src/api.js";
 import { settings } from "../src/auth.js";
-import { one } from "../src/db.js";
+import { one, run } from "../src/db.js";
+import * as orders from "../src/orders.js";
+import * as gateway from "../src/payments-gateway.js";
 import * as razorpay from "../src/razorpay.js";
 import { openDatabase } from "../src/server.js";
 
@@ -81,4 +83,53 @@ test("the webhook refuses a bad signature and ignores an event with no payment",
   const ok = await hook(body, good);
   assert.equal(ok.status, 200);
   assert.equal(ok.payload.ignored, "no payment in the event");
+});
+
+test('a refund on a gateway payment calls Razorpay and records the refund id once', async () => {
+  const db = await openDatabase('memory');
+  // An order paid through the gateway: payments.method razorpay, captured, with a gateway ref.
+  const user = await one(db, "SELECT id FROM users WHERE email = 'asha@example.com'");
+  const order = await run(db, "INSERT INTO orders (user_id, address, status, payment_status, fulfilment_status, payment_method, subtotal_paise, shipping_paise, total_paise, created_at, updated_at) VALUES (?, '{}', 'confirmed', 'captured', 'unfulfilled', 'razorpay', 10000, 0, 10000, now(), now())", user.id);
+  await run(db, "INSERT INTO payments (order_id, method, instrument, provider_ref, status, authorized_paise, captured_paise, created_at, updated_at) VALUES (?, 'razorpay', 'razorpay', 'pay_gw_1', 'captured', 10000, 10000, now(), now())", order);
+
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    calls.push(String(url));
+    if (String(url).endsWith('/refund')) {
+      return new Response(JSON.stringify({ id: 'rfnd_1', amount: 10000, status: 'processed' }), { status: 200 });
+    }
+    return new Response(JSON.stringify({}), { status: 404 });
+  };
+  const out = await orders.refundOrder(db, order, 10000, 'Test refund.');
+  assert.equal(out[0], 10000);
+  assert.match(calls.join(' '), /pay_gw_1\/refund/);
+  const row = await one(db, 'SELECT refunded_paise FROM payments WHERE order_id = ?', order);
+  assert.equal(Number(row.refunded_paise), 10000);
+  // A second call cannot refund again: the amount left is zero.
+  const again = await orders.refundOrder(db, order, 10000, 'Twice.');
+  assert.equal(again[0], 0);
+  await db.close();
+});
+
+test('the reconciler captures a payment whose webhook never arrived, and does it once', async () => {
+  const db = await openDatabase('memory');
+  const user = await one(db, "SELECT id FROM users WHERE email = 'asha@example.com'");
+  const order = await run(db, "INSERT INTO orders (user_id, address, status, payment_status, fulfilment_status, payment_method, subtotal_paise, shipping_paise, total_paise, created_at, updated_at) VALUES (?, '{}', 'confirmed', 'pending', 'unfulfilled', 'razorpay', 5000, 0, 5000, now() - interval '1 hour', now())", user.id);
+  await run(db, "INSERT INTO payments (order_id, method, instrument, provider_ref, status, created_at, updated_at) VALUES (?, 'razorpay', 'razorpay', 'order_gw_rec', 'created', now() - interval '20 minutes', now())", order);
+  globalThis.fetch = async (url) => {
+    if (String(url).includes('/orders/order_gw_rec/payments')) {
+      return new Response(JSON.stringify({ items: [{ id: 'pay_rec_1', status: 'captured', amount: 5000, order_id: 'order_gw_rec' }] }), { status: 200 });
+    }
+    if (String(url).includes('/payments/pay_rec_1')) {
+      return new Response(JSON.stringify({ id: 'pay_rec_1', order_id: 'order_gw_rec', amount: 5000, currency: 'INR', status: 'captured', method: 'upi' }), { status: 200 });
+    }
+    return new Response(JSON.stringify({}), { status: 404 });
+  };
+  const first = await gateway.reconcile(db, { olderThanMinutes: 15 });
+  assert.equal(first.checked, 1);
+  assert.equal(first.captured, 1);
+  assert.equal(Number((await one(db, 'SELECT captured_paise FROM payments WHERE order_id = ?', order)).captured_paise), 5000);
+  const second = await gateway.reconcile(db, { olderThanMinutes: 15 });
+  assert.equal(second.captured, 0, 'nothing left to capture');
+  await db.close();
 });

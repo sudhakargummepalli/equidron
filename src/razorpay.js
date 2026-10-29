@@ -92,6 +92,13 @@ export function verifyWebhook(rawBody, signature) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+export async function listPaymentsForOrder(orderId) {
+  if (!orderId) throw badRequest('A gateway order id is required.');
+  const out = await call('GET', `/orders/${encodeURIComponent(orderId)}/payments`);
+  const items = Array.isArray(out.items) ? out.items : [];
+  return items.map((x) => ({ id: x.id, status: x.status, amount: Number(x.amount), order_id: x.order_id }));
+}
+
 export async function refund(paymentId, amountPaise) {
   const body = Number.isInteger(Number(amountPaise)) ? { amount: Number(amountPaise) } : {};
   const out = await call('POST', `/payments/${encodeURIComponent(paymentId)}/refund`, body);

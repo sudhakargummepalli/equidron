@@ -4,7 +4,7 @@
 //   verifySignature  — the pair (order, payment) really came from Razorpay
 //   fetchPayment     — Razorpay's own amount, not the one a browser claims
 //   guard + UPDATE   — the status change happens once, even if the webhook and the browser both land
-import { changes, now, one, run } from './db.js';
+import { all, changes, now, one, run } from './db.js';
 import { emit } from './events.js';
 import { badRequest, notFound } from './errors.js';
 import * as razorpay from './razorpay.js';
@@ -61,6 +61,30 @@ export async function capture(db, { orderId, paymentId, signature, orderRef = nu
   await emit(db, 'payment.captured', 'order', order.id, { amount_paise: Number(payment.amount), method: 'razorpay' });
   await audit(db, 'payment.captured', 'order', order.id, null, { provider: 'razorpay', payment_id: payment.id, paise: Number(payment.amount), source });
   return { captured: true, order_id: Number(order.id), amount_paise: Number(payment.amount) };
+}
+
+// The safety net. Webhooks get lost, and a browser can die after paying. Every so often we ask the
+// gateway about the orders that are still waiting, and capture what it says is paid.
+export async function reconcile(db, { olderThanMinutes = 15 } = {}) {
+  const waiting = await all(db, `SELECT p.order_id, p.provider_ref
+                                FROM payments p
+                                WHERE p.method = 'razorpay' AND p.captured_paise = 0 AND p.provider_ref IS NOT NULL
+                                  AND p.created_at < now() - (? || ' minutes')::interval
+                                ORDER BY p.id LIMIT 25`, String(Number(olderThanMinutes) || 15));
+  let captured = 0;
+  const errors = [];
+  for (const row of waiting) {
+    try {
+      const payments = await razorpay.listPaymentsForOrder(row.provider_ref);
+      const paid = payments.find((x) => x.status === 'captured') ?? payments.find((x) => x.status === 'authorized');
+      if (!paid) continue;
+      const out = await capture(db, { orderId: Number(row.order_id), paymentId: paid.id, orderRef: row.provider_ref, source: 'reconcile' });
+      if (out.captured) captured += 1;
+    } catch (e) {
+      errors.push({ order_id: Number(row.order_id), error: String(e.message).slice(0, 160) });
+    }
+  }
+  return { checked: waiting.length, captured, errors };
 }
 
 export async function orderIdForGatewayOrder(db, gatewayOrderId) {

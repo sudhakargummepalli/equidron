@@ -18,7 +18,6 @@ import { badRequest } from '../errors.js';
 import { emit } from '../events.js';
 import { CATEGORIES, productDetail, search } from '../catalog.js';
 import * as agents from './agents.js';
-import * as jobs from '../jobs.js';
 import * as listings from '../listings.js';
 import * as notify from '../notify.js';
 import * as orders from '../orders.js';
@@ -209,7 +208,8 @@ registerTool({
     required: ['job_id', 'reason'],
   },
   async run(db, ctx, input) {
-    const ok = await jobs.retry(db, input.job_id);
+    const { retry } = await import('../jobs.js');
+    const ok = await retry(db, input.job_id);
     return { job_id: input.job_id, retried: ok, note: ok ? 'It runs on the next tick.' : 'That job is not dead or failed.' };
   },
 });

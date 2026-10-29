@@ -9,9 +9,12 @@ import { all, changes, indiaDate, loads, now, one, run } from './db.js';
 import * as emails from './emails.js';
 import { deliverOutbox } from './mailer.js';
 import * as orders from './orders.js';
+import { log } from './log.js';
 import { sendEmail } from './outbox.js';
 
 export const BUILT_IN = {
+  // Every fifteen minutes: capture anything the gateway says is paid but we still call pending.
+  'payments:reconcile': (db) => reconcilePayments(db),
   // The confirmation email for a new order (into the outbox until email is connected).
   async 'email:order_confirmation'(db, payload) {
     const o = await one(db, `SELECT o.id, o.total_paise, u.id AS user_id, u.email, u.name, u.language,
@@ -155,6 +158,13 @@ export const AGENT_KINDS = {
 
 // Phase 13. Cheap when nothing is wrong: the check is a count, and the model is not called unless
 // there is a dead job, a failed run or a paused agent to think about.
+export async function reconcilePayments(db) {
+  const { reconcile } = await import('./payments-gateway.js');
+  const out = await reconcile(db, { olderThanMinutes: 15 });
+  if (out.captured) log(`reconciled ${out.captured} gateway payment(s)`);
+  return out;
+}
+
 export async function runOpsManager(db, options = {}) {
   if (!(await ready(db, 'ops_manager'))) return;
   const dead = await one(db, `SELECT COUNT(*) AS n FROM jobs WHERE status IN ('dead', 'failed')`);
