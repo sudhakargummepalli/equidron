@@ -107,6 +107,11 @@ public class CheckoutService {
             orderId, method, "cod".equals(method) ? "Cash on delivery" : method.toUpperCase());
         jdbc.update("DELETE FROM cart_items WHERE user_id = ?", userId);
 
+        // The event goes into the same transaction as the order: if the order rolls back, no email
+        // is queued for an order that does not exist. The Node job queue reads this table.
+        jdbc.update("INSERT INTO events (type, entity, entity_id, payload, created_at) VALUES ('order.placed', 'order', ?, ?::jsonb, now())",
+            orderId, "{\"total_paise\":" + total + ",\"payment_method\":\"" + method + "\"}");
+
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("order_id", orderId);
         response.put("total_paise", total);

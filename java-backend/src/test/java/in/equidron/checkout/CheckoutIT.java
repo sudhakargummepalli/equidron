@@ -65,6 +65,12 @@ class CheckoutIT {
         cookie = "equidron_session=" + sessions.create(users.byId(userId));
     }
 
+    private HttpHeaders headersOnly() {
+        HttpHeaders h = new HttpHeaders();
+        h.add(HttpHeaders.COOKIE, cookie);
+        return h;
+    }
+
     private ResponseEntity<String> post(String key) {
         HttpHeaders h = new HttpHeaders();
         h.add(HttpHeaders.COOKIE, cookie);
@@ -99,6 +105,27 @@ class CheckoutIT {
             "SELECT p.status FROM payments p JOIN orders o ON o.id = p.order_id WHERE o.user_id = ? ORDER BY p.id DESC LIMIT 1",
             String.class, userId);
         assertEquals("pending", payment, "cod is collected on delivery");
+    }
+
+    @Test
+    void theOrderCanBeReadBackAndTheEventIsQueued() {
+        post("checkout-test-key-4");
+        long orderId = jdbc.queryForObject("SELECT id FROM orders WHERE user_id = ? ORDER BY id DESC LIMIT 1", Long.class, userId);
+
+        String list = new org.springframework.web.client.RestTemplate().exchange(
+            http.getRootUri() + "/api/shop/orders", HttpMethod.GET,
+            new HttpEntity<>(headersOnly()), String.class).getBody();
+        assertTrue(list.contains("\"id\":" + orderId), list);
+
+        String one = new org.springframework.web.client.RestTemplate().exchange(
+            http.getRootUri() + "/api/shop/orders/" + orderId, HttpMethod.GET,
+            new HttpEntity<>(headersOnly()), String.class).getBody();
+        assertTrue(one.contains("Cart Test Widget") || one.contains("\"items\":[{"), one);
+
+        Integer queued = jdbc.queryForObject(
+            "SELECT count(*) FROM events WHERE type = 'order.placed' AND entity = 'order' AND entity_id = ?",
+            Integer.class, orderId);
+        assertEquals(1, queued, "the email job reads this row");
     }
 
     @Test
