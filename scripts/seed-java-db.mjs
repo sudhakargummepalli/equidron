@@ -53,7 +53,9 @@ for (const s of sellers) {
     ['S-' + s.name.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 8), s.name + ' dispatch', s.city, shop.rows[0].id]);
 }
 
-const shops = await client.query('SELECT s.id, w.id AS warehouse_id, w.city FROM sellers s JOIN warehouses w ON w.seller_id = s.id ORDER BY s.id');
+const shops = await client.query(
+  "SELECT s.id, w.id AS warehouse_id, w.city FROM sellers s JOIN users u ON u.id = s.user_id " +
+  "JOIN warehouses w ON w.seller_id = s.id WHERE u.email LIKE 'java.%' ORDER BY s.id");
 for (let i = 0; i < products.length; i++) {
   const [title, brand, category, price, mrp] = products[i];
   const shop = shops.rows[i % shops.rows.length];
