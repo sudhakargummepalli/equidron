@@ -691,6 +691,7 @@ CREATE TABLE IF NOT EXISTS github_events (
     payload JSONB NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 `;
 
 const pad = (n) => String(n).padStart(2, '0');

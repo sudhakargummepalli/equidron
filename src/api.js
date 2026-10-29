@@ -28,6 +28,7 @@ import * as shipping from './shipping.js';
 import * as uploads from './uploads.js';
 import * as gateway from './payments-gateway.js';
 import * as invoices from './invoices.js';
+import * as dataRights from './data-rights.js';
 import * as razorpay from './razorpay.js';
 import crypto from 'node:crypto';
 
@@ -268,6 +269,9 @@ async function placeOrderReply(c) {
   return new Reply(201, res.order);
 }
 route('GET', 'shop', '/orders', async (c) => await orders.listOrders(c.db, c.user.id));
+// Phase 15: a customer's data rights. Export is a JSON file; delete anonymises and keeps orders.
+route('GET', 'shop', '/my-data', async (c) => await dataRights.exportFor(c.db, c.user.id));
+route('POST', 'shop', '/delete-account', async (c) => await dataRights.deleteAccount(c.db, c.user.id, { confirm: c.body.confirm }));
 route('GET', 'shop', '/orders/(\\d+)/invoice', async (c, oid) => {
   const { invoice, pdf } = await invoices.invoicePdf(c.db, int(oid), c.user.id);
   return {
