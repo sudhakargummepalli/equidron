@@ -1,0 +1,92 @@
+# Cutover: Java becomes the system of record
+
+Decision (2026-10-30): the marketplace moves onto the Java backend. Node stops serving customers.
+
+This is a runbook, not a wish list. Each step has a check you can fail safely on, and the last step
+has a rollback that is one line.
+
+## What "system of record" means here
+
+One database, one writer, one set of secrets. Today there are two databases:
+
+| Side | Database | Contents |
+|---|---|---|
+| Node | `data/pg` (PGlite, inside the Node process) | the real marketplace: products, sellers, orders, customers |
+| Java | PostgreSQL 16 on 5432, database `equidron` | the same schema, seeded demo rows only |
+
+The schema is identical because both read `netlify/database/migrations`. That is what makes a cutover
+possible at all. What differs is the **data**.
+
+## The order that cannot be rearranged
+
+1. **Freeze writes**, then copy data, then verify counts, then unfreeze. Copying a database that is
+   still being written to gives you a set of rows that never existed together.
+2. **Migrate before pointing traffic at Java.** A backend that is the system of record and has no data
+   looks exactly like an outage.
+3. **Verify by row count and by a known order.** A count that matches is necessary, not sufficient: one
+   real order must be readable through the Java API before anyone is told it works.
+
+## Step 1 — export the marketplace from PGlite
+
+    node --use-system-ca app.js --db data/pg --port 8010 --export-only
+
+Output: `data/backups/export-<timestamp>.json`, one array per table, in foreign-key order.
+
+Check: the export lists every table the migrations create (currently 54).
+
+## Step 2 — import into PostgreSQL, in foreign-key order
+
+    node scripts/import-into-postgres.mjs data/backups/export-<timestamp>.json
+
+The importer inserts inside one transaction, and it resets every identity sequence afterwards
+(`setval(pg_get_serial_sequence(...))`), because an explicit `id` does not advance the sequence and the
+next insert would collide.
+
+Check: row counts per table, compared against the export.
+
+## Step 3 — verify through the API, not through psql
+
+    GET /api/shop/search?q=<a real product>
+    POST /api/shop/login           (a real customer, real password)
+    GET /api/shop/orders           (returns their actual history)
+    GET /api/shop/orders/<id>/invoice   (the PDF opens)
+
+A count that matches and an API that answers are different claims. Only the second one matters to a
+customer.
+
+## Step 4 — give Java the secrets
+
+    RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET / RAZORPAY_WEBHOOK_SECRET
+    DEEPSEEK_API_KEY
+    SMTP_* / MAIL_FROM        (email)
+    KYC_PROVIDER / KYC_API_KEY
+    SHIPPING_PROVIDER / SHIPPING_API_KEY
+
+Until these are set, the Java side runs simulated - which is a correct choice, but it must be a
+*known* one, not a surprise on the first real payment.
+
+## Step 5 — point the browser at Java
+
+Java already serves the AngularJS files, so the storefront, Seller Central and Ops work on one origin:
+
+    http://localhost:8080/shop/     http://localhost:8080/seller/     http://localhost:8080/ops/
+
+The cookie name and the session table are shared, so a person signed in before the cutover stays signed
+in after it.
+
+## Step 6 — stop the Node writer
+
+Only after steps 1-5 are checked. Two writers against two databases is the state that loses orders.
+
+## Rollback
+
+One line: point the browser (or the proxy) back at `http://localhost:8010`. The Node database was never
+written to during the cutover, so it is intact by construction. That is the reason step 1 is an export
+and not a move.
+
+## What is still missing, stated plainly
+
+- The importer script does not exist yet; it is the next piece of work.
+- The Java database currently holds demo rows that must be removed or reconciled before real data
+  lands, or customers will see two of everything.
+- Email is not yet wired on the Java side; a cutover without it means order confirmations stop.
