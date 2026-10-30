@@ -20,17 +20,25 @@ public class CatalogController {
 
     @GetMapping("/search")
     public Map<String, Object> search(@RequestParam(name = "q", defaultValue = "") String q,
-                                      @RequestParam(name = "limit", defaultValue = "20") int limit) {
-        List<Map<String, Object>> results = catalog.search(q, limit);
+                                      @RequestParam(name = "category", defaultValue = "") String category,
+                                      @RequestParam(name = "limit", defaultValue = "20") int limit,
+                                      @RequestParam(name = "page", required = false) Integer page) {
+        int perPage = Math.min(50, Math.max(1, limit));
+        int currentPage = page == null ? 1 : Math.max(1, page);
+        List<Map<String, Object>> results = catalog.search(q, category, perPage, (currentPage - 1) * perPage);
+        int total = catalog.countSearch(q, category);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("results", results);
         out.put("count", results.size());
+        out.put("total", total);
+        out.put("page", currentPage);
+        out.put("pages", Math.max(1, (int) Math.ceil(total / (double) perPage)));
         return out;
     }
 
     @GetMapping("/meta")
     public Map<String, Object> meta() {
-        return Map.of("cities", catalog.cities());
+        return Map.of("cities", catalog.cities(), "categories", catalog.categories(), "sample", false);
     }
 
     @GetMapping("/products/{id}")

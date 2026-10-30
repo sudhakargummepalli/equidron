@@ -26,7 +26,23 @@ public class CatalogRepository {
         return jdbc.queryForList("SELECT DISTINCT city FROM sellers WHERE city IS NOT NULL ORDER BY city", String.class);
     }
 
-    public List<Map<String, Object>> search(String q, int limit) {
+    /** The categories the shop actually has, in alphabetical order: what the header lists. */
+    public List<String> categories() {
+        return jdbc.queryForList(
+            "SELECT DISTINCT category FROM products WHERE status = 'live' AND category IS NOT NULL ORDER BY category", String.class);
+    }
+
+    public int countSearch(String q, String category) {
+        String like = q == null || q.isBlank() ? "%" : "%" + q.trim() + "%";
+        Integer total = jdbc.queryForObject(
+            "SELECT count(DISTINCT p.id) FROM products p JOIN offers o ON o.product_id = p.id AND o.status = 'active' " +
+            "WHERE p.status = 'live' AND (p.title ILIKE ? OR p.brand ILIKE ?) " +
+            "AND (? = '' OR p.category = ?)", Integer.class, like, like,
+            category == null ? "" : category, category == null ? "" : category);
+        return total == null ? 0 : total;
+    }
+
+    public List<Map<String, Object>> search(String q, String category, int limit, int offset) {
         String like = q == null || q.isBlank() ? "%" : "%" + q.trim() + "%";
         return jdbc.queryForList(
             "SELECT p.id, p.title, p.brand, p.category, " +
@@ -34,9 +50,11 @@ public class CatalogRepository {
             "       COALESCE(SUM((SELECT COALESCE(SUM(i.on_hand - i.reserved), 0) FROM inventory i WHERE i.offer_id = o.id)), 0) > 0 AS in_stock " +
             "FROM products p JOIN offers o ON o.product_id = p.id AND o.status = 'active' " +
             "WHERE p.status = 'live' AND (p.title ILIKE ? OR p.brand ILIKE ?) " +
+            "AND (? = '' OR p.category = ?) " +
             "GROUP BY p.id, p.title, p.brand, p.category " +
-            "ORDER BY MIN(o.price_paise), p.id LIMIT ?",
-            like, like, Math.min(50, Math.max(1, limit)));
+            "ORDER BY MIN(o.price_paise), p.id LIMIT ? OFFSET ?",
+            like, like, category == null ? "" : category, category == null ? "" : category,
+            Math.min(50, Math.max(1, limit)), Math.max(0, offset));
     }
 
     public Map<String, Object> product(long id, String city) {
