@@ -30,6 +30,15 @@ public final class ToolRegistry {
 
     private final Map<String, Tool> tools = new LinkedHashMap<>();
     private final Map<String, String> idempotency = new ConcurrentHashMap<>();
+    private final IdempotencyStore store;
+    private final long ownerUserId;
+
+    public ToolRegistry() { this(null, 0); }
+
+    public ToolRegistry(IdempotencyStore store, long ownerUserId) {
+        this.store = store;
+        this.ownerUserId = ownerUserId;
+    }
 
     public ToolRegistry register(Tool tool) {
         if (tools.containsKey(tool.name())) throw new IllegalArgumentException("A tool named " + tool.name() + " already exists.");
@@ -55,12 +64,24 @@ public final class ToolRegistry {
         if (!tool.agents().contains(agentId)) throw new IllegalStateException(agentId + " may not use " + toolName);
         PolicyGate.Decision decision = PolicyGate.decide(tool.risk(), level, 0, tool.autoLimitPaise(), budgetLeftUsd, paused);
         if (decision != PolicyGate.Decision.EXECUTE) return new Outcome(decision, null, false);
-        if (idempotencyKey != null && idempotency.containsKey(idempotencyKey)) {
-            return new Outcome(PolicyGate.Decision.EXECUTE, idempotency.get(idempotencyKey), true);
+        if (idempotencyKey != null) {
+            if (store != null) {
+                java.util.Optional<String> answered = store.recall(ownerUserId, idempotencyKey);
+                if (answered.isPresent()) return new Outcome(PolicyGate.Decision.EXECUTE, answered.get(), true);
+                // Claim first: two callers with the same key cannot both reach the action.
+                if (!store.claim(ownerUserId, idempotencyKey, "agent:" + agentId)) {
+                    return new Outcome(PolicyGate.Decision.EXECUTE, "{\"in_progress\":true}", true);
+                }
+            } else if (idempotency.containsKey(idempotencyKey)) {
+                return new Outcome(PolicyGate.Decision.EXECUTE, idempotency.get(idempotencyKey), true);
+            }
         }
         try {
             String result = tool.action().run(inputJson == null ? "{}" : inputJson);
-            if (idempotencyKey != null) idempotency.put(idempotencyKey, result);
+            if (idempotencyKey != null) {
+                if (store != null) store.remember(ownerUserId, idempotencyKey, 200, result);
+                else idempotency.put(idempotencyKey, result);
+            }
             return new Outcome(PolicyGate.Decision.EXECUTE, result, false);
         } catch (Exception e) {
             return new Outcome(PolicyGate.Decision.EXECUTE, "Error: " + e.getMessage(), false);
