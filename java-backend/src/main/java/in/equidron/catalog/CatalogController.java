@@ -28,9 +28,15 @@ public class CatalogController {
         return out;
     }
 
+    @GetMapping("/meta")
+    public Map<String, Object> meta() {
+        return Map.of("cities", catalog.cities());
+    }
+
     @GetMapping("/products/{id}")
-    public ResponseEntity<Map<String, Object>> product(@PathVariable long id) {
-        Map<String, Object> product = catalog.product(id);
+    public ResponseEntity<Map<String, Object>> product(@PathVariable long id,
+                                                       @RequestParam(name = "city", required = false) String city) {
+        Map<String, Object> product = catalog.product(id, city);
         return product == null ? ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "That product is not available."))
             : ResponseEntity.ok(product);
     }
