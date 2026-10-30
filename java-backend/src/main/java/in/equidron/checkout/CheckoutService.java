@@ -35,7 +35,7 @@ public class CheckoutService {
 
     @Transactional
     public Map<String, Object> place(long userId, long addressId, String method, String idempotencyKey) {
-        if (!List.of("cod", "upi", "card", "bank").contains(method)) {
+        if (!List.of("cod", "upi", "card", "bank", "razorpay").contains(method)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a payment option.");
         }
         if (idempotencyKey == null || idempotencyKey.length() < 8) {
