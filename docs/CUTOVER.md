@@ -54,6 +54,20 @@ Check: row counts per table, compared against the export.
 A count that matches and an API that answers are different claims. Only the second one matters to a
 customer.
 
+## Cutover completed, 2026-10-30
+
+Run with the Node app stopped, one process:
+
+    import ....... 53 tables, 1019 rows, counts match, 0 failed (settings excluded by decision)
+    java ......... http://localhost:8080/shop/  served from PostgreSQL equidron_live
+    login ........ asha@example.com                200
+    orders ....... 2 real orders                   200
+    order detail . id 1, 89900 paise               200
+    invoice ...... application/pdf, 1107 bytes     200
+
+The Node app is left running on data/pg-restored as the rollback, one line away:
+point the browser at http://localhost:8010 again.
+
 ## Incident, 2026-10-30: the live PGlite database was damaged
 
 A read-only inspection opened `data/pg` while the Node app had it open. PGlite is one process's
