@@ -31,6 +31,20 @@ public class SettlementController {
         return user;
     }
 
+    /** What the panel shows: balances and the batches already made. */
+    @GetMapping
+    public Map<String, Object> panel(@CookieValue(name = "equidron_session", required = false) String token) {
+        staff(token);
+        return Map.of("balances", settlement.balances(), "batches", settlement.batches());
+    }
+
+    @PostMapping("/run")
+    public Map<String, Object> run(@CookieValue(name = "equidron_session", required = false) String token,
+                                   @RequestBody(required = false) Map<String, Object> body) {
+        UserRepository.User user = staff(token);
+        return settlement.build(user.id(), body == null ? null : (String) body.get("note"));
+    }
+
     @GetMapping("/balances")
     public List<Map<String, Object>> balances(@CookieValue(name = "equidron_session", required = false) String token) {
         staff(token);
