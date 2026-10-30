@@ -54,6 +54,18 @@ Check: row counts per table, compared against the export.
 A count that matches and an API that answers are different claims. Only the second one matters to a
 customer.
 
+## Step 3 verified (2026-10-30, against equidron_cutover)
+
+The rehearsal database was filled from the real marketplace and served by the Java backend:
+
+    POST /api/shop/login            equidron@gmail.com          -> 200
+    GET  /api/shop/orders                                       -> 200, 8 orders
+    order 67                     completed, total_paise 22900
+    GET  /api/shop/orders/67/invoice                            -> 200, application/pdf, 1108 bytes
+
+That is a real customer, their real history and a real invoice, served from PostgreSQL by the Java
+code. A count that matches proves the copy; this proves the copy is usable.
+
 ## Step 4 — give Java the secrets
 
     RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET / RAZORPAY_WEBHOOK_SECRET
