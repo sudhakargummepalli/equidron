@@ -135,12 +135,37 @@ public class SellerPanelsController {
         if (price == null || ((Number) price).longValue() < 100) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A price of at least one rupee is required.");
         }
+        long pricePaise = ((Number) price).longValue();
+        Long product = productId == null ? null : ((Number) productId).longValue();
+        if (product == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose the product you are offering.");
+
+        // A shop that has never dispatched has no warehouse yet; a seller cannot submit stock without one.
+        Integer warehouses = jdbc.queryForObject(
+            "SELECT count(*) FROM warehouses WHERE seller_id = ?", Integer.class, shopId);
+        if (warehouses == null || warehouses == 0) {
+            jdbc.update("INSERT INTO warehouses (code, name, city, kind, seller_id) " +
+                        "VALUES (?, ?, ?, 'seller_dispatch', ?) ON CONFLICT (code) DO NOTHING",
+                "S-" + shopId, "Dispatch " + shopId, "Bengaluru", shopId);
+        }
+
+        // The offer exists from the moment it is submitted, but not in the shop: "pending" is what the
+        // marketplace does not show. A second submission for the same product updates that row rather than
+        // failing on the unique key, which is what a seller retrying a form would otherwise hit.
+        Long offerId = jdbc.queryForObject(
+            "INSERT INTO offers (product_id, seller_id, price_paise, mrp_paise, condition, fulfilment, handling_days, status, updated_at) " +
+            "VALUES (?, ?, ?, ?, 'new', 'seller', 1, 'pending', now()) " +
+            "ON CONFLICT (product_id, seller_id, condition) DO UPDATE " +
+            "SET price_paise = EXCLUDED.price_paise, status = 'pending', updated_at = now() RETURNING id",
+            Long.class, product, shopId, pricePaise, Math.max(pricePaise, (long) (pricePaise * 1.2)));
+        jdbc.update("INSERT INTO inventory (offer_id, warehouse_id, on_hand, reserved) " +
+                    "SELECT ?, MIN(id), 10, 0 FROM warehouses WHERE seller_id = ? " +
+                    "ON CONFLICT (offer_id, warehouse_id) DO UPDATE SET on_hand = 10", offerId, shopId);
+
         Long id = jdbc.queryForObject(
-            "INSERT INTO submissions (seller_id, product_id, kind, payload, status, review_reasons, created_at) " +
-            "VALUES (?, ?, 'offer', ?::jsonb, 'pending', '[]'::jsonb, now()) RETURNING id",
-            Long.class, shopId, productId == null ? null : ((Number) productId).longValue(),
-            "{\"price_paise\":" + ((Number) price).longValue() + "}");
-        return Map.of("id", id, "status", "pending");
+            "INSERT INTO submissions (seller_id, product_id, offer_id, kind, payload, status, review_reasons, created_at) " +
+            "VALUES (?, ?, ?, 'new_offer', ?::jsonb, 'pending', '[]'::jsonb, now()) RETURNING id",
+            Long.class, shopId, product, offerId, "{\"price_paise\":" + pricePaise + "}");
+        return Map.of("id", id, "offer_id", offerId, "status", "pending");
     }
 
     /** Move one shipment to its next state. The order it belongs to keeps the history. */

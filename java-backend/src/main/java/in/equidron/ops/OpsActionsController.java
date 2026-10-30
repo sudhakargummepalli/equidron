@@ -52,8 +52,11 @@ public class OpsActionsController {
             "UPDATE submissions SET status = ?, decided_at = now(), decided_by = ?, reviewer_note = ? " +
             "WHERE id = ? AND status = 'pending'", approve ? "approved" : "rejected", user.id(), note, id);
         if (changed == 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "That submission is not waiting for a decision.");
-        jdbc.update("UPDATE offers SET status = ? WHERE id = (SELECT offer_id FROM submissions WHERE id = ?)",
-            approve ? "active" : "rejected", id);
+        // Approval is what puts the offer in the shop; rejection leaves it pending, which nobody can buy.
+        if (approve) {
+            jdbc.update("UPDATE offers SET status = 'active', updated_at = now() " +
+                        "WHERE id = (SELECT offer_id FROM submissions WHERE id = ?)", id);
+        }
         return Map.of("id", id, "status", approve ? "approved" : "rejected");
     }
 
