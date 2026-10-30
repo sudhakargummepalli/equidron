@@ -200,7 +200,7 @@ public class OpsPanelsController {
         staff(token);
         String key = String.valueOf(body.get("key"));
         String value = String.valueOf(body.get("value"));
-        jdbc.update("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", key, value);
+        jdbc.update("INSERT INTO settings (key, value) VALUES (?, ?::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", key, value);
         return Map.of("ok", true, "key", key, "value", value);
     }
 }
