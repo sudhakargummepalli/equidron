@@ -66,6 +66,16 @@ The rehearsal database was filled from the real marketplace and served by the Ja
 That is a real customer, their real history and a real invoice, served from PostgreSQL by the Java
 code. A count that matches proves the copy; this proves the copy is usable.
 
+## Two findings from the settings investigation
+
+1. **PGlite cannot be opened by two processes.** Reading the source database while the Node app is
+   running aborts the WebAssembly instance. The export in step 1 must run with the Node app stopped,
+   or against a copy of `data/pg` - otherwise the cutover reads a database nobody is writing to and
+   looks like a crash.
+2. **The `settings` table is not business data.** Two rows of site configuration. Rather than special-
+   case the encoder for them, they are re-created on the Java side from the same values and excluded
+   from the copy, so the import is 53 of 54 tables by intent rather than by accident.
+
 ## Step 4 — give Java the secrets
 
     RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET / RAZORPAY_WEBHOOK_SECRET
