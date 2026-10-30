@@ -71,4 +71,16 @@ class SellerApplicationIT {
         ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> applications.submit(userId));
         assertEquals(400, e.getStatusCode().value());
     }
+    @Test
+    void thePendingListShowsSubmittedApplicationsAndNotDrafts() {
+        applications.saveDraft(userId, full("ABCDE1234A"));
+        assertEquals(0, applications.pending().stream().filter(r -> userId == ((Number) r.get("user_id")).longValue()).count(),
+            "a draft is not waiting for anyone");
+        applications.submit(userId);
+        assertEquals(1, applications.pending().stream().filter(r -> userId == ((Number) r.get("user_id")).longValue()).count(),
+            "a submitted application is");
+        applications.review(userId, true);
+        assertEquals(0, applications.pending().stream().filter(r -> userId == ((Number) r.get("user_id")).longValue()).count(),
+            "a decided one is not");
+    }
 }

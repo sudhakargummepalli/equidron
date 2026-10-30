@@ -113,4 +113,13 @@ public class SellerApplication {
         }
         return Map.of("status", status);
     }
+
+    /** What staff have to decide: everything submitted and not yet reviewed, oldest first. */
+    public List<Map<String, Object>> pending() {
+        return jdbc.queryForList(
+            "SELECT a.user_id, u.name AS applicant, u.email, a.business_name, a.business_type, a.pickup_city, " +
+            "       a.pan, a.gstin, a.kyc_status, a.submitted_at " +
+            "FROM seller_applications a JOIN users u ON u.id = a.user_id " +
+            "WHERE a.status = 'submitted' ORDER BY a.submitted_at");
+    }
 }

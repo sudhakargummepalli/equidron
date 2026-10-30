@@ -41,6 +41,15 @@ public class SellerApplicationController {
         return applications.submit(session.require(token));
     }
 
+    @GetMapping("/api/ops/seller-applications")
+    public java.util.List<Map<String, Object>> pending(
+            @CookieValue(name = "equidron_session", required = false) String token) {
+        UserRepository.User staff = sessions.resolve(token, users);
+        if (staff == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please sign in.");
+        if (!"ops".equals(staff.role())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only.");
+        return applications.pending();
+    }
+
     @PostMapping("/api/ops/seller-applications/{userId}/{decision}")
     public Map<String, Object> review(@CookieValue(name = "equidron_session", required = false) String token,
                                       @PathVariable long userId, @PathVariable String decision) {
