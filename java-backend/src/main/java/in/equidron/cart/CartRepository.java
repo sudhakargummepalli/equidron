@@ -44,10 +44,18 @@ public class CartRepository {
             count += qty;
         }
 
+        long shipping = count == 0 || subtotal >= 49900 ? 0 : 4000;
+        Map<String, Object> estimate = new LinkedHashMap<>();
+        estimate.put("subtotal_paise", subtotal);
+        estimate.put("shipping_paise", shipping);
+        estimate.put("total_paise", subtotal + shipping);
+        estimate.put("free_shipping_from_paise", 49900);
+
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("items", items);
         out.put("count", count);
         out.put("subtotal_paise", subtotal);
+        out.put("estimate", estimate);
         return out;
     }
 
