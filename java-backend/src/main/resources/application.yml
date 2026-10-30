@@ -2,6 +2,12 @@ server:
   port: 8080
 
 spring:
+  web:
+    resources:
+      # The AngularJS pages are the same files the Node app serves; Java serves them so their
+      # relative /api/... calls land on this backend instead of the other one.
+      static-locations: file:../static/, classpath:/static/
+
   datasource:
     # Java cannot open the Node PGlite database; it needs a real PostgreSQL server.
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/equidron}
