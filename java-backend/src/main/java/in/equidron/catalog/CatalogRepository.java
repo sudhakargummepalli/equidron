@@ -1,5 +1,6 @@
 package in.equidron.catalog;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class CatalogRepository {
 
+    private static final ObjectMapper JSON = new ObjectMapper();
     private final JdbcTemplate jdbc;
 
     public CatalogRepository(JdbcTemplate jdbc) {
@@ -44,9 +46,9 @@ public class CatalogRepository {
 
     public List<Map<String, Object>> search(String q, String category, int limit, int offset) {
         String like = q == null || q.isBlank() ? "%" : "%" + q.trim() + "%";
-        return jdbc.queryForList(
+        List<Map<String, Object>> rows = jdbc.queryForList(
             "SELECT p.id, p.title, p.brand, p.category, " +
-            "       MIN(o.price_paise) AS price_paise, COUNT(o.id) AS offer_count, " +
+            "       MIN(o.price_paise) AS price_paise, COUNT(o.id) AS offer_count, MIN(p.images->>0) AS first_image, " +
             "       COALESCE(SUM((SELECT COALESCE(SUM(i.on_hand - i.reserved), 0) FROM inventory i WHERE i.offer_id = o.id)), 0) > 0 AS in_stock " +
             "FROM products p JOIN offers o ON o.product_id = p.id AND o.status = 'active' " +
             "WHERE p.status = 'live' AND (p.title ILIKE ? OR p.brand ILIKE ?) " +
@@ -55,14 +57,26 @@ public class CatalogRepository {
             "ORDER BY MIN(o.price_paise), p.id LIMIT ? OFFSET ?",
             like, like, category == null ? "" : category, category == null ? "" : category,
             Math.min(50, Math.max(1, limit)), Math.max(0, offset));
+        // The tiles render images[0], so each result carries a one-element list.
+        for (Map<String, Object> row : rows) {
+            Object first = row.remove("first_image");
+            row.put("images", first == null ? List.of() : List.of(String.valueOf(first)));
+        }
+        return rows;
     }
 
     public Map<String, Object> product(long id, String city) {
         List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT id, title, brand, category, description, specs, images, return_window_days, status, " +
+            "SELECT id, title, brand, category, description, specs::text AS specs, images::text AS images, return_window_days, status, " +
             "       rating, review_count FROM products WHERE id = ? AND status = 'live'", id);
         if (rows.isEmpty()) return null;
         Map<String, Object> product = new java.util.LinkedHashMap<>(rows.get(0));
+        for (String key : new String[] {"images", "specs"}) {
+            Object raw = product.get(key);
+            if (raw instanceof String text && !text.isBlank()) {
+                try { product.put(key, JSON.readValue(text, Object.class)); } catch (Exception ignored) { }
+            }
+        }
 
         List<Map<String, Object>> offers = jdbc.queryForList(
             "SELECT o.id, o.price_paise, o.mrp_paise, o.condition, o.fulfilment, o.handling_days, o.ships_to, " +
