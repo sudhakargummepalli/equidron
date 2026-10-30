@@ -1,11 +1,13 @@
 package in.equidron.integrations;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import in.equidron.agents.IdempotencyStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -24,18 +26,23 @@ import org.springframework.web.server.ResponseStatusException;
 public class PaymentWebhookController {
 
     private final PaymentGateway gateway;
+    private final IdempotencyStore claims;
+    private final JdbcTemplate jdbc;
     private final String webhookSecret;
     private final ObjectMapper json = new ObjectMapper();
 
-    public PaymentWebhookController(PaymentGateway gateway,
+    public PaymentWebhookController(PaymentGateway gateway, IdempotencyStore claims, JdbcTemplate jdbc,
                                     @Value("${RAZORPAY_WEBHOOK_SECRET:}") String webhookSecret) {
         this.gateway = gateway;
+        this.claims = claims;
+        this.jdbc = jdbc;
         this.webhookSecret = webhookSecret;
     }
 
     @PostMapping("/payments")
     public ResponseEntity<Map<String, Object>> payments(
             @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature,
+            @RequestHeader(value = "X-Razorpay-Event-Id", required = false) String eventId,
             @RequestBody String rawBody) {
         boolean configured = webhookSecret != null && !webhookSecret.isBlank();
         if (configured && !Razorpay.verifyWebhook(rawBody, signature, webhookSecret)) {
@@ -52,11 +59,22 @@ public class PaymentWebhookController {
                 entity.path("order_id").asText("0")).replaceAll("[^0-9]", ""));
             String paymentId = entity.path("id").asText(null);
             if (orderId == 0) return ResponseEntity.ok(Map.of("ok", true, "ignored", "no order id"));
+
+            // Idempotent by the provider event id, so the same delivery is applied at most once.
+            Long owner = jdbc.queryForObject("SELECT user_id FROM orders WHERE id = ?", Long.class, orderId);
+            if (eventId != null && !eventId.isBlank()) {
+                if (!claims.claim(owner, "webhook:" + eventId, "webhook:payments")) {
+                    return ResponseEntity.ok(Map.of("ok", true, "replayed", true));
+                }
+            }
             try {
                 gateway.capture(orderId, paymentId, configured ? signature : null);
             } catch (ResponseStatusException e) {
                 // A retry of an event already applied is a success, not an error.
                 if (e.getStatusCode().value() != 409) throw e;
+            }
+            if (eventId != null && !eventId.isBlank()) {
+                claims.remember(owner, "webhook:" + eventId, 200, "{\"applied\":true}");
             }
             return ResponseEntity.ok(Map.of("ok", true));
         } catch (ResponseStatusException e) {

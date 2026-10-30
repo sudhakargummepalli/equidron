@@ -37,7 +37,12 @@ class PaymentWebhookIT {
     }
 
     private ResponseEntity<String> deliver(String body) {
+        return deliver(body, null);
+    }
+
+    private ResponseEntity<String> deliver(String body, String eventId) {
         HttpHeaders h = new HttpHeaders();
+        if (eventId != null) h.add("X-Razorpay-Event-Id", eventId);
         h.setContentType(MediaType.APPLICATION_JSON);
         return new org.springframework.web.client.RestTemplate().postForEntity(
             http.getRootUri() + "/api/webhooks/payments", new HttpEntity<>(body, h), String.class);
@@ -61,6 +66,16 @@ class PaymentWebhookIT {
         assertEquals(200, again.getStatusCode().value(), "a retry is a success, not an error");
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM payments WHERE order_id = ? AND status = 'captured'", Integer.class, orderId));
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM events WHERE type = 'payment.captured' AND entity_id = ?", Integer.class, orderId));
+    }
+
+    @Test
+    void theSameEventIdIsAppliedOnce() {
+        assertEquals(200, deliver(captured(), "evt_1").getStatusCode().value());
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM idempotency_keys WHERE key = 'webhook:evt_1'", Integer.class),
+            "the event id is recorded once");
+        ResponseEntity<String> replay = deliver(captured(), "evt_1");
+        assertEquals(200, replay.getStatusCode().value());
+        assertTrue(replay.getBody().contains("replayed"), replay.getBody());
     }
 
     @Test
