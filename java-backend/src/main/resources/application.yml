@@ -2,11 +2,15 @@ server:
   port: 8080
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   web:
     resources:
       # The AngularJS pages are the same files the Node app serves; Java serves them so their
       # relative /api/... calls land on this backend instead of the other one.
-      static-locations: file:../static/, classpath:/static/
+      static-locations: file:../static/, file:uploads/, classpath:/static/
 
   datasource:
     # Java cannot open the Node PGlite database; it needs a real PostgreSQL server.
