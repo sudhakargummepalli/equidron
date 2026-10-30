@@ -53,4 +53,20 @@ public class Invoices {
         return Map.of("order_id", orderId, "number", number, "existing", false, "total_paise", total,
             "taxable_paise", tax.taxablePaise());
     }
+
+    /** One invoice for one owner, with the amounts already written for a page or a PDF. */
+    public Map<String, Object> view(long orderId, long userId) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+            "SELECT i.number, to_char(i.issued_at, 'DD Month YYYY') AS issued_on, " +
+            "       i.taxable_paise, i.cgst_paise, i.sgst_paise, i.igst_paise, i.total_paise " +
+            "FROM invoices i JOIN orders o ON o.id = i.order_id WHERE i.order_id = ? AND o.user_id = ?",
+            orderId, userId);
+        if (rows.isEmpty()) return null;
+        Map<String, Object> row = new java.util.LinkedHashMap<>(rows.get(0));
+        for (String key : new String[] {"taxable", "cgst", "sgst", "igst", "total"}) {
+            long paise = ((Number) row.get(key + "_paise")).longValue();
+            row.put(key + "_paise_list", String.format(java.util.Locale.ROOT, "%d.%02d", paise / 100, paise % 100));
+        }
+        return row;
+    }
 }
