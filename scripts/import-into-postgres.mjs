@@ -21,6 +21,9 @@ const source = arg('pglite', 'data/pg');
 const target = arg('target', process.env.TARGET_DB_URL || 'postgres://equidron:equidron-local@127.0.0.1:5432/equidron_cutover');
 const dry = args.includes('--dry');
 
+// Site configuration, re-created on the Java side; not business data.
+const SKIP = new Set(['settings']);
+
 const db = new PGlite(source);
 await db.waitReady;
 const client = new pg.Client({ connectionString: target });
@@ -60,6 +63,7 @@ const encode = (v) => (v === undefined ? null : v !== null && typeof v === 'obje
 let total = 0;
 const counts = {};
 for (const table of order) {
+  if (SKIP.has(table)) { console.log(`  ${table.padEnd(28)} excluded by decision`); continue; }
   let rows = [];
   try {
     rows = (await db.query(`SELECT * FROM "${table}"`)).rows;

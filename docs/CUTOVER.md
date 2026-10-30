@@ -54,6 +54,27 @@ Check: row counts per table, compared against the export.
 A count that matches and an API that answers are different claims. Only the second one matters to a
 customer.
 
+## Incident, 2026-10-30: the live PGlite database was damaged
+
+A read-only inspection opened `data/pg` while the Node app had it open. PGlite is one process's
+database; the directory became unopenable and the marketplace was down for about 25 minutes.
+
+Recovered as follows:
+
+- `data/pg` left untouched and copied to `data/pg-damaged-backup` (33 MB) before anything else.
+- `scripts/restore-backup.mjs` restores a backup into a fresh directory by emptying every table with
+  one `TRUNCATE ... RESTART IDENTITY CASCADE` and then re-inserting, so deletion order cannot break
+  a foreign key.
+- The marketplace now runs on `data/pg-restored` from the newest backup, 2026-10-26: 21 users,
+  124 products, 229 offers, 2 orders.
+
+What this cost: the backup is four days old. Rows created after 2026-10-26 - including orders placed
+during testing and the renamed demo customer - are not in it. They exist nowhere except the damaged
+directory, which is preserved for repair.
+
+The rule that was already written above and was broken twice: while `data/pg` is open in the app,
+no other process opens it. Not for a count, not for an inspection, not for an import.
+
 ## Step 3 verified (2026-10-30, against equidron_cutover)
 
 The rehearsal database was filled from the real marketplace and served by the Java backend:
