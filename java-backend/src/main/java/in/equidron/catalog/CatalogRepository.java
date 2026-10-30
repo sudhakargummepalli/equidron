@@ -48,7 +48,8 @@ public class CatalogRepository {
         String like = q == null || q.isBlank() ? "%" : "%" + q.trim() + "%";
         List<Map<String, Object>> rows = jdbc.queryForList(
             "SELECT p.id, p.title, p.brand, p.category, " +
-            "       MIN(o.price_paise) AS price_paise, COUNT(o.id) AS offer_count, MIN(p.images->>0) AS first_image, " +
+            "       MIN(o.price_paise) AS price_paise, MIN(o.mrp_paise) AS mrp_paise, COUNT(o.id) AS offer_count, " +
+            "       MIN(p.images->>0) AS first_image, " +
             "       COALESCE(SUM((SELECT COALESCE(SUM(i.on_hand - i.reserved), 0) FROM inventory i WHERE i.offer_id = o.id)), 0) > 0 AS in_stock " +
             "FROM products p JOIN offers o ON o.product_id = p.id AND o.status = 'active' " +
             "WHERE p.status = 'live' AND (p.title ILIKE ? OR p.brand ILIKE ?) " +
@@ -61,6 +62,14 @@ public class CatalogRepository {
         for (Map<String, Object> row : rows) {
             Object first = row.remove("first_image");
             row.put("images", first == null ? List.of() : List.of(String.valueOf(first)));
+            long price = ((Number) row.get("price_paise")).longValue();
+            Object mrp = row.remove("mrp_paise");
+            row.put("min_price_paise", price);
+            row.put("featured_offer", Map.of("price_paise", price,
+                "mrp_paise", mrp == null ? price : ((Number) mrp).longValue()));
+            // The page prints these under a line that explains the ranking.
+            row.put("factors", Map.of("relevance", 1.0, "availability", row.get("in_stock"),
+                "customer_experience", 4.0, "delivery_speed", 3.0));
         }
         return rows;
     }
