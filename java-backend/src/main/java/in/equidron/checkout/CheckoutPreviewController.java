@@ -76,7 +76,10 @@ public class CheckoutPreviewController {
         out.put("items", items);
         out.put("estimate", estimate);
         out.put("issues", issues);
-        out.put("can_place", items.size() > 0 && issues.isEmpty());
+        // The page guards the pay button on preview.ok; can_place is the same fact under the name I chose.
+        boolean ok = !items.isEmpty() && issues.isEmpty();
+        out.put("ok", ok);
+        out.put("can_place", ok);
         return out;
     }
 
