@@ -25,6 +25,19 @@ public class OrderController {
         return orders.list(session.require(token));
     }
 
+    @PostMapping("/{id}/returns")
+    public ResponseEntity<Map<String, Object>> requestReturn(
+            @CookieValue(name = "equidron_session", required = false) String token,
+            @PathVariable long id, @RequestBody Map<String, Object> body) {
+        long userId = session.require(token);
+        long itemId = ((Number) body.get("order_item_id")).longValue();
+        int qty = body.get("qty") == null ? 1 : ((Number) body.get("qty")).intValue();
+        Map<String, Object> order = orders.requestReturn(userId, id, itemId, qty, (String) body.get("reason"));
+        return order == null
+            ? ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Order not found."))
+            : ResponseEntity.ok(order);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> one(@CookieValue(name = "equidron_session", required = false) String token,
                                                    @PathVariable long id) {
