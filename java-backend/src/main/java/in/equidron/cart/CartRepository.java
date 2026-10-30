@@ -23,7 +23,7 @@ public class CartRepository {
 
     public Map<String, Object> view(long userId) {
         List<Map<String, Object>> items = jdbc.queryForList(
-            "SELECT c.offer_id, c.qty, o.price_paise, o.condition, p.id AS product_id, p.title, " +
+            "SELECT c.offer_id, c.qty, c.price_at_add_paise, o.price_paise, o.condition, p.id AS product_id, p.title, " +
             "       s.name AS seller_name, s.city AS seller_city, o.status, " +
             "       COALESCE((SELECT SUM(i.on_hand - i.reserved) FROM inventory i WHERE i.offer_id = o.id), 0) AS available " +
             "FROM cart_items c " +
