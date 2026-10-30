@@ -65,16 +65,27 @@ public class CheckoutPreviewController {
             subtotal += line;
         }
 
+        // The page reads these under the name totals, and each line needs the delivery date it prints.
+        for (Map<String, Object> item : items) {
+            long offerId = ((Number) item.get("offer_id")).longValue();
+            Integer handling = jdbc.queryForObject("SELECT handling_days FROM offers WHERE id = ?", Integer.class, offerId);
+            item.put("eta", java.time.LocalDate.now().plusDays((handling == null ? 1 : handling) + 2).toString());
+        }
         long shipping = items.isEmpty() || subtotal >= 49900 ? 0 : 4000;
-        Map<String, Object> estimate = new LinkedHashMap<>();
-        estimate.put("subtotal_paise", subtotal);
-        estimate.put("shipping_paise", shipping);
-        estimate.put("total_paise", subtotal + shipping);
-        estimate.put("free_shipping_from_paise", 49900);
+        Map<String, Object> totals = new LinkedHashMap<>();
+        totals.put("subtotal_paise", subtotal);
+        totals.put("shipping_paise", shipping);
+        totals.put("total_paise", subtotal + shipping);
+        totals.put("free_shipping_from_paise", 49900);
+        Map<String, Object> estimate = new LinkedHashMap<>(totals);
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("items", items);
         out.put("estimate", estimate);
+        out.put("totals", totals);
+        // What the cart looked like when the customer reviewed it; the order is placed against this.
+        out.put("fingerprint", String.join(",", items.stream()
+            .map(i -> i.get("offer_id") + "x" + i.get("qty") + "@" + i.get("current_price_paise")).toList()));
         out.put("issues", issues);
         // The page guards the pay button on preview.ok; can_place is the same fact under the name I chose.
         boolean ok = !items.isEmpty() && issues.isEmpty();
