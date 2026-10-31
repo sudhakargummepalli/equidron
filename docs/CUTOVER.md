@@ -68,6 +68,24 @@ Run with the Node app stopped, one process:
 The Node app is left running on data/pg-restored as the rollback, one line away:
 point the browser at http://localhost:8010 again.
 
+## Test data must not share the marketplace database
+
+On 2026-10-31 the click-through found that `mvn verify` had been pointed at `equidron_live`, so the
+integration tests wrote their fixtures into the marketplace: twenty test accounts, eighteen test orders,
+a test seller with its own offers, and a walkthrough order with its invoice.
+
+Fixed as follows, and worth keeping:
+
+- **`equidron_test`** exists for tests. Run them with `DATABASE_URL=jdbc:postgresql://127.0.0.1:5432/equidron_test`.
+  The live database is used only by the running server.
+- The test accounts and their rows were removed by name, in foreign-key order: orders (items, payments,
+  events, invoices first), offers (items before offers), warehouses, sellers, sessions, codes, audit rows.
+- What remains is what could have happened: 29 accounts (13 demo, 9 agent, 7 people and testers the owner
+  created), six shops, five orders, 230 active offers, no tickets, no submissions, no pending payments.
+
+Lesson: a test run that writes to the production database is not a test, it is an incident with a
+green build.
+
 ## Incident, 2026-10-30: the live PGlite database was damaged
 
 A read-only inspection opened `data/pg` while the Node app had it open. PGlite is one process's
