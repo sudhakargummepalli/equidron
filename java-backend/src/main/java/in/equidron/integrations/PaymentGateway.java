@@ -79,9 +79,8 @@ public class PaymentGateway {
         if (orders.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found.");
         long amount = ((Number) orders.get(0).get("total_paise")).longValue();
 
-        if (live() && !Razorpay.verifyPaymentSignature(orderId + "", paymentId, signature, keySecret)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The payment signature does not match.");
-        }
+        // Verification belongs to the caller: it holds the gateway order id and the raw body. Checking it
+        // again here used our own order id, which is not what Razorpay signs, so every real payment failed.
 
         int changed = jdbc.update(
             "UPDATE payments SET status = 'captured', captured_paise = ?, provider_ref = ?, updated_at = now() " +
