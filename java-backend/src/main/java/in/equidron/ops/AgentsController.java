@@ -34,9 +34,17 @@ public class AgentsController {
     }
 
     @GetMapping
-    public List<Map<String, Object>> list(@CookieValue(name = "equidron_session", required = false) String token) {
+    public Map<String, Object> list(@CookieValue(name = "equidron_session", required = false) String token) {
         requireStaff(token);
-        return agents.list();
+
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("agents", agents.list());
+        out.put("paused", agents.paused());
+        out.put("levels", agents.levelNames());
+        out.put("spent_today_usd", agents.spentToday());
+        out.put("open_tasks", 0);
+        out.put("brief", null);
+        return out;
     }
 
     @GetMapping("/{id}/runs")
