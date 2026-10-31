@@ -164,6 +164,8 @@ public class SellerPanelsController {
 
         // Three shapes of submission: change an offer, offer an existing product, or bring a new product.
         Long offerId = body.get("offer_id") == null ? null : ((Number) body.get("offer_id")).longValue();
+        // Whether this submission created the offer or reused a live one; cleanup depends on the difference.
+        boolean createdOffer = false;
         Long productId = body.get("product_id") == null ? null : ((Number) body.get("product_id")).longValue();
         String kind;
         if (offerId != null) {
@@ -173,9 +175,11 @@ public class SellerPanelsController {
             if (own.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "That listing is not yours.");
         } else if (productId != null) {
             kind = "new_offer";
+            createdOffer = !offerExists(productId, shopId, condition);
             offerId = insertOffer(productId, shopId, pricePaise, body.get("mrp"), condition, fulfilment, handling, shipsTo, quantity);
         } else {
             kind = "new_product";
+            createdOffer = true;
             String title = String.valueOf(body.getOrDefault("title", "")).trim();
             if (title.length() < 3) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Give the product a title.");
             String images = jsonOf(body.get("images"));
@@ -205,10 +209,18 @@ public class SellerPanelsController {
         out.put("offer_id", offerId);
         out.put("product_id", productId);
         out.put("kind", kind);
+        out.put("created_offer", createdOffer);
         out.put("status", "pending");
         out.put("price_paise", pricePaise);
         out.put("quantity", quantity);
         return out;
+    }
+
+    private boolean offerExists(long productId, long shopId, String condition) {
+        Integer count = jdbc.queryForObject(
+            "SELECT count(*) FROM offers WHERE product_id = ? AND seller_id = ? AND condition = ?",
+            Integer.class, productId, shopId, condition);
+        return count != null && count > 0;
     }
 
     /** Rupees as the form sends them, or paise as an API client may; anything unreadable is zero. */

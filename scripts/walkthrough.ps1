@@ -42,7 +42,7 @@ if (-not $search.results.Count) { Write-Host "FAIL  nothing in the shop to buy";
 $prod = $null; $buyable = $null
 foreach ($candidate in $search.results) {
   $p = (Invoke-WebRequest "$Base/api/shop/products/$($candidate.id)?city=Bengaluru" -UseBasicParsing -TimeoutSec 15).Content | ConvertFrom-Json
-  $b = $p.offers | Where-Object { $_.deliverable -and $_.available -gt 0 } | Select-Object -First 1
+  $b = $p.offers | Where-Object { $_.deliverable -and $_.available -ge 2 } | Select-Object -First 1
   if ($b) { $prod = $p; $buyable = $b; break }
 }
 if ($buyable) { Write-Host "ok    product detail ($($prod.title) · offer $($buyable.id) · $($buyable.available) in stock)" } else { Write-Host "FAIL  no product with buyable stock"; $fail += "buyable product" }
@@ -86,7 +86,7 @@ if ($thread -and $thread.messages.Count -ge 2) { Write-Host "ok    ticket thread
 
 # ---------------------------------------------------------------- cleanup
 $password = if ($env:DATABASE_PASSWORD) { $env:DATABASE_PASSWORD } else { "equidron-local" }
-$cleanup = "UPDATE inventory SET reserved = GREATEST(0, reserved - COALESCE((SELECT SUM(qty) FROM order_items WHERE order_id = $orderId AND offer_id = inventory.offer_id), 0)) WHERE offer_id IN (SELECT offer_id FROM order_items WHERE order_id = $orderId); DELETE FROM events WHERE entity = 'order' AND entity_id = $orderId; DELETE FROM invoices WHERE order_id = $orderId; DELETE FROM payments WHERE order_id = $orderId; DELETE FROM order_items WHERE order_id = $orderId; DELETE FROM orders WHERE id = $orderId; DELETE FROM idempotency_keys WHERE user_id = (SELECT id FROM users WHERE email = 'asha@example.com'); DELETE FROM inventory WHERE offer_id = $subOfferId; DELETE FROM submissions WHERE id = $subId; DELETE FROM offers WHERE id = $subOfferId; DELETE FROM support_messages WHERE ticket_id = $ticketId; DELETE FROM support_tickets WHERE id = $ticketId;"
+$cleanup = "UPDATE inventory SET reserved = GREATEST(0, reserved - COALESCE((SELECT SUM(qty) FROM order_items WHERE order_id = $orderId AND offer_id = inventory.offer_id), 0)) WHERE offer_id IN (SELECT offer_id FROM order_items WHERE order_id = $orderId); DELETE FROM events WHERE entity = 'order' AND entity_id = $orderId; DELETE FROM invoices WHERE order_id = $orderId; DELETE FROM payments WHERE order_id = $orderId; DELETE FROM order_items WHERE order_id = $orderId; DELETE FROM orders WHERE id = $orderId; DELETE FROM idempotency_keys WHERE user_id = (SELECT id FROM users WHERE email = 'asha@example.com'); DELETE FROM inventory WHERE offer_id = $subOfferId; DELETE FROM submissions WHERE id = $subId; DELETE FROM offers WHERE id = $($subOfferId) AND $($sub.created_offer); DELETE FROM support_messages WHERE ticket_id = $ticketId; DELETE FROM support_tickets WHERE id = $ticketId;"
 $env:PGPASSWORD = $password
 $cleanup | & $Psql -U equidron -h 127.0.0.1 -d $Database -q 2>&1 | Out-Null
 Remove-Item Env:PGPASSWORD
