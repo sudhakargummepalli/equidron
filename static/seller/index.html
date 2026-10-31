@@ -97,7 +97,7 @@
           <td class="small">{{o.fulfilment === 'equidron' ? 'Equidron FC' : 'Self-ship'}}<div class="muted">{{o.handling_days}}-day handling</div></td>
           <td><span class="badge {{o.status | tone}}">{{o.status | label}}</span>
             <div ng-if="o.pending_submission_id"><span class="badge warn">Change in review</span></div></td>
-          <td class="right"><a class="btn small" href="#/edit/{{o.id}}">{{ 'seller.edit' | t }}</a></td>
+          <td class="right"><a class="btn small" href="#/edit/{{o.id}}">{{ 'seller.edit' | t }}</a><button type="button" class="btn small" ng-if="o.status === 'active'" ng-click="vm.pauseListing(o, true)">Pause</button><button type="button" class="btn small" ng-if="o.status === 'inactive'" ng-click="vm.pauseListing(o, false)">Resume</button></td>
         </tr>
       </table>
       <div class="empty" ng-if="!vm.listings.offers.length">No listings yet.</div>

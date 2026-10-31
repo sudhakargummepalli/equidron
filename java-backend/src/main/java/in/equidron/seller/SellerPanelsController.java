@@ -271,6 +271,31 @@ public class SellerPanelsController {
     }
 
     /** Move one shipment to its next state. The order it belongs to keeps the history. */
+    /**
+     * Pause or resume one of this shop's listings.
+     *
+     * The offer stays, with its orders and its price history; it simply stops being buyable. Taking a
+     * listing down is the seller's call, not something that needs a person in Ops - but it is also not a
+     * delete, because an order that referenced this offer must still read correctly.
+     */
+    @PostMapping("/listings/{offerId}/pause")
+    public Map<String, Object> pauseListing(@CookieValue(name = "equidron_session", required = false) String token,
+                                            @PathVariable long offerId, @RequestBody(required = false) Map<String, Object> body) {
+        long shopId = sellers.shopOf(session.require(token));
+        boolean pause = body == null || body.get("paused") == null || Boolean.TRUE.equals(body.get("paused"));
+        List<Map<String, Object>> own = jdbc.queryForList(
+            "SELECT id, status FROM offers WHERE id = ? AND seller_id = ?", offerId, shopId);
+        if (own.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "That listing is not yours.");
+
+        String current = String.valueOf(own.get(0).get("status"));
+        if ("pending".equals(current)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "That listing is still waiting for review.");
+        }
+        String next = pause ? "inactive" : "active";
+        jdbc.update("UPDATE offers SET status = ?, updated_at = now() WHERE id = ?", next, offerId);
+        return Map.of("id", offerId, "status", next);
+    }
+
     @PostMapping("/shipments/{id}/advance")
     public Map<String, Object> advance(@CookieValue(name = "equidron_session", required = false) String token,
                                        @PathVariable long id) {

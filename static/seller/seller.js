@@ -159,6 +159,14 @@ angular.module('seller', ['eqCommon', 'equidronI18n']).controller('SellerCtrl', 
     }
 
     // The listing agent fills the form; the seller still reads it and presses Submit.
+    // Pausing keeps the offer and its history and simply stops it being buyable.
+    vm.pauseListing = function (offer, paused) {
+      api.post('/listings/' + offer.id + '/pause', { paused: !!paused }).then(function () {
+        Toast.show(paused ? 'Listing paused. Customers can no longer buy it.' : 'Listing is live again.');
+        loadListings();
+      }, function (e) { Toast.show(e.message || 'That listing could not be changed.'); });
+    };
+
     vm.draftListing = function () {
       vm.drafting = true;
       vm.draftMsg = null;
