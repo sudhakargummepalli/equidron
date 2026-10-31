@@ -39,3 +39,7 @@ spring:
     sql-migration-prefix: ""
     sql-migration-separator: "_"
     out-of-order: true
+
+# The seller sign-in page lists these accounts; a demo convenience, off where the site is real.
+equidron:
+  showAccounts: true

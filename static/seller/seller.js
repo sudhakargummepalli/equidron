@@ -27,6 +27,13 @@ angular.module('seller', ['eqCommon', 'equidronI18n']).controller('SellerCtrl', 
         $location.path('/');
       },
     });
+    // The accounts that exist right now, so nobody has to remember an address to try the demo.
+    api.get('/accounts').then(function (r) {
+      vm.auth.demoAccounts = r.accounts.map(function (a) {
+        return { email: a.email, label: a.label + ' · ' + a.city };
+      });
+      vm.auth.demo = true;
+    }, function () { /* the list is a convenience, not a requirement */ });
     vm.auth.note = 'For Equidron sellers. New here? Create an account, then apply to sell - we review it before your shop goes live. Shopping? Go to the Equidron store (/shop/).';
     vm.security = SecurityPanel(api, signedOut);
     vm.unread = 0;
