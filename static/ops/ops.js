@@ -8,6 +8,11 @@ angular.module('ops', ['eqCommon', 'equidronI18n']).controller('OpsCtrl', ['$loc
         { email: 'support@example.com', label: 'support@example.com' }, { email: 'finance@example.com', label: 'finance@example.com' }],
       signedIn: function (user) { vm.user = user; $location.path('/'); },
     });
+    // Whoever has a staff account right now, so the demo does not depend on a list written into a file.
+    api.get('/accounts').then(function (r) {
+      vm.auth.demoAccounts = r.accounts.map(function (a) { return { email: a.email, label: a.label }; });
+      vm.auth.demo = true;
+    }, function () { /* the list is a convenience */ });
     vm.auth.note = 'Internal reviewers and operations staff only.';
     vm.security = SecurityPanel(api, signedOut);
     // Mirrors auth.hasPermission on the server, which is what actually enforces it.
