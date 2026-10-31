@@ -27,7 +27,7 @@ public class CheckoutController {
     }
 
     @PostMapping("/orders")
-    public Map<String, Object> place(@CookieValue(name = "equidron_session", required = false) String token,
+    public org.springframework.http.ResponseEntity<Map<String, Object>> place(@CookieValue(name = "equidron_session", required = false) String token,
                                      @RequestHeader(value = "Idempotency-Key", required = false) String headerKey,
                                      @RequestBody Map<String, Object> body) {
         long userId = session.require(token);
@@ -51,7 +51,9 @@ public class CheckoutController {
 
         Map<String, Object> out = new LinkedHashMap<>(order);
         out.put("order", order);
-        return out;
+        return org.springframework.http.ResponseEntity.status(
+            Boolean.TRUE.equals(placed.get("replayed")) ? org.springframework.http.HttpStatus.OK
+                                                         : org.springframework.http.HttpStatus.CREATED).body(out);
     }
 
     private static String text(Object value) {

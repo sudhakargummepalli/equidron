@@ -47,7 +47,7 @@ public class TelegramLinkController {
         jdbc.update("INSERT INTO telegram_link_codes (user_id, code_hash, expires_at, attempts, created_at) " +
                     "VALUES (?, ?, ?, 0, now()) ON CONFLICT (user_id) DO UPDATE SET code_hash = EXCLUDED.code_hash, " +
                     "expires_at = EXCLUDED.expires_at, attempts = 0, created_at = now()",
-            userId, in.equidron.auth.Codes.hash(userId, "telegram_link", code),
+            userId, in.equidron.bot.TelegramBot.hash(code),
             System.currentTimeMillis() / 1000.0 + 15 * 60);
         return Map.of("code", code, "bot", "@" + botUsername.replace("@", ""),
             "expires_in_minutes", 15);
