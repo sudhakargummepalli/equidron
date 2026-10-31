@@ -279,12 +279,11 @@ public class SellerPanelsController {
             "SELECT s.status FROM shipments s JOIN order_items oi ON oi.order_id = s.order_id " +
             "WHERE s.id = ? AND oi.seller_id = ? LIMIT 1", String.class, id, shopId);
         if (own.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "That shipment is not yours.");
-        String next = switch (own.get(0)) {
-            case "pending" -> "packed";
-            case "packed" -> "shipped";
-            case "shipped" -> "delivered";
-            default -> own.get(0);
-        };
+        // One state machine for every screen: see in.equidron.shipping.ShipmentStates.
+        String current = own.get(0);
+        String next = in.equidron.shipping.ShipmentStates.next(current);
+        if (next == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "That shipment is already finished.");
+        jdbc.update("INSERT INTO shipment_events (shipment_id, status, note, at) VALUES (?, ?, 'advanced by the seller', now())", id, next);
         jdbc.update("UPDATE shipments SET status = ?, updated_at = now() WHERE id = ?", next, id);
         return Map.of("id", id, "status", next);
     }

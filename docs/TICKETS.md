@@ -17,7 +17,7 @@ part still needs a person or a key; **todo** means not started.
 | EQ-107 | 6 | Customer agents: support that answers without a person | **done** |
 | EQ-108 | 7 | Seller agents: notes to a listing, pricing inside the band | **done** |
 | EQ-109 | 8 | Real payments in test mode: UPI, webhooks, refunds, idempotency | **done** |
-| EQ-110 | 9 | Shipping in a sandbox: labels, webhooks, failed attempts | **partial** |
+| EQ-110 | 9 | Shipping: one state machine, signed webhooks, failed attempts (no carrier account yet) | **partial** - code done, carrier booking is simulated |
 | EQ-111 | 10 | Messages, invoices and languages, including WhatsApp | **partial** |
 | EQ-112 | 11 | Seller sign-up, KYC and listing approval | **done** |
 | EQ-113 | 12 | Money and risk: reconciliation, payouts that show what and why | **done** |
@@ -27,6 +27,6 @@ part still needs a person or a key; **todo** means not started.
 ## What the partial ones are missing
 
 - **EQ-106** two weeks of shadow data is a calendar fact, not code. The runtime, inbox and kill switch exist.
-- **EQ-110** carrier booking and AWB webhooks are stubbed, so a shipment moves on our side only.
+- **EQ-110** one state machine, failed attempts and a signed webhook exist and are tested; a real carrier account is what is missing, so booking remains simulated.
 - **EQ-111** email and in-app messages work; WhatsApp needs a business number and template approval.
 - **EQ-115** every code side item is done; legal identity, GST, an email provider, live keys and a hostname are the owner's.

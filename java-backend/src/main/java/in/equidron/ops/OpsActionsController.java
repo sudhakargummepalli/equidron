@@ -147,12 +147,17 @@ public class OpsActionsController {
     @PostMapping("/shipments/advance-all")
     public Map<String, Object> advanceAll(@CookieValue(name = "equidron_session", required = false) String token) {
         staff(token);
-        int advanced = jdbc.update(
-            "UPDATE shipments SET status = CASE status " +
-            "  WHEN 'pending' THEN 'packed' WHEN 'packed' THEN 'shipped' " +
-            "  WHEN 'shipped' THEN 'in_transit' WHEN 'in_transit' THEN 'out_for_delivery' " +
-            "  WHEN 'out_for_delivery' THEN 'delivered' ELSE status END, updated_at = now() " +
-            "WHERE status IN ('pending', 'packed', 'shipped', 'in_transit', 'out_for_delivery')");
+        // One state machine for every screen; the SQL case that used to live here disagreed with the
+        // seller's version, which is how a parcel moved differently depending on who clicked.
+        int advanced = 0;
+        for (var row : jdbc.queryForList("SELECT id, status FROM shipments")) {
+            String next = in.equidron.shipping.ShipmentStates.next(String.valueOf(row.get("status")));
+            if (next == null) continue;
+            long id = ((Number) row.get("id")).longValue();
+            jdbc.update("UPDATE shipments SET status = ?, updated_at = now() WHERE id = ?", next, id);
+            jdbc.update("INSERT INTO shipment_events (shipment_id, status, note, at) VALUES (?, ?, 'advanced in bulk', now())", id, next);
+            advanced++;
+        }
         return Map.of("advanced", advanced);
     }
 
