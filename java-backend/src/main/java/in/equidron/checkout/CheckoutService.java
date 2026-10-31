@@ -28,9 +28,13 @@ public class CheckoutService {
     public static final long SHIPPING_PAISE = 4000;
 
     private final JdbcTemplate jdbc;
+    private final in.equidron.notify.OutboxService outbox;
+    private final in.equidron.jobs.JobQueue jobs;
 
-    public CheckoutService(JdbcTemplate jdbc) {
+    public CheckoutService(JdbcTemplate jdbc, in.equidron.notify.OutboxService outbox, in.equidron.jobs.JobQueue jobs) {
         this.jdbc = jdbc;
+        this.outbox = outbox;
+        this.jobs = jobs;
     }
 
     @Transactional
@@ -95,6 +99,12 @@ public class CheckoutService {
             "subtotal_paise, shipping_paise, total_paise, created_at, updated_at) " +
             "VALUES (?, ?::jsonb, 'payment_pending', 'pending', 'unfulfilled', ?, ?, ?, ?, now(), now()) RETURNING id",
             Long.class, userId, address, method, subtotal, shipping, total);
+
+        // The email is written in the same transaction as the order, and sent by a job afterwards: a mail
+        // server on a bad morning must not look like a shop that cannot take an order.
+        String email = jdbc.queryForObject("SELECT email FROM users WHERE id = ?", String.class, userId);
+        outbox.orderConfirmation(userId, email, orderId, total, outbox.languageOf(userId));
+        jobs.enqueue("email:deliver", "{\"order_id\":" + orderId + "}", "email:order:" + orderId, 5);
 
         for (Map<String, Object> line : lines) {
             long offerId = ((Number) line.get("offer_id")).longValue();
