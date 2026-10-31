@@ -38,7 +38,10 @@ public class CartController {
     public Map<String, Object> set(@CookieValue(name = "equidron_session", required = false) String token,
                                    @PathVariable long offerId, @RequestBody Map<String, Object> body) {
         long userId = session.require(token);
-        cart.setQty(userId, offerId, ((Number) body.get("qty")).intValue());
+        Object qty = body.get("qty");
+        if (qty == null) throw new org.springframework.web.server.ResponseStatusException(
+            org.springframework.http.HttpStatus.BAD_REQUEST, "Say how many you want.");
+        cart.setQty(userId, offerId, ((Number) qty).intValue());
         return cart.view(userId);
     }
 

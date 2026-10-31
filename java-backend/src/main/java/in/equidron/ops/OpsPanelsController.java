@@ -176,6 +176,14 @@ public class OpsPanelsController {
         return Map.of("tasks", List.of(), "done", List.of());
     }
 
+    /** There is no tasks table in this build, so closing one is a no-op that still answers. */
+    @PostMapping("/tasks/{id}/done")
+    public Map<String, Object> closeTask(@CookieValue(name = "equidron_session", required = false) String token,
+                                         @PathVariable long id) {
+        staff(token);
+        return Map.of("ok", true, "id", id);
+    }
+
     @PostMapping("/jobs/{id}/retry")
     public Map<String, Object> retryJob(@CookieValue(name = "equidron_session", required = false) String token,
                                         @PathVariable long id) {

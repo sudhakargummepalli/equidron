@@ -28,7 +28,8 @@ public class Codes {
         this.jdbc = jdbc;
     }
 
-    static String hash(long userId, String purpose, String code) {
+    /** Shared so other one-time codes (the Telegram link) use the same shape. */
+    public static String hash(long userId, String purpose, String code) {
         try {
             MessageDigest sha = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(sha.digest((userId + ":" + purpose + ":" + code).getBytes(StandardCharsets.UTF_8)));
