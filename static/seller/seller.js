@@ -6,6 +6,9 @@ angular.module('seller', ['eqCommon', 'equidronI18n']).controller('SellerCtrl', 
     vm.user = null;
     vm.meta = {};
     vm.auth = AuthForm(api, {
+      // A new seller creates an account here, then applies to sell. Approval is what makes them a seller,
+      // so until then the account is an ordinary customer account.
+      register: true,
       demoAccounts: [
         { email: 'lakshmi.seller@example.com', label: 'Lakshmi Mobiles & Electronics' },
         { email: 'techbazaar.seller@example.com', label: 'TechBazaar Hub' },
@@ -14,6 +17,9 @@ angular.module('seller', ['eqCommon', 'equidronI18n']).controller('SellerCtrl', 
         { email: 'pageturner.seller@example.com', label: 'PageTurner Books' },
       ],
       signedIn: function (user) {
+        // An account that is not a seller yet goes straight to the application form in the shop, which is
+        // the only place a shop is applied for - Seller Central is for shops that already exist.
+        if (user.role !== 'seller') { window.location.href = '/shop/#/sell'; return; }
         vm.user = user;
         api.get('/meta').then(function (m) { vm.meta = m; });
         loadNotes();
@@ -21,7 +27,7 @@ angular.module('seller', ['eqCommon', 'equidronI18n']).controller('SellerCtrl', 
         $location.path('/');
       },
     });
-    vm.auth.note = 'For Equidron sellers. Shopping? Go to the Equidron store (/shop/).';
+    vm.auth.note = 'For Equidron sellers. New here? Create an account, then apply to sell - we review it before your shop goes live. Shopping? Go to the Equidron store (/shop/).';
     vm.security = SecurityPanel(api, signedOut);
     vm.unread = 0;
 

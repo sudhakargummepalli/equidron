@@ -20,7 +20,6 @@ import org.springframework.web.server.ResponseStatusException;
  * and the code itself is stored hashed so reading the table does not hand anyone an account.
  */
 @RestController
-@RequestMapping("/api/shop")
 public class RegisterController {
 
     private static final int MAX_TRIES = 5;
@@ -57,7 +56,7 @@ public class RegisterController {
         return code;
     }
 
-    @PostMapping("/register")
+    @PostMapping({"/api/shop/register", "/api/seller/register"})
     public ResponseEntity<Map<String, Object>> register(@RequestBody Map<String, Object> body) {
         String name = String.valueOf(body.getOrDefault("name", "")).trim();
         String email = String.valueOf(body.getOrDefault("email", "")).trim().toLowerCase();
@@ -82,7 +81,7 @@ public class RegisterController {
             .body(Map.of("needs_verification", true, "email", email));
     }
 
-    @PostMapping("/verify-email")
+    @PostMapping({"/api/shop/verify-email", "/api/seller/verify-email"})
     public ResponseEntity<Map<String, Object>> verify(@RequestBody Map<String, Object> body,
                                                       jakarta.servlet.http.HttpServletResponse res) {
         String email = String.valueOf(body.getOrDefault("email", "")).trim().toLowerCase();
@@ -118,7 +117,7 @@ public class RegisterController {
         return ResponseEntity.ok(Map.of("user", Map.of("id", userId, "email", email, "name", user.name(), "role", "customer")));
     }
 
-    @PostMapping("/verify-email/resend")
+    @PostMapping({"/api/shop/verify-email/resend", "/api/seller/verify-email/resend"})
     public Map<String, Object> resend(@RequestBody Map<String, Object> body) {
         String email = String.valueOf(body.getOrDefault("email", "")).trim().toLowerCase();
         List<Map<String, Object>> rows = jdbc.queryForList(
