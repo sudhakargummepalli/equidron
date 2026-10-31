@@ -42,7 +42,15 @@ public class SettlementController {
     public Map<String, Object> run(@CookieValue(name = "equidron_session", required = false) String token,
                                    @RequestBody(required = false) Map<String, Object> body) {
         UserRepository.User user = staff(token);
-        return settlement.build(user.id(), body == null ? null : (String) body.get("note"));
+        String note = body == null ? null : (String) body.get("note");
+        if (note == null || note.isBlank()) {
+            // The batch says which week it settles, so a person approving it does not have to remember.
+            java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"));
+            java.time.LocalDate from = today.minusDays(6);
+            note = "Week " + today.get(java.time.temporal.WeekFields.ISO.weekOfWeekBasedYear())
+                 + " of " + today.getYear() + " (" + from + " to " + today + ")";
+        }
+        return settlement.build(user.id(), note);
     }
 
     @GetMapping("/balances")

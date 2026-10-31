@@ -20,9 +20,9 @@ part still needs a person or a key; **todo** means not started.
 | EQ-110 | 9 | Shipping in a sandbox: labels, webhooks, failed attempts | **partial** |
 | EQ-111 | 10 | Messages, invoices and languages, including WhatsApp | **partial** |
 | EQ-112 | 11 | Seller sign-up, KYC and listing approval | **done** |
-| EQ-113 | 12 | Money and risk: reconciliation, payouts that show what and why | **partial** |
+| EQ-113 | 12 | Money and risk: reconciliation, payouts that show what and why | **done** |
 | EQ-114 | 13 | Ops Manager agent and an MCP server for the owner | **partial** |
-| EQ-115 | 15 | Compliance, hardening and go-live | **todo** |
+| EQ-115 | 15 | Compliance, hardening and go-live | **partial** - code done, owner items listed in docs/GOLIVE.md |
 
 ## What the partial ones are missing
 
@@ -30,5 +30,5 @@ part still needs a person or a key; **todo** means not started.
 - **EQ-108** the pricing band is enforced; the photo-to-listing agent is not built.
 - **EQ-110** carrier booking and AWB webhooks are stubbed, so a shipment moves on our side only.
 - **EQ-111** email and in-app messages work; WhatsApp needs a business number and template approval.
-- **EQ-113** settlement batches exist and reconcile; the payout approval view is being finished.
 - **EQ-114** agents run and report; the MCP server for the owner is not exposed yet.
+- **EQ-115** every code side item is done; legal identity, GST, an email provider, live keys and a hostname are the owner's.

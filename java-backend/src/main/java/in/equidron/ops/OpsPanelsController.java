@@ -38,6 +38,34 @@ public class OpsPanelsController {
         if (!"ops".equals(user.role()) && !"admin".equals(user.role())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only.");
     }
 
+    /**
+     * Payout batches, with the lines that explain them.
+     *
+     * Approving a settlement needs what is paid, who receives it, how much arrives after tax and the reason
+     * recorded on the batch. A single total is not something a person can responsibly approve.
+     */
+    @GetMapping("/payouts")
+    public Map<String, Object> payouts(@CookieValue(name = "equidron_session", required = false) String token) {
+        staff(token);
+        List<Map<String, Object>> batches = jdbc.queryForList(
+            "SELECT b.id, b.status, b.total_paise, b.note, b.created_at, b.decided_at, " +
+            "       (SELECT count(*) FROM payout_lines l WHERE l.batch_id = b.id) AS sellers, " +
+            "       (SELECT COALESCE(SUM(l.net_paise), 0) FROM payout_lines l WHERE l.batch_id = b.id) AS net_paise " +
+            "FROM payout_batches b ORDER BY b.id DESC LIMIT 50");
+        List<Map<String, Object>> allLines = jdbc.queryForList(
+            "SELECT l.batch_id, s.name AS seller, l.gross_paise, l.tcs_paise, l.tds_paise, l.net_paise " +
+            "FROM payout_lines l JOIN sellers s ON s.id = l.seller_id " +
+            "WHERE l.batch_id IN (SELECT id FROM payout_batches ORDER BY id DESC LIMIT 50) " +
+            "ORDER BY l.batch_id DESC, l.id");
+        List<Map<String, Object>> out = new java.util.ArrayList<>();
+        for (Map<String, Object> batch : batches) {
+            Map<String, Object> view = new java.util.LinkedHashMap<>(batch);
+            view.put("lines", allLines.stream().filter(x -> x.get("batch_id").equals(batch.get("id"))).toList());
+            out.add(view);
+        }
+        return Map.of("batches", out);
+    }
+
     @GetMapping("/returns")
     public List<Map<String, Object>> returns(@CookieValue(name = "equidron_session", required = false) String token) {
         staff(token);

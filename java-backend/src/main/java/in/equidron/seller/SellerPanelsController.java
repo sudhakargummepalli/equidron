@@ -107,6 +107,11 @@ public class SellerPanelsController {
         long earned = lines.stream().mapToLong(l -> ((Number) l.get("line_paise")).longValue()).sum();
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("lines", lines);
+        // Which settlements have paid this shop, and which are still waiting for a person to approve them.
+        out.put("payouts", jdbc.queryForList(
+            "SELECT b.id, b.status, b.created_at, l.gross_paise, l.tcs_paise, l.tds_paise, l.net_paise " +
+            "FROM payout_lines l JOIN payout_batches b ON b.id = l.batch_id " +
+            "WHERE l.seller_id = ? ORDER BY b.id DESC LIMIT 24", shopId));
         out.put("earned_paise", earned);
         out.put("paid_paise", jdbc.queryForObject(
             "SELECT COALESCE(SUM(l.net_paise), 0) FROM payout_lines l JOIN payout_batches b ON b.id = l.batch_id " +
