@@ -261,7 +261,7 @@ public class SellerPanelsController {
             Long.class, productId, shopId, pricePaise, mrpPaise, condition, fulfilment, handling, shipsToJson);
         jdbc.update("INSERT INTO inventory (offer_id, warehouse_id, on_hand, reserved) " +
                     "SELECT ?, MIN(id), ?, 0 FROM warehouses WHERE seller_id = ? " +
-                    "ON CONFLICT (offer_id, warehouse_id) DO UPDATE SET on_hand = EXCLUDED.on_hand", offerId, quantity, shopId);
+                    "ON CONFLICT (offer_id, warehouse_id) DO NOTHING", offerId, quantity, shopId);
         return offerId;
     }
 
