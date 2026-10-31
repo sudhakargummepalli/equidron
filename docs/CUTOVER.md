@@ -205,3 +205,11 @@ browser back at :8010.
     node --use-system-ca app.js --db data/pg-restored --port 8010
 
 Nothing writes to it in the meantime, which is what makes the rollback safe to keep for a few days.
+
+## The Java server is the worker, 2026-11-01
+
+The Node worker stopped with the Node server, so the Java server now drains the job queue itself: the tick
+is on unless `JOBS_RUNNER_ENABLED=false` is set. A worker that is off unless somebody remembers a flag is a
+queue that fills up quietly, and the first symptom would be a customer who never receives an email.
+
+Verified without any flag set: a queued `email:deliver` job was claimed and completed within one tick.

@@ -4,9 +4,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** Ticks the runner when the Java side is asked to be the worker. Off by default. */
+/** Ticks the queue every few seconds. On unless JOBS_RUNNER_ENABLED=false, because nothing else drains it. */
 @Component
-@ConditionalOnProperty(name = "JOBS_RUNNER_ENABLED", havingValue = "true")
+@ConditionalOnProperty(name = "JOBS_RUNNER_ENABLED", havingValue = "true", matchIfMissing = true)
 public class JobSchedule {
 
     private final JobRunner runner;
