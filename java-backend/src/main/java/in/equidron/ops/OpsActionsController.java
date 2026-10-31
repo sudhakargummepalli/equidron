@@ -61,6 +61,31 @@ public class OpsActionsController {
     }
 
     /** Receiving a return refunds the customer; restocking is a separate choice. */
+    /**
+     * Schedule the collection of an approved return.
+     *
+     * A return that is approved but never collected is a refund with no parcel: the money goes back and
+     * the goods stay with the customer. Recording the courier and the date makes the parcel somebody's job.
+     */
+    @PostMapping("/returns/{id}/pickup")
+    public Map<String, Object> pickupReturn(@CookieValue(name = "equidron_session", required = false) String token,
+                                            @PathVariable long id, @RequestBody Map<String, Object> body) {
+        staff(token);
+        String at = body.get("at") == null ? null : String.valueOf(body.get("at")).trim();
+        String courier = body.get("courier") == null ? null : String.valueOf(body.get("courier")).trim();
+        if (at == null || at.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Say when the parcel will be collected.");
+        }
+        int changed = jdbc.update(
+            "UPDATE returns SET pickup_status = 'scheduled', pickup_at = ?, pickup_courier = ?, updated_at = now() " +
+            "WHERE id = ? AND status IN ('approved', 'received', 'refunded')", at, courier, id);
+        if (changed == 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only a return that was accepted can be scheduled for pickup.");
+        }
+        return Map.of("id", id, "pickup_status", "scheduled", "pickup_at", at,
+                      "pickup_courier", courier == null ? "" : courier);
+    }
+
     @PostMapping("/returns/{id}/receive")
     @Transactional
     public Map<String, Object> receiveReturn(@CookieValue(name = "equidron_session", required = false) String token,

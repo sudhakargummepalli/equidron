@@ -382,3 +382,9 @@ The marketplace now runs on Java + PostgreSQL; the Node server is stopped and ke
 | Scripts | `start-java.ps1` (env + TLS + jar copy), `walkthrough.ps1` (45 steps, self-cleaning) |
 
 Cutover, the incident and the test-isolation rule are in `docs/CUTOVER.md`.
+
+## Tickets (docs/TICKETS.md), 2026-10-31
+
+EQ-101 to EQ-115 are the roadmap's phases written as tickets. EQ-110 gained return pickup scheduling:
+an approved return now records who collects the parcel and when, because a refund with no collection is
+a refund for goods the customer still has. Everything else is listed there with its real status.

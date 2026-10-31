@@ -42,7 +42,8 @@ public class OpsPanelsController {
     public List<Map<String, Object>> returns(@CookieValue(name = "equidron_session", required = false) String token) {
         staff(token);
         return jdbc.queryForList(
-            "SELECT r.id, r.order_id, r.qty, r.reason, r.status, r.refund_paise, r.created_at, u.email " +
+            "SELECT r.id, r.order_id, r.qty, r.reason, r.status, r.refund_paise, r.pickup_status, r.pickup_at, " +
+            "       r.pickup_courier, r.created_at, u.email " +
             "FROM returns r JOIN users u ON u.id = r.user_id ORDER BY r.id DESC LIMIT 100");
     }
 

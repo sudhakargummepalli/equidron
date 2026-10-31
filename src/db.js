@@ -695,6 +695,9 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS kyc_status TEXT;
 ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS kyc_ref TEXT;
 ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS kyc_at TIMESTAMPTZ;
+ALTER TABLE returns ADD COLUMN IF NOT EXISTS pickup_status TEXT NOT NULL DEFAULT 'none';
+ALTER TABLE returns ADD COLUMN IF NOT EXISTS pickup_at TEXT;
+ALTER TABLE returns ADD COLUMN IF NOT EXISTS pickup_courier TEXT;
 `;
 
 const pad = (n) => String(n).padStart(2, '0');
