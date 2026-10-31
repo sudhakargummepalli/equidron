@@ -1,0 +1,4 @@
+# This is a demonstration marketplace: every seller, product, customer and order in it is fictional.
+# Keep it out of search engines until the owner replaces the sample data with a real catalogue.
+User-agent: *
+Disallow: /
