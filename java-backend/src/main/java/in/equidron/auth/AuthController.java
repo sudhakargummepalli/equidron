@@ -21,28 +21,41 @@ public class AuthController {
     private final UserRepository users;
     private final SessionService sessions;
     private final PasswordHasher hasher;
+    private final LoginGuard guard;
 
-    public AuthController(UserRepository users, SessionService sessions, PasswordHasher hasher) {
+    public AuthController(UserRepository users, SessionService sessions, PasswordHasher hasher, LoginGuard guard) {
         this.users = users;
         this.sessions = sessions;
         this.hasher = hasher;
+        this.guard = guard;
     }
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> body, HttpServletResponse res) {
-        String email = body.getOrDefault("email", "").trim();
+        String email = body.getOrDefault("email", "").trim().toLowerCase();
         String password = body.getOrDefault("password", "");
+
+        long wait = guard.lockedFor(email);
+        if (wait > 0) {
+            long minutes = Math.max(1, (wait + 59) / 60);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(Map.of("error", "Too many failed sign-ins. Try again in " + minutes + " minutes, or reset your password."));
+        }
+
         UserRepository.User user = users.byEmail(email);
         boolean ok = user != null
             && user.deletedAt() == null
             && !"agent".equals(user.role())
             && hasher.matches(password, user.algo(), user.salt(), user.hash());
         if (!ok) {
+            guard.record(email, false);
             // One message for both cases: a different answer for "no such account" tells an attacker
             // which half of the guess was right.
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("error", "That email and password do not match."));
         }
+        guard.record(email, true);
+        guard.auditSignIn(user.id(), user.email(), user.role());
         String token = sessions.create(user);
         Cookie cookie = new Cookie(COOKIE, token);
         cookie.setHttpOnly(true);

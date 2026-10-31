@@ -24,11 +24,13 @@ public class AreaLoginController {
     private final UserRepository users;
     private final SessionService sessions;
     private final PasswordHasher hasher;
+    private final LoginGuard guard;
 
-    public AreaLoginController(UserRepository users, SessionService sessions, PasswordHasher hasher) {
+    public AreaLoginController(UserRepository users, SessionService sessions, PasswordHasher hasher, LoginGuard guard) {
         this.users = users;
         this.sessions = sessions;
         this.hasher = hasher;
+        this.guard = guard;
     }
 
     @PostMapping("/api/ops/login")
@@ -43,7 +45,14 @@ public class AreaLoginController {
 
     private ResponseEntity<Map<String, Object>> signIn(Map<String, String> body, Set<String> allowed,
                                                        String portal, HttpServletResponse res) {
-        String email = body.getOrDefault("email", "").trim();
+        String email = body.getOrDefault("email", "").trim().toLowerCase();
+
+        long wait = guard.lockedFor(email);
+        if (wait > 0) {
+            long minutes = Math.max(1, (wait + 59) / 60);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(Map.of("error", "Too many failed sign-ins. Try again in " + minutes + " minutes, or reset your password."));
+        }
         String password = body.getOrDefault("password", "");
         UserRepository.User user = users.byEmail(email);
         boolean ok = user != null
@@ -51,11 +60,14 @@ public class AreaLoginController {
             && allowed.contains(user.role())
             && hasher.matches(password, user.algo(), user.salt(), user.hash());
         if (!ok) {
+            guard.record(email, false);
             // One refusal for every reason: a different message would tell an attacker whether the
             // account exists, or exists but is not staff.
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("error", "That email and password do not match a " + portal + " account."));
         }
+        guard.record(email, true);
+        guard.auditSignIn(user.id(), user.email(), user.role());
         Cookie cookie = new Cookie(COOKIE, sessions.create(user));
         cookie.setHttpOnly(true);
         cookie.setPath("/");
