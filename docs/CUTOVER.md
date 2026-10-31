@@ -165,3 +165,20 @@ and not a move.
 - The Java database currently holds demo rows that must be removed or reconciled before real data
   lands, or customers will see two of everything.
 - Email is not yet wired on the Java side; a cutover without it means order confirmations stop.
+
+## Node stopped, 2026-10-31
+
+The Node server on :8010 was stopped. Java on :8080 is now the only marketplace, the only writer, and the
+only thing a browser talks to.
+
+What is kept, so this is reversible:
+
+- `data/pg-restored` - the Node database as it was left (30.5 MB), untouched.
+- `data/pg-damaged-backup` - the damaged directory, preserved for repair (31.4 MB).
+
+Rollback is still a change of address, not a restore: start Node again against that folder and point the
+browser back at :8010.
+
+    node --use-system-ca app.js --db data/pg-restored --port 8010
+
+Nothing writes to it in the meantime, which is what makes the rollback safe to keep for a few days.
