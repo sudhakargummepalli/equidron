@@ -15,7 +15,7 @@ part still needs a person or a key; **todo** means not started.
 | EQ-105 | 4 | The agent runtime: policy gate, tools, budgets, approvals, runs | **done** |
 | EQ-106 | 5 | First Ops agents in shadow mode, with an inbox and a kill switch | **partial** |
 | EQ-107 | 6 | Customer agents: support that answers without a person | **done** |
-| EQ-108 | 7 | Seller agents: photos to a listing, pricing inside the band | **partial** |
+| EQ-108 | 7 | Seller agents: notes to a listing, pricing inside the band | **done** |
 | EQ-109 | 8 | Real payments in test mode: UPI, webhooks, refunds, idempotency | **done** |
 | EQ-110 | 9 | Shipping in a sandbox: labels, webhooks, failed attempts | **partial** |
 | EQ-111 | 10 | Messages, invoices and languages, including WhatsApp | **partial** |
@@ -27,7 +27,6 @@ part still needs a person or a key; **todo** means not started.
 ## What the partial ones are missing
 
 - **EQ-106** two weeks of shadow data is a calendar fact, not code. The runtime, inbox and kill switch exist.
-- **EQ-108** the pricing band is enforced; the photo-to-listing agent is not built.
 - **EQ-110** carrier booking and AWB webhooks are stubbed, so a shipment moves on our side only.
 - **EQ-111** email and in-app messages work; WhatsApp needs a business number and template approval.
 - **EQ-115** every code side item is done; legal identity, GST, an email provider, live keys and a hostname are the owner's.

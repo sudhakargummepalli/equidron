@@ -158,6 +158,29 @@ angular.module('seller', ['eqCommon', 'equidronI18n']).controller('SellerCtrl', 
       return data;
     }
 
+    // The listing agent fills the form; the seller still reads it and presses Submit.
+    vm.draftListing = function () {
+      vm.drafting = true;
+      vm.draftMsg = null;
+      api.post('/listing-draft', {
+        notes: vm.f.notes,
+        images: (vm.f.images || []).filter(function (i) { return i && i.trim(); }),
+        price: vm.f.price,
+        category: vm.f.category
+      }).then(function (d) {
+        vm.drafting = false;
+        vm.f.title = d.title;
+        vm.f.category = d.category;
+        vm.f.description = d.description;
+        vm.f.specsList = Object.keys(d.specs || {}).map(function (k) { return { k: k, v: d.specs[k] }; });
+        if (!vm.f.specsList.length) vm.f.specsList = [{ k: '', v: '' }];
+        vm.draftMsg = (d.warnings && d.warnings.length) ? d.warnings.join(' ') : 'Draft filled in below. Check every line before you submit.';
+      }, function (e) {
+        vm.drafting = false;
+        vm.draftMsg = e.message || 'The listing agent could not draft this one.';
+      });
+    };
+
     vm.submit = function () {
       vm.fieldErrors = {};
       vm.formError = null;
