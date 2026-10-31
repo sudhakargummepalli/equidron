@@ -15,17 +15,19 @@ public class OpsAccountController {
 
     private final SessionService sessions;
     private final UserRepository users;
+    private final StaffPermissions permissions;
 
-    public OpsAccountController(SessionService sessions, UserRepository users) {
+    public OpsAccountController(SessionService sessions, UserRepository users, StaffPermissions permissions) {
         this.sessions = sessions;
         this.users = users;
+        this.permissions = permissions;
     }
 
     @GetMapping("/me")
     public Map<String, Object> me(@CookieValue(name = "equidron_session", required = false) String token) {
         UserRepository.User user = sessions.resolve(token, users);
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please sign in.");
-        if (!"ops".equals(user.role())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only.");
+        if (!"ops".equals(user.role()) && !"admin".equals(user.role())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only.");
         Map<String, Object> view = new LinkedHashMap<>();
         view.put("id", user.id());
         view.put("email", user.email());
@@ -33,7 +35,7 @@ public class OpsAccountController {
         view.put("role", user.role());
         // One staff tier for now: staff means everything. A permissions table is the next step if the
         // owner wants reviewers who cannot approve payouts.
-        view.put("permissions", java.util.List.of("admin"));
+        view.put("permissions", permissions.forEmail(user.email()));
         return Map.of("user", view, "demo", false);
     }
 

@@ -25,12 +25,18 @@ public class AreaLoginController {
     private final SessionService sessions;
     private final PasswordHasher hasher;
     private final LoginGuard guard;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
+    private final in.equidron.ops.StaffPermissions staffPermissions;
 
-    public AreaLoginController(UserRepository users, SessionService sessions, PasswordHasher hasher, LoginGuard guard) {
+    public AreaLoginController(UserRepository users, SessionService sessions, PasswordHasher hasher, LoginGuard guard,
+                               org.springframework.jdbc.core.JdbcTemplate jdbc,
+                               in.equidron.ops.StaffPermissions staffPermissions) {
         this.users = users;
         this.sessions = sessions;
         this.hasher = hasher;
         this.guard = guard;
+        this.jdbc = jdbc;
+        this.staffPermissions = staffPermissions;
     }
 
     @PostMapping("/api/ops/login")
@@ -41,6 +47,10 @@ public class AreaLoginController {
     @PostMapping("/api/seller/login")
     public ResponseEntity<Map<String, Object>> seller(@RequestBody Map<String, String> body, HttpServletResponse res) {
         return signIn(body, Set.of("seller", "ops", "admin"), "seller", res);
+    }
+
+    private static java.util.List<String> shopName(org.springframework.jdbc.core.JdbcTemplate jdbc, long userId) {
+        return jdbc.queryForList("SELECT name FROM sellers WHERE user_id = ?", String.class, userId);
     }
 
     private ResponseEntity<Map<String, Object>> signIn(Map<String, String> body, Set<String> allowed,
@@ -78,6 +88,14 @@ public class AreaLoginController {
         view.put("email", user.email());
         view.put("name", user.name());
         view.put("role", user.role());
+        // The page assigns this object to vm.user and reads permissions and seller_name from it, so the
+        // sign-in answer has to carry them or the console hides itself until a reload.
+        if ("ops".equals(user.role()) || "admin".equals(user.role())) {
+            view.put("permissions", staffPermissions.forEmail(user.email()));
+        } else {
+            java.util.List<String> shop = shopName(jdbc, user.id());
+            if (!shop.isEmpty()) view.put("seller_name", shop.get(0));
+        }
         return ResponseEntity.ok(Map.of("user", view));
     }
 }

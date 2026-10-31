@@ -36,7 +36,7 @@ public class OpsActionsController {
     private UserRepository.User staff(String token) {
         UserRepository.User user = sessions.resolve(token, users);
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please sign in.");
-        if (!"ops".equals(user.role())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only.");
+        if (!"ops".equals(user.role()) && !"admin".equals(user.role())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only.");
         return user;
     }
 

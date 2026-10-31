@@ -46,7 +46,7 @@ public class SellerApplicationController {
             @CookieValue(name = "equidron_session", required = false) String token) {
         UserRepository.User staff = sessions.resolve(token, users);
         if (staff == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please sign in.");
-        if (!"ops".equals(staff.role())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only.");
+        if (!"ops".equals(staff.role()) && !"admin".equals(staff.role())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only.");
         return applications.pending();
     }
 
@@ -55,7 +55,7 @@ public class SellerApplicationController {
                                       @PathVariable long userId, @PathVariable String decision) {
         UserRepository.User staff = sessions.resolve(token, users);
         if (staff == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please sign in.");
-        if (!"ops".equals(staff.role())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only.");
+        if (!"ops".equals(staff.role()) && !"admin".equals(staff.role())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only.");
         if (!java.util.List.of("approve", "reject").contains(decision)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown decision.");
         }
