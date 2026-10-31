@@ -18,6 +18,9 @@ spring:
     resources:
       # The AngularJS pages are the same files the Node app serves; Java serves them so their
       # relative /api/... calls land on this backend instead of the other one.
+      cache:
+        cachecontrol:
+          no-store: true
       static-locations: file:../static/, file:uploads/, classpath:/static/
 
   datasource:
