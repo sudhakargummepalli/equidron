@@ -23,7 +23,9 @@ class LoginGuardIT {
     @BeforeEach
     void clean() {
         assumeTrue(System.getenv("DATABASE_URL") != null, "needs a real PostgreSQL (DATABASE_URL)");
-        jdbc.update("DELETE FROM login_attempts WHERE email = ?", email);
+        // Every address this test touches must start with no failures: the test database is shared between
+        // suites and between runs, and a lock left by an earlier run is not a bug in the code under test.
+        jdbc.update("DELETE FROM login_attempts WHERE email IN (?, 'nobody@example.com')", email);
         jdbc.update("DELETE FROM audit_log WHERE actor_type = 'user' AND action = 'auth.signed_in' AND entity_id = '999999'");
     }
 

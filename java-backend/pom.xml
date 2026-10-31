@@ -59,6 +59,29 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
+      <!-- The migrations are the schema, so they travel inside the jar: a filesystem location depends on the
+           working directory the JVM happens to be started in, which is how a schema silently disappears on
+           another machine. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-migrations-into-the-jar</id>
+            <phase>process-resources</phase>
+            <goals><goal>copy-resources</goal></goals>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}/db/migration</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/../migrations</directory>
+                  <filtering>false</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <!-- *IT tests need a real PostgreSQL; 'mvn test' stays runnable without one. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

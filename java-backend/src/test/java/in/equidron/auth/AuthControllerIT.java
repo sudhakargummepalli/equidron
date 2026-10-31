@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -20,6 +22,18 @@ class AuthControllerIT {
 
     @Autowired
     TestRestTemplate http;
+
+    @Autowired
+    JdbcTemplate jdbc;
+
+    /**
+     * A lock left by another test - or by an earlier run of this suite - is not a bug in the sign-in code.
+     * The shared test database has to start each test with the failure counts cleared.
+     */
+    @BeforeEach
+    void clearFailures() {
+        jdbc.update("DELETE FROM login_attempts WHERE email = 'nobody@example.com'");
+    }
 
     /** The default client cannot read a 401 with a streamed body, and throws its own exception. */
     private RestTemplate client() {

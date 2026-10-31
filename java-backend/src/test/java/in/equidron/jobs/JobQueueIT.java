@@ -20,7 +20,10 @@ class JobQueueIT {
     @BeforeEach
     void clear() {
         assumeTrue(System.getenv("DATABASE_URL") != null, "needs a real PostgreSQL (DATABASE_URL)");
-        jdbc.update("DELETE FROM jobs WHERE kind LIKE 'test:%'");
+        // claim() takes the oldest due job of any kind, so a job left by another test - or by a previous run of
+    // this suite - is what the test would pick up instead of its own. The queue tests start from an empty
+    // queue, which is also the only state in which "the next claim is mine" is true.
+    jdbc.update("DELETE FROM jobs");
     }
 
     @Test

@@ -1,3 +1,37 @@
+# Equidron
+
+A marketplace with three faces: the **Store** for customers, **Seller Central** for shops, and **Ops** for the
+people who run it. It runs on **Java 17 + Spring Boot** with **PostgreSQL**, and it is deployed locally only.
+
+## Run it
+
+```powershell
+powershell -File scripts/start-java.ps1        # or: -Bot for the Telegram bot
+```
+
+Open http://localhost:8080/shop/ · /seller/ · /ops/ (sample password `equidron-demo`).
+
+## Build and test
+
+```powershell
+cd java-backend
+mvn verify            # 57 unit and database tests, against equidron_test
+```
+
+## Where things are
+
+| Path | What it is |
+|---|---|
+| `java-backend/` | the server: shop, seller, ops, agents, jobs, payments, invoices |
+| `static/` | the three AngularJS pages the server serves |
+| `migrations/` | the schema; copied into the jar at build time |
+| `scripts/` | start, backup, seed (`.sql`), walkthrough |
+| `docs/` | `CUTOVER.md`, `DECISIONS.md`, `PROGRESS.md`, `TICKETS.md`, `GOLIVE.md`, `MCP.md` |
+
+## History
+
+This was a Node.js and Netlify project until 2026-10-31; the Java server replaced it, the Node code lives only
+in git history, and `docs/CUTOVER.md` explains why and how.
 # Equidron (Node.js + PostgreSQL)
 
 A marketplace app in the style of Amazon, with three separate interfaces:

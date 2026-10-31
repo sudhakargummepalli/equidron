@@ -46,6 +46,9 @@ class CheckoutIT {
             "DELETE FROM cart_items WHERE user_id IN (SELECT id FROM users WHERE email = ?)",
             "DELETE FROM addresses WHERE user_id IN (SELECT id FROM users WHERE email = ?)",
             "DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email = ?)",
+            // Placing an order now queues its confirmation email, and that outbox row references the user.
+            // Without this the cleanup fails on a foreign key - the order email working exactly as intended.
+            "DELETE FROM outbox WHERE user_id IN (SELECT id FROM users WHERE email = ?)",
             "DELETE FROM users WHERE email = ?" }) {
             jdbc.update(sql, email);
         }

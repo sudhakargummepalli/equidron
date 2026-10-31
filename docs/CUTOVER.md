@@ -213,3 +213,13 @@ is on unless `JOBS_RUNNER_ENABLED=false` is set. A worker that is off unless som
 queue that fills up quietly, and the first symptom would be a customer who never receives an email.
 
 Verified without any flag set: a queued `email:deliver` job was claimed and completed within one tick.
+
+## The Node code was removed, 2026-11-01
+
+The Node server, its tests, its packages and its one-off scripts were deleted from the working tree. They
+remain in git history at the commit before `Remove the Node runtime`, so a rollback is `git checkout <sha> -- .`
+followed by `npm install`, not a supported path any more.
+
+What stayed, because the Java server needs it: `static/` (the three pages), `uploads/`, and `migrations/`
+(the schema, now copied into the jar at build time so a filesystem path cannot silently lose it). The catalogue
+seeder became `scripts/seed-catalogue.sql`, which needs nothing but psql.
