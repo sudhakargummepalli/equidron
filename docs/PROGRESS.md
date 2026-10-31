@@ -363,3 +363,22 @@ file is sorted oldest first; the newest entry is at the bottom.
 Phase 11's leftovers, which need no account: document uploads and seller details on listings. After
 that, the next phase to move is whichever credential arrives first.
 
+
+## Java backend (the strangler) - state on 2026-10-31
+
+The marketplace now runs on Java + PostgreSQL; the Node server is stopped and kept only as a rollback.
+
+| Area | State |
+|---|---|
+| Foundation | Spring Boot 3.3, Java 17, Flyway over the same 28 migrations, PostgreSQL `equidron_live` |
+| Auth | scrypt passwords (Node-compatible), sessions, sign-up + email code, password reset, lockout, audit |
+| Shop | catalogue with categories and paging, delivery promise, cart, checkout, Razorpay (test keys), orders, invoices, returns, support |
+| Seller | dashboard, listings, submit listing, orders, ledger, catalog, notifications, Telegram link |
+| Ops | 19 panels, listing review, returns, support replies, shipments, settlement, approvals, agents, kill switch |
+| Agents | policy gate, tool registry, idempotent tools, budgets, approval inbox, run loop, step masking |
+| Jobs | queue with leases and retries, optional runner |
+| Bot | Telegram polling, `/start` linking, `/orders`, `/order`, `/products` |
+| Tests | 80 green, run against `equidron_test` so they never touch the marketplace |
+| Scripts | `start-java.ps1` (env + TLS + jar copy), `walkthrough.ps1` (45 steps, self-cleaning) |
+
+Cutover, the incident and the test-isolation rule are in `docs/CUTOVER.md`.

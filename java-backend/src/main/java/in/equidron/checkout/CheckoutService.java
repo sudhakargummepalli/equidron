@@ -48,7 +48,17 @@ public class CheckoutService {
             "WHERE user_id = ? AND key = ? AND route = 'checkout'",
             Long.class, userId, idempotencyKey);
         if (!previous.isEmpty()) {
-            return Map.of("replayed", true, "order_id", previous.get(0));
+            long replayedId = previous.get(0);
+            // A key can outlive its order - a cancelled or removed order, or a restored database. Replaying
+            // an id that no longer exists hands the customer a 404 for an order they never placed, so a key
+            // with no order behind it is discarded and the order is placed again.
+            Integer exists = jdbc.queryForObject(
+                "SELECT count(*) FROM orders WHERE id = ? AND user_id = ?", Integer.class, replayedId, userId);
+            if (exists != null && exists > 0) {
+                return Map.of("replayed", true, "order_id", replayedId);
+            }
+            jdbc.update("DELETE FROM idempotency_keys WHERE user_id = ? AND key = ? AND route = 'checkout'",
+                userId, idempotencyKey);
         }
 
         List<Map<String, Object>> lines = jdbc.queryForList(
