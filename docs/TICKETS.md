@@ -14,7 +14,7 @@ part still needs a person or a key; **todo** means not started.
 | EQ-104 | 3 | Events, a job queue with leases and retries, and visible failures | **done** |
 | EQ-105 | 4 | The agent runtime: policy gate, tools, budgets, approvals, runs | **done** |
 | EQ-106 | 5 | First Ops agents in shadow mode, with an inbox and a kill switch | **partial** |
-| EQ-107 | 6 | Customer agents: support that answers without a person | **todo** |
+| EQ-107 | 6 | Customer agents: support that answers without a person | **done** |
 | EQ-108 | 7 | Seller agents: photos to a listing, pricing inside the band | **partial** |
 | EQ-109 | 8 | Real payments in test mode: UPI, webhooks, refunds, idempotency | **done** |
 | EQ-110 | 9 | Shipping in a sandbox: labels, webhooks, failed attempts | **partial** |

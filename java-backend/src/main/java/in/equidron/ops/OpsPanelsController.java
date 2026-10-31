@@ -26,13 +26,10 @@ public class OpsPanelsController {
     private final SessionService sessions;
     private final UserRepository users;
 
-    private final in.equidron.agents.ApprovalInbox approvals;
-
-    public OpsPanelsController(JdbcTemplate jdbc, SessionService sessions, UserRepository users, in.equidron.agents.ApprovalInbox approvals) {
+    public OpsPanelsController(JdbcTemplate jdbc, SessionService sessions, UserRepository users) {
         this.jdbc = jdbc;
         this.sessions = sessions;
         this.users = users;
-        this.approvals = approvals;
     }
 
     private void staff(String token) {
@@ -47,35 +44,6 @@ public class OpsPanelsController {
      * Approving a settlement needs what is paid, who receives it, how much arrives after tax and the reason
      * recorded on the batch. A single total is not something a person can responsibly approve.
      */
-    /**
-     * The approval inbox the Ops page reads.
-     *
-     * The page asks for { approvals: [...] } with a status filter; the Node server answered that shape and the
-     * Java one did not, which is why the tab was empty while parked approvals existed.
-     */
-    @GetMapping("/approvals")
-    public Map<String, Object> approvals(@CookieValue(name = "equidron_session", required = false) String token,
-                                         @RequestParam(name = "status", required = false) String status) {
-        staff(token);
-        List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT a.id, a.agent_id, a.tool, a.payload, a.risk, a.amount_paise, a.reason, a.status, " +
-            "       a.note, a.created_at, a.decided_at, u.email AS decided_by " +
-            "FROM approvals a LEFT JOIN users u ON u.id = a.decided_by " +
-            (status == null || status.isBlank() ? "" : "WHERE a.status = '" + status.replace("'", "") + "' ") +
-            "ORDER BY a.id DESC LIMIT 100");
-        return Map.of("approvals", rows);
-    }
-
-    @PostMapping("/approvals/{id}/decide")
-    public Map<String, Object> decideApproval(@CookieValue(name = "equidron_session", required = false) String token,
-                                              @PathVariable long id, @RequestBody Map<String, Object> body) {
-        staff(token);
-        UserRepository.User decider = sessions.resolve(token, users);
-        long staffId = decider.id();
-        boolean approve = Boolean.TRUE.equals(body.get("approve"));
-        String note = body.get("note") == null ? null : String.valueOf(body.get("note"));
-        return approvals.decide(id, approve, staffId, note);
-    }
     @GetMapping("/payouts")
     public Map<String, Object> payouts(@CookieValue(name = "equidron_session", required = false) String token) {
         staff(token);

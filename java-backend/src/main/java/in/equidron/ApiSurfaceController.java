@@ -106,11 +106,31 @@ public class ApiSurfaceController {
         return agents.run(agentId, level, String.valueOf(body.getOrDefault("trigger", "manual")), task);
     }
 
+    /**
+     * The Ops approval inbox, in the shape the page reads: { approvals: [...] }.
+     *
+     * It used to return a bare list, which left the tab blank over approvals that existed - the same shape
+     * mistake as the cart, the checkout totals and the agents panel.
+     */
     @GetMapping("/api/ops/approvals")
-    public List<Map<String, Object>> pendingApprovals(
-            @CookieValue(name = "equidron_session", required = false) String token) {
+    public Map<String, Object> pendingApprovals(
+            @CookieValue(name = "equidron_session", required = false) String token,
+            @RequestParam(name = "status", required = false) String status) {
         staff(token);
-        return approvals.pending();
+        List<Map<String, Object>> rows = approvals.pending();
+        if (status != null && !status.isBlank() && !"pending".equals(status)) {
+            rows = rows.stream().filter(r -> status.equals(String.valueOf(r.get("status")))).toList();
+        }
+        return Map.of("approvals", rows);
+    }
+
+    /** The page posts { approve, note } here; the old path kept {id}/{decision} for anything already using it. */
+    @PostMapping("/api/ops/approvals/{id}/decide")
+    public Map<String, Object> decideApprovalBody(@CookieValue(name = "equidron_session", required = false) String token,
+                                                  @PathVariable long id, @RequestBody Map<String, Object> body) {
+        UserRepository.User user = staff(token);
+        return approvals.decide(id, Boolean.TRUE.equals(body.get("approve")), user.id(),
+                                body.get("note") == null ? null : String.valueOf(body.get("note")));
     }
 
     @PostMapping("/api/ops/approvals/{id}/{decision}")
