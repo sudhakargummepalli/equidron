@@ -36,7 +36,8 @@ foreach ($path in @("/shop/","/seller/","/ops/","/shop/index.html","/seller/inde
 
 # ---------------------------------------------------------------- customer
 Step "shop meta" { (Invoke-WebRequest "$Base/api/shop/meta" -UseBasicParsing -TimeoutSec 15).StatusCode -eq 200 } | Out-Null
-$search = Step "search" { (Invoke-WebRequest "$Base/api/shop/search?q=phone&limit=8" -UseBasicParsing -TimeoutSec 15).Content | ConvertFrom-Json }
+$search = Step "search" { (Invoke-WebRequest "$Base/api/shop/search?limit=20" -UseBasicParsing -TimeoutSec 15).Content | ConvertFrom-Json }
+if (-not $search.results.Count) { Write-Host "FAIL  nothing in the shop to buy"; $fail += "empty shop" }
 
 $prod = $null; $buyable = $null
 foreach ($candidate in $search.results) {
@@ -65,7 +66,7 @@ foreach ($path in @("/me","/meta","/dashboard","/listings","/orders","/ledger","
   Step "seller $path" { (Invoke-WebRequest ($Base + "/api/seller" + $path) -WebSession $sell -UseBasicParsing -TimeoutSec 15).StatusCode -eq 200 } | Out-Null
 }
 $catalog = Step "seller catalog" { (Invoke-WebRequest "$Base/api/seller/catalog?q=case" -WebSession $sell -UseBasicParsing -TimeoutSec 15).Content | ConvertFrom-Json }
-$sub = Step "seller submit" { (Invoke-WebRequest "$Base/api/seller/submissions" -Method POST -ContentType "application/json" -Body ("{`"product_id`":$($catalog[0].id),`"price_paise`":49900}") -WebSession $sell -UseBasicParsing -TimeoutSec 20).Content | ConvertFrom-Json }
+$sub = Step "seller submit" { (Invoke-WebRequest "$Base/api/seller/submissions" -Method POST -ContentType "application/json" -Body "{`"product_id`":$($catalog[0].id),`"price`":499}" -WebSession $sell -UseBasicParsing -TimeoutSec 20).Content | ConvertFrom-Json }
 $subId = if ($sub) { $sub.id } else { 0 }
 $subOfferId = if ($sub) { $sub.offer_id } else { 0 }
 

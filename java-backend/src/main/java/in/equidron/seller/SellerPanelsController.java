@@ -147,7 +147,9 @@ public class SellerPanelsController {
                                       @RequestBody Map<String, Object> body) {
         long shopId = sellers.shopOf(session.require(token));
 
-        long pricePaise = paise(body.get("price"));
+        // The form sends rupees as text; an API client may send paise. Both mean the same thing.
+        long pricePaise = body.get("price") != null ? paise(body.get("price"))
+                        : body.get("price_paise") != null ? ((Number) body.get("price_paise")).longValue() : 0;
         if (pricePaise <= 0) {
             // The page sends rupees as a string, and somebody may type "1,299" or "₹999".
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A price of at least one rupee is required.");
