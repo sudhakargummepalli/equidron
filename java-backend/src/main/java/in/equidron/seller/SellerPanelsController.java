@@ -52,9 +52,15 @@ public class SellerPanelsController {
     public Map<String, Object> me(@CookieValue(name = "equidron_session", required = false) String token) {
         long userId = session.require(token);
         UserRepository.User user = users.byId(userId);
-        sellers.shopOf(userId);
-        return Map.of("user", Map.of("id", user.id(), "email", user.email(), "name", user.name(), "role", user.role()),
-                      "demo", "false");
+        long shopId = sellers.shopOf(userId);
+        String shopName = jdbc.queryForObject("SELECT name FROM sellers WHERE id = ?", String.class, shopId);
+        java.util.Map<String, Object> view = new java.util.LinkedHashMap<>();
+        view.put("id", user.id());
+        view.put("email", user.email());
+        view.put("name", user.name());
+        view.put("role", user.role());
+        view.put("seller_name", shopName);
+        return Map.of("user", view, "demo", false);
     }
 
     @PostMapping("/logout")

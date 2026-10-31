@@ -31,6 +31,9 @@ public class OpsAccountController {
         view.put("email", user.email());
         view.put("name", user.name());
         view.put("role", user.role());
+        // One staff tier for now: staff means everything. A permissions table is the next step if the
+        // owner wants reviewers who cannot approve payouts.
+        view.put("permissions", java.util.List.of("admin"));
         return Map.of("user", view, "demo", false);
     }
 
