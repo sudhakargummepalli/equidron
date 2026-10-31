@@ -166,6 +166,29 @@ and not a move.
   lands, or customers will see two of everything.
 - Email is not yet wired on the Java side; a cutover without it means order confirmations stop.
 
+## The four lost days were recovered, 2026-10-31
+
+The damaged cluster was repaired and the missing orders are back in the live database.
+
+How, on COPIES only (the original `data/pg-damaged-backup` was never opened by anything writable):
+
+1. `PG_VERSION` was 16, so the installed PostgreSQL was tried first - and refused with
+   `database cluster was initialized without USE_FLOAT8_BYVAL`. That is the decisive fact: PGlite's
+   Postgres is compiled differently from the Windows one, so only PGlite can ever open this cluster.
+2. PGlite with `debug: 1` printed the real fault that the bare abort had hidden:
+   `invalid checkpoint record / could not locate a valid checkpoint record` - a torn write-ahead log.
+3. `pg_resetwal -f` on a copy rebuilt the log and the control file, and PGlite then opened it:
+   23 users, 8 orders, 229 offers.
+4. The four completed orders (36, 37, 38, 67) were merged into the live database by
+   `scripts/merge-recovered-orders.mjs`, which re-links rows through values instead of ids: the owner by
+   email, the seller and warehouse from the live offer. Two orders whose payment was only "created"
+   (34, 35) were deliberately left out.
+
+Verified through the API: the owner's account shows six orders, and every one has an invoice PDF.
+
+The lesson worth keeping: a bare "Aborted()" from a WASM Postgres is not a diagnosis. Turning on the
+server's own logging named the fault in one line, and the repair was then ordinary.
+
 ## Node stopped, 2026-10-31
 
 The Node server on :8010 was stopped. Java on :8080 is now the only marketplace, the only writer, and the
