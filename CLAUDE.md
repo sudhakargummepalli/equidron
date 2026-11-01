@@ -5,7 +5,7 @@ Equidron is a marketplace with three faces: the **Store** (customers), **Seller 
 16**. It is deployed **locally only** — never to Netlify.
 
 `docs/ROADMAP.md` is the short version of the phases, `docs/PROGRESS.md` says where we are,
-`docs/TICKETS.md` maps EQ-101…EQ-115 to their real status, `docs/DECISIONS.md` says why, `docs/CUTOVER.md`
+`docs/PHASES.md` maps PHASE-0…PHASE-15 to their real status, `docs/DECISIONS.md` says why, `docs/CUTOVER.md`
 explains the move off Node, and `docs/GOLIVE.md` lists what only the owner can supply.
 
 ## Install, run, test
@@ -48,7 +48,7 @@ java-backend/src/main/java/in/equidron/
 static/                      shop, seller, ops (AngularJS 1.8) and static/common
 migrations/                  the schema, in file-name order
 scripts/                     start, backup, seed (.sql), walkthrough.ps1
-docs/                        CUTOVER, DECISIONS, GOLIVE, MCP, PROGRESS, ROADMAP, TICKETS
+docs/                        CUTOVER, DECISIONS, GOLIVE, MCP, PHASES, PROGRESS, ROADMAP
 ```
 
 ## Conventions

@@ -26,7 +26,7 @@ mvn verify            # 57 unit and database tests, against equidron_test
 | `static/` | the three AngularJS pages the server serves |
 | `migrations/` | the schema; copied into the jar at build time |
 | `scripts/` | start, backup, seed (`.sql`), walkthrough |
-| `docs/` | `CUTOVER.md`, `DECISIONS.md`, `PROGRESS.md`, `TICKETS.md`, `GOLIVE.md`, `MCP.md` |
+| `docs/` | `CUTOVER.md`, `DECISIONS.md`, `PROGRESS.md`, `PHASES.md`, `GOLIVE.md`, `MCP.md` |
 
 ## History
 

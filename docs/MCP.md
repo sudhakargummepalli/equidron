@@ -1,4 +1,4 @@
-# MCP server (EQ-114)
+# MCP server (PHASE-13)
 
 A small Model Context Protocol server that lets the owner ask Claude about the marketplace: today's orders
 and money, the approvals waiting for a person, any single order.
