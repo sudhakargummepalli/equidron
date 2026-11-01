@@ -107,11 +107,14 @@ class TelegramBotIT {
     @Test
     void productsSearchAnswersWithPrices() {
         bot.handleUpdate(message("999001", "/start 654321"), sender);
-        jdbc.update("INSERT INTO products (title, brand, category, description, specs, images, return_window_days, status, created_at) " +
-                    "VALUES ('Bot Test Phone', 'TestBrand', 'Phones', 'x', '{}', '[]', 7, 'live', now())");
+        jdbc.update("INSERT INTO products (title, brand, category, description, specs, images, return_window_days, status, is_sample, created_at) " +
+                    "VALUES ('Bot Test Phone', 'TestBrand', 'Phones', 'x', '{}', '[]', 7, 'live', true, now())");
         long productId = jdbc.queryForObject("SELECT id FROM products WHERE title = 'Bot Test Phone' ORDER BY id DESC LIMIT 1", Long.class);
-        jdbc.update("INSERT INTO offers (product_id, seller_id, price_paise, mrp_paise, condition, fulfilment, handling_days, status, updated_at) " +
-                    "SELECT ?, MIN(id), 24900, 29900, 'new', 'seller', 1, 'active', now() FROM sellers", productId);
+        // Every NOT NULL column is named: a fresh database has no sample rows to inherit them from.
+        jdbc.update("INSERT INTO offers (product_id, seller_id, price_paise, mrp_paise, condition, fulfilment, handling_days, " +
+                    "ships_to, status, is_sample, auto_pricing, updated_at) " +
+                    "VALUES (?, ?, 24900, 29900, 'new', 'seller', 1, '[\"ALL\"]'::jsonb, 'active', true, false, now())",
+                    productId, aSeller());
         String reply = bot.handleUpdate(message("999001", "/products Bot Test"), sender);
         assertTrue(reply.contains("Products for"), reply);
         assertTrue(reply.contains("Rs "), reply);

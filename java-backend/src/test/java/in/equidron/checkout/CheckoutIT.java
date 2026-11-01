@@ -60,7 +60,7 @@ class CheckoutIT {
             "INSERT INTO addresses (user_id, name, line1, city, pincode, phone) VALUES (?, 'Checkout Tester', '1 Test Road', 'Bengaluru', '560038', '9800000001') RETURNING id",
             Long.class, userId);
 
-        offerId = jdbc.queryForObject("SELECT id FROM offers WHERE price_paise = 150000 ORDER BY id LIMIT 1", Long.class);
+        offerId = aSellableOffer();
         if (offerId == 0) fail("the cart test's offer must exist; run CartIT first or seed one");
         jdbc.update("UPDATE inventory SET reserved = 0, on_hand = 10 WHERE offer_id = ?", offerId);
         jdbc.update("INSERT INTO cart_items (user_id, offer_id, qty, price_at_add_paise, added_at) " +
@@ -82,6 +82,41 @@ class CheckoutIT {
         return new org.springframework.web.client.RestTemplate().exchange(
             http.getRootUri() + "/api/shop/orders", HttpMethod.POST,
             new HttpEntity<>("{\"address_id\":" + addressId + ",\"payment_method\":\"cod\"}", h), String.class);
+    }
+
+    /**
+     * A product, a shop, a warehouse and 25 units - everything an order needs, created here because a fresh
+     * database has no sample catalogue. It reuses its rows on a second run instead of piling up shops.
+     */
+    private long aSellableOffer() {
+        Long existing = jdbc.query("SELECT id FROM offers WHERE seller_id = (SELECT id FROM sellers WHERE name = 'Checkout Test Shop') AND status = 'active' LIMIT 1",
+            rs -> rs.next() ? rs.getLong(1) : null);
+        if (existing != null) return existing;
+
+        jdbc.update("INSERT INTO users (email, name, role, pw_salt, pw_hash, created_at) " +
+                    "VALUES ('checkout-seller@example.com', 'Checkout Seller', 'seller', 's', 'h', now()) " +
+                    "ON CONFLICT (email) DO NOTHING");
+        long sellerUser = jdbc.queryForObject("SELECT id FROM users WHERE email = 'checkout-seller@example.com'", Long.class);
+        jdbc.update("INSERT INTO sellers (user_id, name, city) VALUES (?, 'Checkout Test Shop', 'Bengaluru') " +
+                    "ON CONFLICT (user_id) DO NOTHING", sellerUser);
+        long sellerId = jdbc.queryForObject("SELECT id FROM sellers WHERE user_id = ?", Long.class, sellerUser);
+
+        long productId = jdbc.queryForObject(
+            "INSERT INTO products (title, brand, category, description, specs, images, return_window_days, status, is_sample, created_at) " +
+            "VALUES ('Checkout Test Item', 'TestBrand', 'Gadgets', 'An item that exists only for the checkout test.', " +
+            "'{}'::jsonb, '[]'::jsonb, 10, 'live', true, now()) RETURNING id", Long.class);
+
+        long offerId = jdbc.queryForObject(
+            "INSERT INTO offers (product_id, seller_id, price_paise, mrp_paise, condition, fulfilment, handling_days, ships_to, status, updated_at) " +
+            "VALUES (?, ?, 150000, 180000, 'new', 'seller', 1, '[\"ALL\"]'::jsonb, 'active', now()) RETURNING id",
+            Long.class, productId, sellerId);
+
+        jdbc.update("INSERT INTO warehouses (code, name, city, kind, seller_id) VALUES (?, 'Checkout Test Warehouse', 'Bengaluru', 'seller_dispatch', ?) " +
+                    "ON CONFLICT (code) DO NOTHING", "WH-CHECKOUT-" + sellerId, sellerId);
+        long warehouseId = jdbc.queryForObject("SELECT MIN(id) FROM warehouses WHERE seller_id = ?", Long.class, sellerId);
+        jdbc.update("INSERT INTO inventory (offer_id, warehouse_id, on_hand, reserved) VALUES (?, ?, 25, 0) " +
+                    "ON CONFLICT (offer_id, warehouse_id) DO UPDATE SET on_hand = 25", offerId, warehouseId);
+        return offerId;
     }
 
     @Test
