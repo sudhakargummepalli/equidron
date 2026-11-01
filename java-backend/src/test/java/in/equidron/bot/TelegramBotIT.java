@@ -34,6 +34,17 @@ class TelegramBotIT {
         return jdbc.queryForObject("SELECT id FROM users WHERE email = ?", Long.class, email);
     }
 
+    /** A shop of its own, because a fresh database has no sellers and MIN(id) would be NULL. */
+    private long aSeller() {
+        jdbc.update("INSERT INTO users (email, name, role, pw_salt, pw_hash, created_at) " +
+                    "VALUES ('bot-seller@example.com', 'Bot Seller', 'seller', 's', 'h', now()) " +
+                    "ON CONFLICT (email) DO NOTHING");
+        long sellerUser = jdbc.queryForObject("SELECT id FROM users WHERE email = 'bot-seller@example.com'", Long.class);
+        jdbc.update("INSERT INTO sellers (user_id, name, city) VALUES (?, 'Bot Test Shop', 'Bengaluru') " +
+                    "ON CONFLICT (user_id) DO NOTHING", sellerUser);
+        return jdbc.queryForObject("SELECT id FROM sellers WHERE user_id = ?", Long.class, sellerUser);
+    }
+
     private long orderFor(long user, String note) {
         return jdbc.queryForObject(
             "INSERT INTO orders (user_id, address, status, payment_status, fulfilment_status, payment_method, " +
